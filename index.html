@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logigra</title>
+  <meta name="description" content="Ponad 70 gier logicznych, łamigłówek, zręcznościowych, planszowych, strategicznych i symulacji w przeglądarce: sudoku, kakuro, magazynier, klocki, szachy, obrona twierdzy, farma i wiele innych.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- czcionka nie blokuje strony, gdy sieć jest wolna lub jej brak -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="games.css">
+  <link rel="stylesheet" href="games-more.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="#" class="logo" aria-label="Logigra, strona główna">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      logigra
+    </a>
+    <div class="nav-right">
+      <a href="#gry" class="nav-link">Gry</a>
+      <a href="#/profil" class="nav-points" aria-label="Twój profil"><span id="nav-points">0 pkt</span></a>
+    </div>
+  </nav>
+
+  <main id="home">
+    <header class="hero">
+      <div class="hero-copy">
+        <h1>Gry logiczne i zręcznościowe w czystej formie.</h1>
+        <p>Ponad siedemdziesiąt gier: od sudoku, kakuro i mostów, przez magazyniera i klocki, po szachy z komputerem, obronę twierdzy, farmę i budowę metra. Rozwiązuj, zbieraj punkty i awansuj na kolejne rangi. Bez reklam i bez zakładania konta.</p>
+        <a href="#gry" class="cta">Wybierz grę</a>
+      </div>
+      <div class="stage" id="stage" aria-hidden="true">
+        <div class="iso" id="iso"></div>
+      </div>
+    </header>
+
+    <section class="games" id="gry" aria-labelledby="games-title">
+      <div class="games-head">
+        <h2 id="games-title">Gry</h2>
+        <p id="games-count"></p>
+      </div>
+      <div class="games-tools">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+          <input id="game-search" type="search" placeholder="Szukaj gry" autocomplete="off" spellcheck="false" aria-label="Szukaj gry">
+          <kbd aria-hidden="true">/</kbd>
+        </label>
+        <label class="sort">
+          <span>Sortuj</span>
+          <select id="game-sort" aria-label="Sortowanie gier">
+            <option value="">Polecane</option>
+            <option value="az">Nazwa A–Z</option>
+            <option value="pts">Twoje punkty</option>
+            <option value="new">Jeszcze nie grane</option>
+          </select>
+        </label>
+        <div class="cats" id="game-cats" role="group" aria-label="Kategoria"></div>
+      </div>
+      <ul class="bento" id="game-list"></ul>
+      <p class="games-empty" id="games-empty" hidden>Żadna gra nie pasuje. <button type="button" class="linkish" id="games-reset">Pokaż wszystkie</button></p>
+    </section>
+  </main>
+
+  <main id="game" hidden>
+    <header class="game-top">
+      <a href="#gry" class="back" aria-label="Wszystkie gry"></a>
+      <span class="game-icon" id="game-icon"></span>
+      <h1 id="game-title"></h1>
+      <div class="game-tools" id="game-tools"></div>
+    </header>
+    <div id="game-root"></div>
+  </main>
+
+  <main id="profile" hidden></main>
+
+  <footer>Logigra, 2026</footer>
+
+  <script src="lib.js"></script>
+  <script src="games.js"></script>
+  <script src="profile.js"></script>
+  <script src="games/sudoku.js"></script>
+  <script src="games/nonogram.js"></script>
+  <script src="games/bridges.js"></script>
+  <script src="games/towers.js"></script>
+  <script src="games/minesweeper.js"></script>
+  <script src="games/queens.js"></script>
+  <script src="games/takuzu.js"></script>
+  <script src="games/lights.js"></script>
+  <script src="games/snake.js"></script>
+  <script src="games/g2048.js"></script>
+  <script src="games/memory.js"></script>
+  <script src="games/breakout.js"></script>
+  <script src="games/kakuro.js"></script>
+  <script src="games/hitori.js"></script>
+  <script src="games/kalkudoku.js"></script>
+  <script src="games/petla.js"></script>
+  <script src="games/lampy.js"></script>
+  <script src="games/namioty.js"></script>
+  <script src="games/statki.js"></script>
+  <script src="games/prostokaty.js"></script>
+  <script src="games/polaczenia.js"></script>
+  <script src="games/hydraulik.js"></script>
+  <script src="games/pietnastka.js"></script>
+  <script src="games/magazynier.js"></script>
+  <script src="games/korek.js"></script>
+  <script src="games/probowki.js"></script>
+  <script src="games/samotnik.js"></script>
+  <script src="games/zalewanie.js"></script>
+  <script src="games/skoczek.js"></script>
+  <script src="games/mahjong.js"></script>
+  <script src="games/szyfr.js"></script>
+  <script src="games/labirynt.js"></script>
+  <script src="games/klejnoty.js"></script>
+  <script src="games/kulki.js"></script>
+  <script src="games/ukladanka.js"></script>
+  <script src="games/pasjans.js"></script>
+  <script src="games/slowa-pl.js"></script>
+  <script src="games/slowo.js"></script>
+  <script src="games/wisielec.js"></script>
+  <script src="games/wykreslanka.js"></script>
+  <script src="games/g24.js"></script>
+  <script src="games/echo.js"></script>
+  <script src="games/kret.js"></script>
+  <script src="games/stos.js"></script>
+  <script src="games/ptak.js"></script>
+  <script src="games/biegacz.js"></script>
+  <script src="games/wspinacz.js"></script>
+  <script src="games/klawisze.js"></script>
+  <script src="games/minigolf.js"></script>
+  <script src="games/klocki.js"></script>
+  <script src="games/najezdzcy.js"></script>
+  <script src="games/asteroidy.js"></script>
+  <script src="games/zjadacz.js"></script>
+  <script src="games/zaba.js"></script>
+  <script src="games/babelki.js"></script>
+  <script src="games/smugi.js"></script>
+  <script src="games/obrona.js"></script>
+  <script src="games/pingpong.js"></script>
+  <script src="games/czworki.js"></script>
+  <script src="games/reversi.js"></script>
+  <script src="games/warcaby.js"></script>
+  <script src="games/gomoku.js"></script>
+  <script src="games/kropki.js"></script>
+  <script src="games/twierdza.js"></script>
+  <script src="games/lochy.js"></script>
+  <script src="games/talia.js"></script>
+  <script src="games/przetrwanie.js"></script>
+  <script src="games/szachy.js"></script>
+  <script src="games/farma.js"></script>
+  <script src="games/metro.js"></script>
+  <script src="games/podboj.js"></script>
+  <script src="games/przygoda.js"></script>
+  <script src="games/wyscig.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+:root {
+  --bg: #eef0f4;
+  --surface: #ffffff;
+  --text: #15161b;
+  --muted: #5f6472;
+  --line: #dcdfe6;
+  --tile: #ffffff;
+  --tile-edge: #d3d7e0;
+  --shadow: rgba(30, 38, 70, 0.22);
+  --radius: 28px;
+  --pad: clamp(16px, 4vw, 56px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171a21;
+    --surface: #20242d;
+    --text: #eef0f5;
+    --muted: #9aa1b0;
+    --line: #2c313c;
+    --tile: #262b35;
+    --tile-edge: #343a47;
+    --shadow: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171a21;
+  --surface: #20242d;
+  --text: #eef0f5;
+  --muted: #9aa1b0;
+  --line: #2c313c;
+  --tile: #262b35;
+  --tile-edge: #343a47;
+  --shadow: rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 400 1rem/1.55 "Geist", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.nav, main, footer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-inline: var(--pad);
+}
+
+/* Nawigacja */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 76px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+.mark {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 22px;
+  height: 22px;
+}
+.mark i { border-radius: 3px; background: var(--text); }
+.mark i:nth-child(2) { background: #3550e6; }
+.mark i:nth-child(3) { background: #ffb020; }
+.nav-right { display: flex; align-items: center; gap: 20px; }
+.nav-link { font-weight: 500; color: var(--muted); }
+.nav-points {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.nav-points:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.nav-link:hover { color: var(--text); }
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 32px;
+  min-height: min(620px, calc(100vh - 76px));
+  padding-block: 24px 64px;
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.75rem, 6.2vw, 5.5rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.hero p {
+  max-width: 38ch;
+  margin: 28px 0 36px;
+  font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+  color: var(--muted);
+}
+.cta {
+  display: inline-block;
+  padding: 16px 28px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  transition: transform 150ms ease-out;
+}
+.cta:hover { transform: translateY(-1px); }
+.cta:active { transform: translateY(1px); }
+
+/* Plansza 3D */
+.stage {
+  --t: clamp(56px, 7.2vw, 104px);
+  --tx: 0deg;
+  --tz: 0deg;
+  display: grid;
+  place-items: center;
+  perspective: 1800px;
+  min-height: calc(var(--t) * 5.4);
+}
+.iso {
+  display: grid;
+  grid-template-columns: repeat(4, var(--t));
+  gap: calc(var(--t) * 0.16);
+  transform-style: preserve-3d;
+  transform: rotateX(calc(56deg + var(--tx))) rotateZ(calc(-42deg + var(--tz)));
+  transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--t);
+  border-radius: calc(var(--t) * 0.2);
+  background: var(--tile);
+  box-shadow: inset 0 0 0 1px var(--tile-edge);
+  transform-style: preserve-3d;
+}
+.tile.game {
+  background: var(--c);
+  box-shadow: none;
+  transition: transform 900ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+/* cień pod unoszącym się kaflem, zostaje na podłodze */
+.tile.game::after {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: inherit;
+  background: var(--shadow);
+  filter: blur(calc(var(--z) / 5));
+  transform: translateZ(calc(var(--z) * -1));
+  transition: transform 900ms cubic-bezier(0.2, 0.9, 0.25, 1.15), filter 900ms;
+}
+/* grubość kafla: ciemniejsza warstwa tuż pod spodem */
+.tile.game::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--c) 62%, #000);
+  transform: translateZ(-9px);
+}
+.stage:not(.up) .tile.game { transform: translateZ(0); }
+.stage:not(.up) .tile.game::after { transform: translateZ(0); filter: blur(0); }
+.stage.up .tile.game { transform: translateZ(var(--z)); transition-delay: var(--d); }
+.stage.up .tile.game::after { transition-delay: var(--d); }
+.stage.up .tile.game:hover { transform: translateZ(calc(var(--z) + 24px)); transition-delay: 0ms; transition-duration: 300ms; }
+.stage.up .tile.game:hover::after { transform: translateZ(calc(var(--z) * -1 - 24px)); transition-delay: 0ms; transition-duration: 300ms; }
+.tile .glyph { width: 46%; --cell-on: var(--on); --cell-off: transparent; }
+
+/* Ikona gry z kratek */
+.glyph {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8%;
+  aspect-ratio: 1;
+}
+.glyph i { border-radius: 22%; background: var(--cell-off, color-mix(in srgb, var(--on) 18%, transparent)); }
+.glyph i.on { background: var(--cell-on, var(--on)); }
+
+/* Lista gier */
+.games { padding-block: 48px 96px; }
+.games-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.games-head h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.games-head p { margin: 0; color: var(--muted); }
+
+.bento {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(240px, auto);
+  gap: 16px;
+}
+.bento li { grid-column: span 3; }
+.bento li:nth-child(1) { grid-column: span 4; grid-row: span 2; }
+.bento li:nth-child(2), .bento li:nth-child(3) { grid-column: span 2; }
+.bento li:nth-child(n + 6) { grid-column: span 2; }
+.bento.flat li .glyph { width: 64px; }
+.bento.flat li .card-name { font-size: 1.625rem; }
+@media (min-width: 901px) {
+  .bento li:nth-child(9), .bento li:nth-child(10) { grid-column: span 3; }
+  /* dalej po trzy w rzędzie; samotne karty na końcu rozciągają się na cały rząd */
+  .bento li:nth-child(3n + 11):last-child { grid-column: span 6; }
+  .bento li:nth-child(3n + 11):nth-last-child(2), .bento li:nth-child(3n + 11):nth-last-child(2) + li { grid-column: span 3; }
+  /* po filtrowaniu: równa siatka */
+  .bento.flat { grid-auto-rows: minmax(220px, auto); }
+  .bento.flat li:nth-child(n) { grid-column: span 2; grid-row: auto; }
+  .bento.flat li:nth-child(3n + 1):last-child { grid-column: span 6; }
+  .bento.flat li:nth-child(3n + 1):nth-last-child(2), .bento.flat li:nth-child(3n + 1):nth-last-child(2) + li { grid-column: span 3; }
+}
+
+/* wyszukiwarka, sortowanie, kategorie */
+.games-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.search, .sort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--muted);
+}
+.search:focus-within, .sort:focus-within { box-shadow: inset 0 0 0 2px var(--text); }
+.search svg { width: 20px; height: 20px; flex: none; }
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.0625rem;
+  outline: none;
+}
+.search input::placeholder { color: var(--muted); }
+.search input::-webkit-search-cancel-button { cursor: pointer; }
+.search kbd {
+  padding: 1px 8px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 500 0.8125rem/1.5 "Geist", system-ui, sans-serif;
+}
+.search:focus-within kbd { display: none; }
+.sort span { font-size: 0.9375rem; }
+.sort select {
+  height: 100%;
+  padding-right: 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 600 0.9375rem "Geist", system-ui, sans-serif;
+  cursor: pointer;
+  outline: none;
+}
+.sort select option { background: var(--surface); color: var(--text); }
+.cats {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(var(--pad) * -1);
+  padding: 2px var(--pad);
+}
+.cats::-webkit-scrollbar { display: none; }
+.cat-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font: 500 0.9375rem "Geist", system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms, transform 120ms;
+}
+.cat-chip span { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.8125rem; }
+.cat-chip:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.cat-chip:active { transform: scale(0.97); }
+.cat-chip[aria-pressed="true"] { background: var(--text); color: var(--bg); box-shadow: none; }
+.cat-chip[aria-pressed="true"] span { color: color-mix(in srgb, var(--bg) 65%, transparent); }
+.games-empty { margin: 32px 0; font-size: 1.125rem; color: var(--muted); }
+.card-cat {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.72;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  height: 100%;
+  padding: 28px;
+  border-radius: var(--radius);
+  background: var(--c);
+  color: var(--on);
+  overflow: hidden;
+  isolation: isolate;
+}
+.card .glyph { width: 64px; transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bento li:nth-child(1) .glyph { width: clamp(96px, 14vw, 168px); }
+.card:hover .glyph { transform: rotate(-8deg) scale(1.06); }
+.card-body { display: grid; gap: 6px; max-width: 40ch; }
+.card-name {
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.bento li:nth-child(1) .card-name { font-size: clamp(2.25rem, 4.4vw, 3.75rem); }
+.card-desc { opacity: 0.82; }
+.pill {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--on) 16%, transparent);
+}
+
+/* --- Profil --- */
+#profile { padding-block: 40px 96px; }
+.pf-head {
+  padding: 32px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.pf-name {
+  width: 100%;
+  max-width: 20ch;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px dashed transparent;
+  background: none;
+  color: var(--text);
+  font: 600 clamp(2rem, 5vw, 3.25rem) / 1.1 "Geist", system-ui, sans-serif;
+  letter-spacing: -0.04em;
+}
+.pf-name:hover { border-bottom-color: var(--line); }
+.pf-rank { margin: 4px 0 24px; font-size: 1.125rem; color: var(--muted); }
+.pf-points { margin: 0 0 12px; font-size: 1.125rem; }
+.pf-points strong { font-size: clamp(2.5rem, 7vw, 4rem); font-weight: 600; letter-spacing: -0.04em; margin-right: 6px; }
+.pf-bar { height: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; max-width: 520px; }
+.pf-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3550e6, #6e52e8, #d63864); }
+.pf-next { margin: 10px 0 0; color: var(--muted); }
+.pf-sub { margin: 48px 0 16px; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; }
+.pf-games { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.pf-games li {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pf-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: var(--c); }
+.pf-icon .glyph { width: 56%; }
+.pf-info { display: grid; }
+.pf-game { font-weight: 600; font-size: 1.125rem; }
+.pf-game:hover { text-decoration: underline; }
+.pf-meta { color: var(--muted); font-size: 0.9375rem; }
+.pf-best { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 0 12px; margin: 0; font-size: 0.875rem; }
+.pf-best dt { color: var(--muted); }
+.pf-best dd { margin: 0; font-variant-numeric: tabular-nums; }
+.pf-pts { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 6ch; text-align: right; }
+.pf-note { margin: 32px 0 12px; color: var(--muted); }
+.danger { color: #c4314b; }
+
+footer {
+  padding-block: 32px 48px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; min-height: 0; padding-top: 40px; }
+  .stage { --t: clamp(48px, 15vw, 88px); order: -1; }
+  .bento { grid-template-columns: 1fr 1fr; }
+  .bento li, .bento li:nth-child(n) { grid-column: span 1; grid-row: auto; }
+  .bento li:nth-child(1) { grid-column: span 2; }
+  .bento li:nth-child(even):last-child { grid-column: span 2; }
+  .search kbd { display: none; }
+  .sort span { display: none; }
+}
+@media (max-width: 560px) {
+  .pf-games li { grid-template-columns: 48px 1fr auto; }
+  .pf-best { grid-column: 2 / -1; }
+  .bento li:nth-child(n) { grid-column: span 2; }
+  .bento { grid-auto-rows: minmax(200px, auto); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iso, .tile.game, .tile.game::after, .card .glyph, .cta { transition: none; }
+}
+@media (max-width: 560px) {
+  .games-tools { grid-template-columns: 1fr; }
+  .sort { justify-content: space-between; }
+  .sort span { display: inline; }
+}
