@@ -18,7 +18,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
   mount(board, ctx) {
     const { to, ai, err, ball } = ctx.level;
     const W = 100, H = 140, PW = 18, PH = 2.6, R = 1.8;
-    const cv = canvasGame(board, ctx, W, H, { max: 80 });
+    const cv = canvasGame(board, ctx, W, H, { max: 80, cls: "court" });
     const { g, theme } = cv;
     const s = { me: W / 2, cpu: W / 2, b: null, score: [0, 0], serve: 1, wait: 1, aimErr: 0, hits: 0, trail: [] };
     Pong.last = s;

@@ -61,7 +61,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "smug
     const { DIRS, BACK, think } = LightCycles;
     const { rivals, speed, skill, wins } = ctx.level;
     const GW = 60, GH = 44, S = 2;
-    const cv = canvasGame(board, ctx, GW * S, GH * S, { max: 90 });
+    const cv = canvasGame(board, ctx, GW * S, GH * S, { max: 90, cls: "neon" });
     const { g, theme } = cv;
     const COLORS = [null, "#ff922b", "#e64980", "#fab005"];
     const s = { grid: null, bikes: [], score: [0, 0], round: 0, pause: 1.6, want: null }; // [ty, komputer]

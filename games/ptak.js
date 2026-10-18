@@ -18,7 +18,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ptak
   mount(board, ctx) {
     const { target, gap, speed, every } = ctx.level;
     const W = 100, H = 140, GROUND = 128, R = 3.4;
-    const cv = canvasGame(board, ctx, W, H, { max: 84 });
+    const cv = canvasGame(board, ctx, W, H, { max: 84, cls: "meadow" });
     const { g, theme } = cv;
     const s = { y: 60, vy: 0, pipes: [], passed: 0, started: false, t: 0, next: 0.6, dead: false };
     Flappy.last = s;
@@ -72,8 +72,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ptak
       ctx.lose("Bęc!", `Przelot przez ${s.passed} ${plural(s.passed, "szczelinę", "szczeliny", "szczelin")}.`);
     }
     function draw() {
-      g.fillStyle = theme.c;
-      g.globalAlpha = 0.12;
+      g.fillStyle = "#fff";
+      g.globalAlpha = 0.8;
       for (const c of clouds) {
         c.x -= (s.started && !s.dead ? speed * 0.15 : 2) / 60;
         if (c.x < -15) c.x = W + 15;

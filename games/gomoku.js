@@ -83,6 +83,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "gomo
     let thinking = false, lastMove = -1;
     const cells = gridCells(board, n, n, "gk", { gap: 0 });
     board.style.setProperty("--max", "52px");
+    // margines planszy (pół pola z każdej strony) liczy się do jej rozmiaru
+    board.style.setProperty("--cols", n + 1);
+    board.style.setProperty("--rows", n + 1);
+    // punkty orientacyjne jak na prawdziwej planszy
+    const stars = [3, (n / 2) | 0, n - 4];
+    for (const r of stars) for (const c of stars) cells[r * n + c].classList.add("star");
     const turnEl = el("p", "turn");
     ctx.panel.append(panelBlock("Ruch", turnEl));
     const save = ctx.undoable(([s, l]) => { s.forEach((v, i) => (b[i] = v)); lastMove = l; render(); });

@@ -106,7 +106,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "cegi
     const total = s.bricks.length;
     let raf = 0, last = 0, keys = { left: false, right: false }, particles = [], squash = 0, flash = 0;
 
-    board.classList.add("bk");
+    board.classList.add("bk", "arcade");
     board.style.setProperty("--cols", 10);
     board.style.setProperty("--rows", (10 * H) / W);
     const cv = el("canvas", "bk-canvas");

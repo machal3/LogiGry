@@ -239,6 +239,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kaku
       board.append(b);
       return b;
     });
+    roundCorners(cells, n);
 
     const save = ctx.undoable(([gs, ns, s]) => { g.set(gs); notes.set(ns); sel = s; render(); });
     const controls = digitControls(ctx, 9, { put });

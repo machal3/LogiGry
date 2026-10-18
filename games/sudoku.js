@@ -245,6 +245,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sudo
       board.append(b);
       return b;
     });
+    roundCorners(cells, 9);
 
     const save = ctx.undoable(([gs, ns, s]) => {
       gs.forEach((v, i) => (g[i] = v));

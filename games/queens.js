@@ -229,6 +229,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "krol
       board.append(cell);
       return cell;
     });
+    roundCorners(cells, n);
 
     const count = el("p", "panel-big");
     ctx.panel.append(panelBlock("Królowe", count, el("p", "panel-note", "Krzyżyk oznacza pole, na którym królowej na pewno nie ma. Nie wpływa na wynik.")));

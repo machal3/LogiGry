@@ -18,7 +18,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "bieg
   mount(board, ctx) {
     const { target, speed, birds } = ctx.level;
     const W = 120, H = 60, GROUND = 50;
-    const cv = canvasGame(board, ctx, W, H, { max: 120 });
+    const cv = canvasGame(board, ctx, W, H, { max: 120, cls: "dusk" });
     const { g, theme } = cv;
     const s = { y: 0, vy: 0, duck: false, dist: 0, obs: [], next: 1.2, started: false, hold: 0, t: 0 };
     Runner.last = s;

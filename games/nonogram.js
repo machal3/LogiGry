@@ -417,6 +417,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
         cells.push(cell);
       }
     }
+    roundCorners(cells, n);
 
     const toolSeg = segmented("Narzędzie", ["Zamaluj", "Krzyżyk"], (k) => { tool = k + 1; toolSeg.set(k); });
     toolSeg.set(0);

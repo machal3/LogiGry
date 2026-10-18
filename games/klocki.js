@@ -56,7 +56,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kloc
     const { COLS, ROWS } = Tetris;
     const COLORS = { I: "#15aabf", O: "#fab005", T: "#ae3ec9", S: "#40c057", Z: "#e03131", J: "#1c7ed6", L: "#f76707" };
     const S = 10, W = COLS * S, H = ROWS * S;
-    const cv = canvasGame(board, ctx, W, H, { max: 60 });
+    const cv = canvasGame(board, ctx, W, H, { max: 60, cls: "arcade" });
     const { g, theme } = cv;
     const s = { grid: new Array(COLS * ROWS).fill(""), queue: [...Tetris.bag(), ...Tetris.bag()], cur: null, hold: "", held: false, lines: 0, score: 0, flash: [] };
     Tetris.last = s;

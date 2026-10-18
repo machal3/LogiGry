@@ -19,7 +19,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "aste
   mount(board, ctx) {
     const { waves, rocks, speed } = ctx.level;
     const W = 120, H = 120;
-    const cv = canvasGame(board, ctx, W, H, { max: 70 });
+    const cv = canvasGame(board, ctx, W, H, { max: 70, cls: "space" });
     const { g, theme } = cv;
     const s = { ship: null, shots: [], rocks: [], bits: [], wave: 0, lives: 3, score: 0, cool: 0 };
     Asteroids.last = s;

@@ -172,6 +172,8 @@ function selectionRing(board) {
     ring.style.width = `${target.offsetWidth}px`;
     ring.style.height = `${target.offsetHeight}px`;
     ring.style.transform = `translate(${target.offsetLeft}px, ${target.offsetTop}px)`;
+    // rogi ramki takie jak rogi pola (także narożnych, zaokrąglonych jak plansza)
+    ring.style.borderRadius = getComputedStyle(target).borderRadius;
   };
   new ResizeObserver(place).observe(board);
   return (cell) => {
@@ -180,6 +182,12 @@ function selectionRing(board) {
     place();
     requestAnimationFrame(() => ring.classList.remove("init"));
   };
+}
+
+// Narożne pola przejmują zaokrąglenie planszy, więc tło, kursor i ramka zaznaczenia pasują do jej rogów.
+function roundCorners(cells, cols) {
+  const last = cells.length - 1;
+  [[0, "c-tl"], [cols - 1, "c-tr"], [last - cols + 1, "c-bl"], [last, "c-br"]].forEach(([i, c]) => cells[i]?.classList.add(c));
 }
 
 // Przycisk z ikoną; na wąskim ekranie widać samą ikonę, nazwa zostaje dla czytników ekranu.
@@ -334,11 +342,18 @@ function statBlock(ctx, title, { meter = false, small = false } = {}) {
   kids.push(note);
   const block = panelBlock(title, ...kids);
   ctx.panel.append(block);
+  let changed = 0;
   return {
     el: v,
     block,
     set(text, f, sub) {
-      if (text != null && v.textContent !== String(text)) v.textContent = text;
+      if (text != null && v.textContent !== String(text)) {
+        v.textContent = text;
+        // podskok przy zmianie; wartości zmieniane co klatkę (dystans, czas) nie skaczą
+        const now = performance.now();
+        if (now - changed > 400 && changed) replay(v, "tick");
+        changed = now;
+      }
       if (fill && f != null) fill.style.width = `${Math.max(0, Math.min(1, f)) * 100}%`;
       if (sub != null) note.textContent = sub;
     },
@@ -352,7 +367,7 @@ function gridCells(board, cols, rows, cls, { gap = 0.08, tag = "button", label =
   board.style.setProperty("--gr", gap);
   board.style.setProperty("--cols", cols + gap * (cols + 1));
   board.style.setProperty("--rows", rows + gap * (rows + 1));
-  return Array.from({ length: cols * rows }, (_, i) => {
+  const cells = Array.from({ length: cols * rows }, (_, i) => {
     const r = (i / cols) | 0, c = i % cols;
     const b = el(tag, "cell gb-cell");
     if (tag === "button") b.type = "button";
@@ -362,6 +377,8 @@ function gridCells(board, cols, rows, cls, { gap = 0.08, tag = "button", label =
     board.append(b);
     return b;
   });
+  if (!gap) roundCorners(cells, cols);
+  return cells;
 }
 
 // Płótno gry zręcznościowej we współrzędnych W × H: dopasowanie do ekranu, kolory motywu, pętla klatek.

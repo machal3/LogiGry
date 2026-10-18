@@ -18,7 +18,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wspi
   mount(board, ctx) {
     const { target, moving, weak, gapMax } = ctx.level;
     const W = 100, H = 150;
-    const cv = canvasGame(board, ctx, W, H, { max: 80 });
+    const cv = canvasGame(board, ctx, W, H, { max: 80, cls: "sky" });
     const { g, theme } = cv;
     const s = { x: 50, y: 140, vx: 0, vy: -100, cam: 0, best: 0, plats: [] };
     Climber.last = s;

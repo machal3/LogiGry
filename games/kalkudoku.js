@@ -153,6 +153,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kalk
       board.append(b);
       return b;
     });
+    roundCorners(cells, n);
     const labels = cages.map((cg) => {
       const lab = el("span", "kd-lab", `${cg.target}${cg.op}`);
       return lab;

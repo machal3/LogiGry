@@ -18,7 +18,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
   mount(board, ctx) {
     const { waves, rows, step, fire } = ctx.level;
     const W = 100, H = 130, PY = 120;
-    const cv = canvasGame(board, ctx, W, H, { max: 84 });
+    const cv = canvasGame(board, ctx, W, H, { max: 84, cls: "space" });
     const { g, theme } = cv;
     // sprite'y 8 × 6 w dwóch klatkach
     const SPR = [

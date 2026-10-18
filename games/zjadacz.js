@@ -55,7 +55,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
     const { MAP, W, H, DIRS, BACK, at, open } = PacMan;
     const { gspeed, fright } = ctx.level;
     const S = 6, CW = W * S, CH = H * S;
-    const cv = canvasGame(board, ctx, CW, CH, { max: 70 });
+    const cv = canvasGame(board, ctx, CW, CH, { max: 70, cls: "arcade" });
     const { g, theme } = cv;
     const find = (ch) => { const out = []; MAP.forEach((row, y) => [...row].forEach((c, x) => c === ch && out.push([x, y]))); return out; };
     const [pStart] = find("P"), homes = find("G");

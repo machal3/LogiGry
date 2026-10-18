@@ -12,12 +12,21 @@ button { font: inherit; color: inherit; }
   border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 120ms ease-out, background-color 150ms, opacity 150ms;
+  transition: transform 160ms cubic-bezier(0.3, 0.8, 0.3, 1.4), background-color 150ms, box-shadow 160ms, filter 160ms, opacity 150ms;
 }
-.btn { border: 0; background: var(--c, var(--text)); color: var(--on, var(--bg)); }
-.btn-ghost { border: 0; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-.btn-ghost:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--muted); }
-.btn:active:not(:disabled), .btn-ghost:active:not(:disabled) { transform: scale(0.97); }
+/* przyciski mają grubość: dolna krawędź i cień w kolorze gry, wciśnięcie je spłaszcza */
+.btn {
+  border: 0;
+  background: var(--c, var(--text));
+  color: var(--on, var(--bg));
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px -10px color-mix(in srgb, var(--c, var(--text)) 85%, transparent);
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.btn-ghost { border: 0; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), inset 0 -2px 0 var(--line); }
+.btn-ghost:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--muted), inset 0 -2px 0 var(--muted); }
+.btn:active:not(:disabled), .btn-ghost:active:not(:disabled) { transform: translateY(1px) scale(0.98); transition-duration: 60ms; }
+.btn:active:not(:disabled) { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.16), 0 3px 8px -6px color-mix(in srgb, var(--c, var(--text)) 85%, transparent); }
+.btn-ghost:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--muted); }
 .btn-ghost:disabled { opacity: 0.4; cursor: default; }
 .wide { width: 100%; }
 .has-icon svg { width: 18px; height: 18px; flex: none; }
@@ -181,14 +190,19 @@ body[data-view="game"] footer { display: none; }
   top: 0;
   left: 0;
   z-index: 2;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 3px var(--c), 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent);
+  /* rogi kopiuje z pola (selectionRing); poświata w środku, więc plansza z overflow: hidden jej nie ucina */
+  box-shadow: inset 0 0 0 3px var(--c), inset 0 0 0 6px color-mix(in srgb, var(--c) 22%, transparent);
   pointer-events: none;
-  transition: transform 170ms cubic-bezier(0.3, 0.9, 0.3, 1), width 170ms, height 170ms;
+  transition: transform 190ms cubic-bezier(0.3, 0.9, 0.3, 1.15), width 190ms, height 190ms, border-radius 190ms;
 }
 .sel-ring.init { transition: none; }
-.tw .sel-ring { border-radius: calc(var(--s) * 0.16); }
 .won .sel-ring { opacity: 0; transition: opacity 300ms; }
+
+/* narożne pola zaokrąglone jak plansza (roundCorners) */
+.board > .c-tl { border-top-left-radius: inherit !important; }
+.board > .c-tr { border-top-right-radius: inherit !important; }
+.board > .c-bl { border-bottom-left-radius: inherit !important; }
+.board > .c-br { border-bottom-right-radius: inherit !important; }
 .panel { display: grid; gap: 14px; align-content: start; }
 .panel-block {
   display: grid;
@@ -210,6 +224,10 @@ body[data-view="game"] footer { display: none; }
   font-variant-numeric: tabular-nums;
 }
 .panel-block p.panel-stat { color: var(--text); font-weight: 500; }
+.panel-big, .panel-stat { transform-origin: left center; }
+/* wartość w panelu podskakuje, gdy się zmienia (statBlock) */
+.tick { animation: tick 420ms cubic-bezier(0.2, 0.9, 0.3, 1.5); }
+@keyframes tick { 30% { transform: scale(1.1); color: color-mix(in srgb, var(--c) 70%, var(--text)); } }
 .meter { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
 .meter span {
   display: block;
@@ -228,13 +246,14 @@ body[data-view="game"] footer { display: none; }
   border: 0;
   border-radius: 14px;
   background: var(--bg);
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--text) 9%, transparent);
   font-size: 1.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 120ms ease-out, background-color 150ms, opacity 200ms;
+  transition: transform 140ms cubic-bezier(0.3, 0.8, 0.3, 1.4), background-color 150ms, box-shadow 120ms, opacity 200ms;
 }
 .pad-digit:hover { background: color-mix(in srgb, var(--c) 16%, var(--bg)); }
-.pad-digit:active { transform: scale(0.93); }
+.pad-digit:active { transform: translateY(2px) scale(0.96); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--text) 9%, transparent); transition-duration: 50ms; }
 .pad-left {
   position: absolute;
   top: 6px;
@@ -277,7 +296,7 @@ body[data-view="game"] footer { display: none; }
   display: grid;
   place-items: center;
 }
-.cell:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; border-radius: inherit; }
+.cell:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
 .val { animation: pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.35) both; }
 .intro .val { animation-delay: calc(var(--k) * 24ms); }
 .notes {
@@ -385,9 +404,23 @@ body[data-view="game"] footer { display: none; }
   animation: shine 1.6s ease-in-out 1.2s both;
 }
 @keyframes shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
-.result-card::before { animation: badge 600ms cubic-bezier(0.2, 0.9, 0.3, 1.5) 900ms both; }
-.lost .result-card::before { animation-delay: 200ms; }
+.result-card::before { animation: badge 600ms cubic-bezier(0.2, 0.9, 0.3, 1.5) 900ms both, badge-ring 900ms ease-out 1100ms; }
+.lost .result-card::before { animation-delay: 200ms, 400ms; }
 @keyframes badge { from { transform: scale(0) rotate(-30deg); } }
+/* fala rozchodząca się od odznaki */
+@keyframes badge-ring {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 45%, transparent); }
+  to { box-shadow: 0 0 0 22px color-mix(in srgb, var(--c) 0%, transparent); }
+}
+.lost .result-card::before { --c: #d12d4b; }
+/* treść karty wjeżdża po kolei */
+.result-card > * { animation: rise 420ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.result-title { animation-delay: 820ms !important; }
+.result-msg { animation-delay: 880ms !important; }
+.result-stats { animation-delay: 940ms !important; }
+.result-actions { animation-delay: 1000ms !important; }
+.lost .result-card > * { animation-delay: 260ms !important; }
+.help-card > * { animation: none; }
 
 /* punkty w nawigacji podskakują po wygranej */
 .nav-points.bump { animation: bump 600ms cubic-bezier(0.2, 0.9, 0.3, 1.6); }
@@ -847,10 +880,11 @@ body[data-view="game"] footer { display: none; }
   border: 0;
   border-radius: 14px;
   background: var(--bg);
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--text) 9%, transparent);
   cursor: pointer;
-  transition: transform 100ms, background-color 150ms;
+  transition: transform 100ms, background-color 150ms, box-shadow 100ms;
 }
-.dpad button:active { transform: scale(0.92); background: color-mix(in srgb, var(--c) 22%, var(--bg)); }
+.dpad button:active { transform: translateY(2px) scale(0.95); box-shadow: none; background: color-mix(in srgb, var(--c) 22%, var(--bg)); }
 .dpad button::before {
   content: "";
   position: absolute;
@@ -877,7 +911,7 @@ body[data-view="game"] footer { display: none; }
   grid-auto-rows: var(--s);
   gap: var(--g);
   padding: var(--g);
-  border-radius: calc(var(--s) * 0.22);
+  border-radius: calc(var(--s) * 0.28);
   background: color-mix(in srgb, var(--c) 10%, var(--surface));
   box-shadow: inset 0 0 0 1px var(--line), 0 30px 60px -36px var(--shadow);
   touch-action: none;
