@@ -16,6 +16,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
     "Część, która wystaje poza płytę niżej, odpada. Idealne trafienie nic nie ucina, a trzy idealne pod rząd lekko poszerzają płytę.",
     "Zbuduj wieżę wymaganej wysokości. Każde piętro przyspiesza ruch.",
   ],
+  achievements: [
+    { id: "trzy-idealne", name: "Trzy idealne", desc: "Połóż trzy płyty idealnie pod rząd.", points: 10 },
+    { id: "szesc-idealnych", name: "Sześć idealnych", desc: "Połóż sześć płyt idealnie pod rząd.", points: 25 },
+    { id: "mistrz-stosu", name: "Mistrz stosu", desc: "Zbuduj wieżę na trudnym poziomie, kończąc serią co najmniej trzech idealnych płyt.", points: 50 },
+  ],
   mount(board, ctx) {
     const { target, speed, size } = ctx.level;
     const W = 100, H = 130, TH = 4.2; // grubość płyty
@@ -52,6 +57,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
       if (over < 1.2) {
         // idealnie: bez cięcia; po trzech z rzędu płyta rośnie
         s.perfect++;
+        if (s.perfect === 3) ctx.achieve("trzy-idealne");
+        if (s.perfect === 6) ctx.achieve("szesc-idealnych");
         placed = { ...top };
         if (s.perfect >= 3) { placed[len] = Math.min(size, placed[len] + 2); }
         Sound.line();
@@ -67,6 +74,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
       s.tower.push(placed);
       s.moving = null;
       render();
+      if (s.tower.length - 1 >= target && ctx.level.key === "hard" && s.perfect >= 3) ctx.achieve("mistrz-stosu");
       if (s.tower.length - 1 >= target) return ctx.win(s.perfect ? "Ostatnie trafienie idealne!" : "");
       spawn();
     }

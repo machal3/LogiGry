@@ -52,6 +52,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kloc
     "Strzałki w bok przesuwają, w górę albo X obraca, Z obraca w drugą stronę, w dół przyspiesza, spacja zrzuca od razu, C odkłada klocek do schowka.",
     "Na telefonie: dotknięcie obraca, przesunięcie w bok przesuwa, w dół zrzuca. Co 10 linii klocki spadają szybciej.",
   ],
+  achievements: [
+    { id: "dublet", name: "Dublet", desc: "Usuń dwie linie jednym klockiem.", points: 10 },
+    { id: "tetris", name: "Czwórka", desc: "Usuń cztery linie jednym klockiem.", points: 25 },
+    { id: "blyskawica", name: "Błyskawica", desc: "Wygraj trudny poziom w mniej niż 3 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { COLS, ROWS } = Tetris;
     const COLORS = { I: "#15aabf", O: "#fab005", T: "#ae3ec9", S: "#40c057", Z: "#e03131", J: "#1c7ed6", L: "#f76707" };
@@ -86,9 +91,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kloc
         s.score += [0, 100, 300, 500, 800][full.length];
         s.flash = full.map((y) => ({ y, t: 1 }));
         full.length >= 4 ? (Sound.win(), ctx.toast("Tetris!")) : Sound.line();
+        if (full.length >= 2) ctx.achieve("dublet");
+        if (full.length >= 4) ctx.achieve("tetris");
       } else Sound.place(2);
       render();
-      if (s.lines >= ctx.level.target) { s.cur = null; return ctx.win(`Punkty: ${s.score}.`); }
+      if (s.lines >= ctx.level.target) {
+        if (ctx.level.key === "hard" && ctx.time < 180) ctx.achieve("blyskawica");
+        s.cur = null; return ctx.win(`Punkty: ${s.score}.`); }
       next();
     }
     const move = (dx) => { if (!s.cur || ctx.done) return; const q = { ...s.cur, x: s.cur.x + dx }; if (Tetris.fits(s.grid, q)) { s.cur = q; lockT = 0; Sound.tap(); } };

@@ -61,6 +61,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zale
     "Zalej całą planszę jednym kolorem, zanim skończą się ruchy.",
     "Kolor wybierasz przyciskiem w panelu, klawiszem 1–6 albo kliknięciem dowolnego pola w tym kolorze.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny pędzel", desc: "Zalej planszę bez cofania ruchu.", points: 10 },
+    { id: "lepiej-niz-komputer", name: "Lepiej niż komputer", desc: "Zalej planszę w mniejszej liczbie ruchów niż komputer.", points: 25 },
+    { id: "mistrz-zalewania", name: "Mistrz zalewania", desc: "Na planszy 18 × 18 zalej wszystko lepiej niż komputer.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, colors, slack } = ctx.level;
     const COLORS = ["#e03131", "#1c7ed6", "#fab005", "#2f9e44", "#ae3ec9", "#0c8599"];
@@ -99,6 +104,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zale
       });
       Sound.place(1 + k);
       render();
+      if (after.size === n * n) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (moves < best) ctx.achieve("lepiej-niz-komputer");
+        if (moves < best && ctx.level.key === "hard") ctx.achieve("mistrz-zalewania");
+      }
       if (after.size === n * n) return ctx.win(moves < best ? "Lepiej niż komputer!" : "");
       if (moves >= limit) ctx.lose("Koniec ruchów", `Zostało ${n * n - after.size} ${plural(n * n - after.size, "pole", "pola", "pól")} do zalania.`);
     }

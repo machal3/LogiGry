@@ -410,12 +410,6 @@ body[data-view="game"] footer { display: none; }
 .ach-list li { display: grid; opacity: 0.5; font-size: 0.875rem; }
 .ach-list li.on { opacity: 1; }
 .ach-list span { color: var(--muted); }
-/* w profilu: same nazwy jako odznaki, opis w podpowiedzi */
-.pf-info .ach-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.pf-info .ach-list li { padding: 2px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); font-size: 0.8125rem; }
-.pf-info .ach-list li.on { background: color-mix(in srgb, var(--gold) 16%, transparent); box-shadow: none; }
-.pf-info .ach-list strong { font-weight: 500; }
-.pf-info .ach-list span { display: none; }
 .result-stats dd.record {
   justify-self: center;
   padding: 0 10px;

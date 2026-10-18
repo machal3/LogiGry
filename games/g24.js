@@ -61,6 +61,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "24")
     "Kliknij liczbę, potem działanie, potem drugą liczbę: obie zastąpi wynik. Cofnij zwraca poprzedni krok.",
     "Rozwiąż kilka zagadek pod rząd. Na trudnym nie obejdzie się bez ułamków po drodze, np. 8 ÷ (3 − 8 ÷ 3).",
   ],
+  achievements: [
+    { id: "bez-pomijania", name: "Bez pomijania", desc: "Wygraj, nie pomijając żadnego układu.", points: 10 },
+    { id: "rachmistrz", name: "Szybki rachmistrz", desc: "Wygraj średni poziom w mniej niż 2 minuty.", points: 25 },
+    { id: "mistrz-24", name: "Mistrz dwudziestki czwórki", desc: "Wygraj trudny poziom bez pomijania i bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { rounds, kind } = ctx.level;
     let round = 0, skips = 2, puzzle, items, sel = -1, op = null;
@@ -117,6 +122,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "24")
         round++;
         Sound.line();
         replay(goal, "flash");
+        if (round >= rounds) {
+          if (skips === 2) ctx.achieve("bez-pomijania");
+          if (ctx.level.key === "medium" && ctx.time < 120) ctx.achieve("rachmistrz");
+          if (ctx.level.key === "hard" && skips === 2 && ctx.undos === 0) ctx.achieve("mistrz-24");
+        }
         if (round >= rounds) return render(), ctx.win(skips === 2 ? "Bez pomijania." : "");
         setTimeout(() => !ctx.done && start(), 650);
       } else {

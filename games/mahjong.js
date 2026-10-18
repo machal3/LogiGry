@@ -79,6 +79,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mahj
     "Zdjąć można tylko kamień wolny: nic na nim nie leży, a jego lewy albo prawy bok jest odsłonięty.",
     "Gdy zabraknie par, możesz potasować pozostałe kamienie. Liczba tasowań jest ograniczona.",
   ],
+  achievements: [
+    { id: "bez-tasowania", name: "Bez tasowania", desc: "Wyczyść stół bez tasowania kamieni.", points: 10 },
+    { id: "czyste-rece", name: "Czyste ręce", desc: "Wygraj średni poziom bez tasowania i bez cofania.", points: 25 },
+    { id: "mistrz-mahjonga", name: "Mistrz mahjonga", desc: "Wygraj trudny poziom bez tasowania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { tiles } = Mahjong.generate(ctx.level.layout, ctx.level.kinds);
     const motifs = GAMES.filter((g) => g.id !== "mahjong");
@@ -129,6 +134,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mahj
       sel = null;
       Sound.line();
       render();
+      if (!live.size) {
+        const clean = shuffles === ctx.level.shuffles;
+        if (clean) ctx.achieve("bez-tasowania");
+        if (clean && ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("czyste-rece");
+        if (clean && ctx.level.key === "hard") ctx.achieve("mistrz-mahjonga");
+      }
       if (!live.size) return ctx.win(shuffles === ctx.level.shuffles ? "Bez tasowania." : "");
       if (!Mahjong.moves(live).length) {
         if (shuffles > 0) ctx.toast("Brak par. Potasuj kamienie albo cofnij ruch");

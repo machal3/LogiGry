@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ptak
     "Przelatuj przez szczeliny między rurami. Uderzenie w rurę, ziemię albo sufit kończy lot.",
     "Przeleć przez wymaganą liczbę szczelin. Na trudniejszych poziomach szczeliny są węższe, a rury szybsze.",
   ],
+  achievements: [
+    { id: "pietnascie", name: "Lot próbny", desc: "Przeleć przez 15 szczelin w jednej partii.", points: 10 },
+    { id: "dwadziescia-piec", name: "Długi lot", desc: "Przeleć przez 25 szczelin w jednej partii.", points: 25 },
+    { id: "szybowiec", name: "Szybowiec", desc: "Wygraj trudny poziom, machając skrzydłami najwyżej 90 razy.", points: 50 },
+  ],
   mount(board, ctx) {
     const { target, gap, speed, every } = ctx.level;
     const W = 100, H = 140, GROUND = 128, R = 3.4;
@@ -28,6 +33,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ptak
       if (ctx.done || s.dead) return;
       s.started = true;
       s.vy = -52;
+      s.flaps = (s.flaps || 0) + 1;
       Sound.tap();
     };
     ctx.on(cv.cv, "pointerdown", (e) => { e.preventDefault(); flap(); });
@@ -52,6 +58,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ptak
             s.passed++;
             Sound.place(1 + (s.passed % 9));
             render();
+            if (s.passed === 15) ctx.achieve("pietnascie");
+            if (s.passed === 25) ctx.achieve("dwadziescia-piec");
+            if (s.passed >= target && ctx.level.key === "hard" && s.flaps <= 90) ctx.achieve("szybowiec");
             if (s.passed >= target) { ctx.win(); }
           }
           // zderzenie: okrąg ptaka z prostokątem górnej i dolnej rury

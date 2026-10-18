@@ -16,6 +16,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "aste
     "Duże asteroidy rozpadają się na mniejsze. Wylot za krawędź przenosi na drugą stronę planszy.",
     "Zderzenie z asteroidą zabiera życie; po odrodzeniu statek przez chwilę jest nietykalny. Na telefonie użyj przycisków pod planszą.",
   ],
+  achievements: [
+    { id: "ostatni-oddech", name: "Ostatni oddech", desc: "Wygraj, mając już tylko jeden statek.", points: 10 },
+    { id: "bez-zadrapania", name: "Bez zadrapania", desc: "Wygraj średni poziom bez utraty statku.", points: 25 },
+    { id: "as-przestworzy", name: "As przestworzy", desc: "Wygraj trudny poziom bez utraty statku.", points: 50 },
+  ],
   mount(board, ctx) {
     const { waves, rocks, speed } = ctx.level;
     const W = 120, H = 120;
@@ -97,7 +102,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "aste
           reset();
         }
         if (!s.rocks.length) {
-          if (s.wave >= waves) { render(); return ctx.win(`Punkty: ${s.score}.`); }
+          if (s.wave >= waves) {
+            if (s.lives === 1) ctx.achieve("ostatni-oddech");
+            if (s.lives === 3 && ctx.level.key === "medium") ctx.achieve("bez-zadrapania");
+            if (s.lives === 3 && ctx.level.key === "hard") ctx.achieve("as-przestworzy");
+            render(); return ctx.win(`Punkty: ${s.score}.`); }
           Sound.line();
           ctx.toast(`Fala ${s.wave + 1}`);
           nextWave();

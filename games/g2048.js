@@ -78,6 +78,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "2048
     "Po każdym ruchu pojawia się nowy kafel. Wygrywasz, gdy powstanie kafel z liczbą docelową; przegrywasz, gdy zabraknie ruchów.",
     "Sterowanie: strzałki albo WASD, na telefonie przesunięcie palcem.",
   ],
+  achievements: [
+    { id: "kafel-128", name: "Pierwsze 128", desc: "Połącz kafle w 128.", points: 10 },
+    { id: "szybkie-512", name: "Szybkie 512", desc: "Zdobądź kafel 512 w mniej niż 5 minut.", points: 25 },
+    { id: "szybkie-1024", name: "Błyskawiczne 1024", desc: "Zdobądź kafel 1024 w mniej niż 10 minut.", points: 50 },
+  ],
   mount(board, ctx) {
     const n = 4, goal = ctx.level.goal;
     const s = G2048.create(n);
@@ -141,7 +146,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "2048
         const top = Math.max(...s.tiles.map((t) => t.v));
         if (res.merged.length) Sound.place(Math.min(9, lvl(Math.max(...res.merged.map((t) => t.v)))));
         else Sound.tap();
-        if (top >= goal) return ctx.win();
+        if (top >= 128 && !s.got128) { s.got128 = true; ctx.achieve("kafel-128"); }
+        if (top >= goal) {
+          if (goal === 512 && ctx.time < 300) ctx.achieve("szybkie-512");
+          if (goal === 1024 && ctx.time < 600) ctx.achieve("szybkie-1024");
+          return ctx.win();
+        }
         if (!G2048.canMove(s.tiles, n)) ctx.lose("Brak ruchów", "Plansza się zapełniła.");
       }, 110);
     }

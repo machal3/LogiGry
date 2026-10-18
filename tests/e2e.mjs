@@ -309,7 +309,9 @@ const limit = await run(`${prelude} await open("swiatla", 2);
 ok(limit === "true,true,true", `światła: limit ruchów i cofanie (${limit})`);
 
 const profile = await run(`return JSON.parse(localStorage.getItem("logigra.profile.v1"));`);
-const expected = await run(`return GAMES.filter((g) => ${JSON.stringify(picked.map(([id]) => id))}.includes(g.id)).reduce((a, g) => a + g.levels.reduce((x, l) => x + l.points, 0), 0) + 10;`);
+const expected = await run(`return GAMES.filter((g) => ${JSON.stringify(picked.map(([id]) => id))}.includes(g.id)).reduce((a, g) => a + g.levels.reduce((x, l) => x + l.points, 0), 0) + 10
+  // plus punkty za zdobyte osiągnięcia
+  + GAMES.reduce((a, g) => a + Profile.achievements(g).filter((x) => Profile.load().games[g.id]?.ach?.[x.id]).reduce((s, x) => s + x.points, 0), 0);`);
 ok(profile?.points === expected, `profil: ${profile?.points} pkt (oczekiwane ${expected})`);
 ok(Object.values(profile?.games || {}).every((g) => g.solved >= 3 && Object.keys(g.best).length === 3), "profil: 3 rozwiązania i 3 rekordy w każdej grze");
 

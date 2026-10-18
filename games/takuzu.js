@@ -159,6 +159,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zero
     "Każdą planszę da się rozwiązać bez zgadywania.",
     "Kliknięcie: puste, 0, 1. Prawy przycisk w drugą stronę. Klawiatura: strzałki, 0, 1, Backspace.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Zero błędów", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki bit", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz zer i jedynek", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, puzzle } = Takuzu.generate(ctx.level.size, ctx.level.keep, ctx.level.tier);
     const g = puzzle.slice(); // 0 puste, 1 = cyfra 0, 2 = cyfra 1
@@ -194,7 +199,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zero
       const state = render();
       ctx.progress(g.filter(Boolean).length / (n * n));
       if (!v) return Sound.erase();
-      if (state.solved) return ctx.win();
+      if (state.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (state.bad.has(i)) {
         Sound.error();
         replay(cells[i], "shake");

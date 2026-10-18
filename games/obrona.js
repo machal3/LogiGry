@@ -16,6 +16,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obro
     "Wybuch niszczy wszystkie rakiety w swoim zasięgu, więc celuj nieco przed nie. Liczba pocisków w fali jest ograniczona.",
     "Przetrwaj wszystkie fale. Na trudniejszych poziomach niektóre rakiety rozdzielają się w locie.",
   ],
+  achievements: [
+    { id: "obronca", name: "Obrońca", desc: "Wygraj, ratując co najmniej 4 miasta.", points: 10 },
+    { id: "tarcza", name: "Tarcza", desc: "Wygraj średni poziom, ratując wszystkie miasta.", points: 25 },
+    { id: "nietykalni", name: "Nietykalni", desc: "Wygraj trudny poziom, ratując wszystkie miasta.", points: 50 },
+  ],
   mount(board, ctx) {
     const { waves, base, speed, split } = ctx.level;
     const W = 120, H = 100, GROUND = 92, LX = 60, LY = 88;
@@ -89,7 +94,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obro
         if (!s.cities.some((c) => c.alive)) return ctx.lose("Miasta zniszczone", `Fala ${s.wave} z ${waves}.`);
         if (!s.queue && !s.missiles.length && !s.booms.length) {
           s.score += s.cities.filter((c) => c.alive).length * 100;
-          if (s.wave >= waves) { render(); return ctx.win(`Ocalałe miasta: ${s.cities.filter((c) => c.alive).length} z 6.`); }
+          if (s.wave >= waves) {
+            const saved = s.cities.filter((c) => c.alive).length;
+            if (saved >= 4) ctx.achieve("obronca");
+            if (saved === s.cities.length && ctx.level.key === "medium") ctx.achieve("tarcza");
+            if (saved === s.cities.length && ctx.level.key === "hard") ctx.achieve("nietykalni");
+            render(); return ctx.win(`Ocalałe miasta: ${s.cities.filter((c) => c.alive).length} z 6.`); }
           Sound.line();
           ctx.toast(`Fala ${s.wave + 1}`);
           nextWave();

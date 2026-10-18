@@ -55,7 +55,6 @@
     mount(board, ctx) {
       const { cols, rows, mistakes, key } = ctx.level;
       const s = { cells: generate(cols * rows), pick: -1, cursor: 0, misses: 0, hinted: false };
-      const started = performance.now();
 
       const btns = gridCells(board, cols, rows, "sz-grid");
       const leftEl = statBlock(ctx, "Zostało pól", { meter: true });
@@ -99,7 +98,7 @@
         // osiągnięcia zgłaszaj PRZED ctx.win, wtedy pojawią się na ekranie wyniku
         if (!s.misses) ctx.achieve("bez-bledu");
         if (!s.hinted && key !== "easy") ctx.achieve("bez-podpowiedzi");
-        if (key === "hard" && performance.now() - started < 45000) ctx.achieve("blyskawica");
+        if (key === "hard" && ctx.time < 45) ctx.achieve("blyskawica");
         ctx.win(s.misses ? `Pomyłki: ${s.misses}.` : "Bez ani jednej pomyłki.");
       }
 

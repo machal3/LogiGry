@@ -35,6 +35,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "szyf
     "Ciemny kołeczek: kolor jest w szyfrze i stoi na dobrym miejscu. Jasny: kolor jest w szyfrze, ale gdzie indziej. Kołeczki nie mówią, którego koloru dotyczą.",
     "Na łatwym kolory się nie powtarzają, na średnim i trudnym mogą. Klawisze 1–8 wstawiają kolory, Backspace usuwa, Enter sprawdza.",
   ],
+  achievements: [
+    { id: "w-pieciu", name: "Łamacz", desc: "Złam szyfr w najwyżej 5 próbach.", points: 10 },
+    { id: "w-czterech", name: "Kryptolog", desc: "Złam szyfr w najwyżej 4 próbach.", points: 25 },
+    { id: "enigma", name: "Enigma", desc: "Złam szyfr z 5 pól w najwyżej 6 próbach.", points: 50 },
+  ],
   mount(board, ctx) {
     const { len, colors, tries } = ctx.level;
     const COLORS = ["#e03131", "#1c7ed6", "#fab005", "#2f9e44", "#ae3ec9", "#f76707", "#15aabf", "#f06595"];
@@ -110,6 +115,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "szyf
       });
       guess = [];
       render();
+      if (res.black === len) {
+        if (history.length <= 5) ctx.achieve("w-pieciu");
+        if (history.length <= 4) ctx.achieve("w-czterech");
+        if (ctx.level.key === "hard" && history.length <= 6) ctx.achieve("enigma");
+      }
       if (res.black === len) { reveal(); return ctx.win(`Złamane w ${history.length} ${plural(history.length, "próbie", "próbach", "próbach")}.`); }
       if (history.length >= tries) { reveal(); return ctx.lose("Szyfr nie złamany", "Tak wyglądał ukryty kod."); }
       res.black || res.white ? Sound.line() : Sound.erase();

@@ -115,6 +115,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "warc
     "Pionek, który kończy ruch na ostatnim rzędzie, staje się damką. Damka chodzi i bije po skosie na dowolną odległość.",
     "Kliknij swój pionek, a potem podświetlone pole docelowe. Wygrywasz, gdy komputer nie ma pionów albo ruchu.",
   ],
+  achievements: [
+    { id: "mocna-armia", name: "Mocna armia", desc: "Wygraj, mając na planszy co najmniej 8 pionków.", points: 10 },
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Pokonaj komputer na średnim poziomie bez cofania ruchu.", points: 25 },
+    { id: "mistrz-warcabow", name: "Mistrz warcabów", desc: "Pokonaj komputer na trudnym poziomie bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N } = Checkers;
     const b = Checkers.start();
@@ -164,6 +169,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "warc
     function finish(side) {
       const me = b.filter((v) => v > 0).length, ai = b.filter((v) => v < 0).length;
       if (!Checkers.moves(b, -side).length) {
+        if (side === 1) {
+          if (me >= 8) ctx.achieve("mocna-armia");
+          if (ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("bez-cofania");
+          if (ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("mistrz-warcabow");
+        }
         if (side === 1) ctx.win(`Zostało ci ${me} ${plural(me, "pionek", "pionki", "pionków")}.`);
         else ctx.lose("Komputer wygrał", "Nie masz już ruchu.");
         return true;

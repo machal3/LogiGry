@@ -47,6 +47,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "piet
     "Kliknij kafel w tym samym wierszu albo kolumnie co wolne miejsce: przesunie się razem z kaflami po drodze.",
     "Strzałki i przesunięcia palcem wsuwają kafel na wolne miejsce z danej strony.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Bez cofania", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybkie palce", desc: "Rozwiąż średni poziom w mniej niż 2 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz piętnastki", desc: "Rozwiąż trudny poziom w mniej niż 5 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n } = ctx.level;
     const { tiles } = Fifteen.scramble(n, ctx.level.steps);
@@ -80,7 +85,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "piet
       moves++;
       render();
       Sound.place(1 + (moved[moved.length - 1] % 9));
-      if (tiles.every((v, k) => v === (k === n * n - 1 ? 0 : k + 1))) ctx.win();
+      if (tiles.every((v, k) => v === (k === n * n - 1 ? 0 : k + 1))) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 120) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 300 && ctx.undos === 0) ctx.achieve("mistrz");
+      ctx.win();
+      }
     };
     board.addEventListener("click", (e) => {
       const b = e.target.closest(".ft-tile");

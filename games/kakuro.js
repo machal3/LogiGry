@@ -201,6 +201,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kaku
     "W jednym ciągu cyfry nie mogą się powtarzać. Pomaga znajomość rozkładów: 3 w dwóch polach to zawsze 1 i 2, a 17 to 8 i 9.",
     "Strzałki przesuwają zaznaczenie, cyfry wpisują wartość, N przełącza notatki.",
   ],
+  achievements: [
+    { id: "bez-bledu", name: "Bez skreśleń", desc: "Rozwiąż planszę, nie wpisując ani jednej błędnej cyfry.", points: 10 },
+    { id: "sprint", name: "Szybkie sumy", desc: "Rozwiąż średni poziom w mniej niż 8 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz kakuro", desc: "Rozwiąż trudny poziom w mniej niż 15 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, white, given, runs, sums } = Kakuro.generate(ctx.level.n, ctx.level.density, ctx.level.maxRun);
     const g = Uint8Array.from(given), notes = new Uint16Array(n * n);
@@ -241,6 +246,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kaku
     });
     roundCorners(cells, n);
 
+    let mistakes = 0;
     const save = ctx.undoable(([gs, ns, s]) => { g.set(gs); notes.set(ns); sel = s; render(); });
     const controls = digitControls(ctx, 9, { put });
     const sumInfo = el("p", "");
@@ -290,8 +296,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kaku
       const { dup, badRun, goodRun } = render();
       ctx.progress(whites.filter((i) => g[i] && !given[i]).length / open);
       if (!d) return Sound.erase();
-      if (dup.has(sel) || runOf.get(sel).some((k) => badRun.has(k))) { Sound.error(); return replay(cells[sel], "shake"); }
-      if (goodRun.size === runs.length) return ctx.win();
+      if (dup.has(sel) || runOf.get(sel).some((k) => badRun.has(k))) { mistakes++; Sound.error(); return replay(cells[sel], "shake"); }
+      if (goodRun.size === runs.length) {
+        if (!mistakes) ctx.achieve("bez-bledu");
+      if (ctx.level.key === "medium" && ctx.time < 480) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 900 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       const done = runOf.get(sel).filter((k) => goodRun.has(k));
       if (!done.length) return Sound.place(d);
       Sound.line();

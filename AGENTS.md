@@ -25,23 +25,47 @@ Jeżeli funkcja przyda się tylko Tobie, po prostu napisz ją w swoim `gra.js`.
 
 ## 2. Kroki
 
+Gry nie mogą się powtarzać. Kilka modeli dodaje gry równocześnie, więc **najpierw rezerwujesz pomysł, dopiero potem piszesz kod**.
+
+**Krok 1. Przejrzyj wszystkie gry** (gotowe, w budowie u innych modeli i zarezerwowane):
 ```sh
-node narzedzia/gry.mjs nowa <id>        # kopiuje szablon do gry/<id>/ (id: małe litery bez polskich znaków, cyfry, myślniki)
+node narzedzia/gry.mjs lista
+```
+Wybierz grę, której mechaniki jeszcze nie ma. Inna nazwa albo inna grafika to nie jest inna gra: „Spadające bloki” to wciąż Klocki,
+„Krążki” to wciąż Wieża Hanoi. Jeśli Twój pomysł jest podobny do czegoś z listy, wybierz inny.
+
+**Krok 2. Zarezerwuj grę, od razu, przed pisaniem kodu:**
+```sh
+node narzedzia/gry.mjs nowa <id> "Nazwa gry" "Opis w jednym-dwóch zdaniach: co robi gracz"
+```
+Narzędzie tworzy `gry/<id>/` z szablonu i plik `pomysl.md`. Odrzuca zajęte id, zajętą nazwę i opis zbyt podobny do istniejącej gry.
+Ostrzeżenie o podobieństwie omijasz flagą `--inna` tylko wtedy, gdy mechanika jest naprawdę inna; różnicę opisz wtedy w `pomysl.md`.
+Gdy rezerwacja się nie uda, wróć do kroku 1 i wybierz inny pomysł. Nie zmieniaj ani nie usuwaj cudzych rezerwacji.
+
+**Krok 3. Od razu uzupełnij `gry/<id>/pomysl.md`:** autor (Twój model z wersją), kategoria i 2–6 zasad gry (co robi gracz,
+kiedy wygrywa i przegrywa, czym różnią się poziomy). Dopiero wtedy inne modele widzą w `lista`, na czym polega Twoja gra.
+Napisz w odpowiedzi jedno zdanie: „Zarezerwowano: <Nazwa> (<id>)”. Po nim właściciel może uruchomić kolejny model.
+
+**Krok 4. Napisz grę i sprawdź ją:**
+```sh
 # ... przerabiasz gry/<id>/gra.js i gry/<id>/gra.css na swoją grę ...
-node narzedzia/gry.mjs sprawdz <id>     # sprawdza grę i dopisuje ją do index.html; musi pokazać "OK"
+node narzedzia/gry.mjs sprawdz <id>     # musi pokazać "OK"; dopiero wtedy gra pojawia się na stronie
 node --test gry/<id>/test.js            # test logiki gry (jeśli gra coś generuje albo liczy)
 ```
+Nazwa w `gra.js` musi być taka sama jak w `pomysl.md`. Jeśli w trakcie zmienisz zasady, popraw je też w `pomysl.md`.
 
 Potem otwórz `index.html#/gra/<id>` w przeglądarce, zagraj na każdym poziomie do wygranej i do przegranej, sprawdź konsolę (zero błędów),
 wąski ekran (360 px) i ciemny motyw systemu. Gra jest gotowa dopiero, gdy `sprawdz` pokazuje `OK` i da się ją wygrać na każdym poziomie.
 
 Narzędzie odświeża listę gier w `index.html` na podstawie folderów w `gry/`, więc kilka modeli może je uruchamiać jednocześnie:
-każde uruchomienie zapisuje pełną listę. Nie dopisuj gry do `index.html` ręcznie.
+każde uruchomienie zapisuje pełną listę. Na stronę trafiają tylko gry, które przechodzą sprawdzenie, więc cudze niedokończone
+gry nie przeszkadzają. Nie dopisuj gry do `index.html` ręcznie.
 
 ## 3. Folder gry
 
 ```
 gry/<id>/
+  pomysl.md  wymagany: rezerwacja (nazwa, opis, autor, kategoria, zasady); tworzy go narzędzie
   gra.js     wymagany: opis gry i cała logika, w jednym bloku { ... }
   gra.css    opcjonalny: style planszy, każdy selektor od [data-gra="<id>"]
   test.js    zalecany: test logiki w node (bez przeglądarki)
@@ -115,6 +139,11 @@ achievements: [
 - Zdobywasz je w `mount` przez `ctx.achieve("id")`. Wywołaj **przed** `ctx.win()`, wtedy pojawi się na ekranie wyniku.
   Można też w trakcie partii (np. „zbierz 3 bonusy naraz”), gracz zobaczy dymek. Ponowne wywołanie nic nie robi.
 - Nie powielaj osiągnięć automatycznych („wygraj trudny poziom”). Warunek musi dać się sprawdzić w kodzie gry.
+- Każde osiągnięcie musi mieć w kodzie wywołanie `ctx.achieve("jego-id")` z dosłownym id (nie `ctx.achieve(zmienna)`); narzędzie to sprawdza w obie strony.
+- Sprawdzenie w pętli animacji wołaj raz, np. z flagą: `if (!s.got && s.dist >= 300) { s.got = true; ctx.achieve("rozbieg"); }`.
+- Dobre wzory: bez cofania (`ctx.undos === 0`), czas (`ctx.level.key === "hard" && ctx.time < 300`), bez utraty życia, rekordowa seria, najkrótsze rozwiązanie. Przykłady w `games/*.js` (szukaj `achievements:`).
+
+Gracz widzi wszystkie osiągnięcia na stronie `#/osiagniecia` (link „Osiągnięcia” w nawigacji) i w panelu gry.
 
 Rangi gracza zależą od sumy punktów ze wszystkich gier; nie zmieniasz ich.
 
@@ -159,7 +188,9 @@ Pola planszy to przyciski z `gridCells` (mają `aria-label`), nie `div` z `oncli
 | `ctx.win(tekst?)` | wygrana: punkty, osiągnięcia automatyczne, ekran wyniku. Tekst = jedno zdanie podsumowania |
 | `ctx.lose(tytuł, tekst)` | przegrana, np. `ctx.lose("Koniec czasu", "Trafienia: 12 z 20.")` |
 | `ctx.done` | `true` po wygranej/przegranej; wtedy ignoruj ruchy gracza |
-| `ctx.achieve(id)` | zdobycie własnego osiągnięcia |
+| `ctx.achieve(id)` | zdobycie własnego osiągnięcia; `id` zawsze jako dosłowny napis, np. `ctx.achieve("bez-bledu")` |
+| `ctx.time` | sekundy od początku partii (do osiągnięć „w mniej niż…”) |
+| `ctx.undos` | ile razy gracz cofnął ruch w tej partii (do osiągnięć „bez cofania”) |
 | `ctx.progress(0..1)` | postęp partii na pasku pod nagłówkiem |
 | `ctx.toast(tekst)` | krótki dymek na dole planszy |
 | `ctx.undoable(przywróć)` | włącza „Cofnij”; zwraca `zapisz(stan)`, które wołasz przed każdym ruchem |
@@ -215,6 +246,7 @@ Właściciel zmienia motyw w jednym miejscu, a Twoja gra ma się dostosować sam
 
 ## 11. Lista kontrolna przed zakończeniem
 
+- [ ] gra była zarezerwowana przez `nowa`, zanim powstał kod, a `pomysl.md` ma aktualne zasady
 - [ ] `node narzedzia/gry.mjs sprawdz <id>` pokazuje `OK`
 - [ ] `author` zawiera nazwę Twojego modelu z wersją
 - [ ] `node --test gry/<id>/test.js` przechodzi (jeśli gra coś generuje)
@@ -230,5 +262,8 @@ Właściciel zmienia motyw w jednym miejscu, a Twoja gra ma się dostosować sam
 
 - **Motyw**: zmień wartości w `theme.css` (kolory, `--radius-btn`, `--btn-h`, `--font`). Przyciski, przełączniki i panele we wszystkich grach biorą je ze zmiennych.
 - **Sprawdzenie wszystkich nowych gier**: `node narzedzia/gry.mjs` (pokazuje błędy i odświeża listę w `index.html`).
-- **Usunięcie gry**: usuń folder `gry/<id>/` i uruchom `node narzedzia/gry.mjs`.
+- **Usunięcie gry albo porzuconej rezerwacji**: usuń folder `gry/<id>/` i uruchom `node narzedzia/gry.mjs`.
+- **Kilka modeli naraz**: uruchom pierwszy, a następny dopiero wtedy, gdy poprzedni napisze „Zarezerwowano: …”
+  (albo gdy `node narzedzia/gry.mjs lista` pokazuje jego grę z zasadami). Wtedy kolejny model widzi zajęty pomysł i wybierze inny.
+- **Co jest w budowie**: `node narzedzia/gry.mjs lista` (statusy: gotowa, w budowie, zarezerwowana).
 - **Zasady punktacji** są w `games.js` (`LEVEL_POINTS`, `ACHIEVEMENT_POINTS`, sprawdza je `gameProblems`), osiągnięcia automatyczne w `profile.js` (`AUTO`).

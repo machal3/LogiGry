@@ -83,6 +83,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "lamp
     "Cyfra na ścianie mówi, ile żarówek stoi tuż obok niej (nad, pod i po bokach). Ściany bez cyfry mogą mieć dowolną liczbę.",
     "Kliknięcie stawia żarówkę, drugie kropkę (tu na pewno nie ma żarówki), trzecie czyści. Prawy przycisk od razu stawia kropkę.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewna ręka", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Elektryk", desc: "Rozwiąż średni poziom w mniej niż 5 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz oświetlenia", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, wall } = Akari.generate(ctx.level.n, ctx.level.density, ctx.level.show);
     const mark = new Array(n * n).fill(0); // 0 nic, 1 żarówka, 2 kropka
@@ -103,7 +108,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "lamp
       save(mark.slice());
       mark[i] = v;
       const res = render(v === 1 ? i : -1);
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 300) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (v === 1 && res.clash.has(i)) return Sound.error();
       v === 1 ? Sound.place(5) : v === 2 ? Sound.tap() : Sound.erase();
     };

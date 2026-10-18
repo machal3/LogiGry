@@ -52,6 +52,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ukla
     "Pełny wiersz albo kolumna znika. Kilka linii naraz daje premię.",
     "Gdy wstawisz wszystkie trzy klocki, pojawią się nowe. Zbierz wymagane punkty, zanim zabraknie miejsca. Zamiast przeciągać możesz kliknąć klocek, a potem pole planszy.",
   ],
+  achievements: [
+    { id: "dwie-linie", name: "Dwie naraz", desc: "Usuń dwie linie jednym klockiem.", points: 10 },
+    { id: "trzy-linie", name: "Trzy naraz", desc: "Usuń trzy linie jednym klockiem.", points: 25 },
+    { id: "mistrz-ukladanki", name: "Mistrz układanki", desc: "Wygraj trudny poziom bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N, SHAPES } = BlockPuzzle;
     const target = ctx.level.target;
@@ -102,7 +107,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ukla
       render();
       res.cells.forEach((i) => { if (!res.cleared.has(i)) replay(cells[i], "drop"); });
       res.cleared.forEach((i) => replay(cells[i], "clear"));
+      if (res.lines >= 2) ctx.achieve("dwie-linie");
+      if (res.lines >= 3) ctx.achieve("trzy-linie");
       if (res.lines) { Sound.line(); if (res.lines > 1) ctx.toast(`${res.lines} linie naraz!`); } else Sound.place(4);
+      if (s.score >= target && ctx.level.key === "hard" && ctx.undos === 0) ctx.achieve("mistrz-ukladanki");
       if (s.score >= target) { ctx.win(); return true; }
       if (s.tray.every((x) => !x || BlockPuzzle.anyFit(s.g, x.shape) < 0)) ctx.lose("Brak miejsca", `Żaden klocek się nie mieści. Zabrakło ${target - s.score} punktów.`);
       return true;

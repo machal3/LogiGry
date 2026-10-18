@@ -57,6 +57,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "smug
     "Wjechanie w ścianę albo w dowolny ślad, także własny, kończy rundę dla tego motocykla. Ostatni na torze wygrywa.",
     "Rundę wygrywasz, gdy zostaniesz sam na torze. Wygraj wymaganą liczbę rund, zanim zrobi to komputer. Odcinaj rywalom drogę i zostawiaj sobie miejsce.",
   ],
+  achievements: [
+    { id: "czysto-latwy", name: "Czysta jazda", desc: "Wygraj mecz na łatwym poziomie, nie przegrywając żadnej rundy.", points: 10 },
+    { id: "czysto-sredni", name: "Nie do złapania", desc: "Wygraj mecz na średnim poziomie, nie przegrywając żadnej rundy.", points: 25 },
+    { id: "czysto-trudny", name: "Król toru", desc: "Wygraj mecz na trudnym poziomie, nie przegrywając żadnej rundy.", points: 50 },
+  ],
   mount(board, ctx) {
     const { DIRS, BACK, think } = LightCycles;
     const { rivals, speed, skill, wins } = ctx.level;
@@ -114,6 +119,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "smug
         const winner = s.bikes[0].alive ? 0 : alive.length ? 1 : -1;
         if (winner >= 0) s.score[winner]++;
         render();
+        if (s.score[0] >= wins && s.score[1] === 0) {
+          if (ctx.level.key === "easy") ctx.achieve("czysto-latwy");
+          if (ctx.level.key === "medium") ctx.achieve("czysto-sredni");
+          if (ctx.level.key === "hard") ctx.achieve("czysto-trudny");
+        }
         if (s.score[0] >= wins) return ctx.win(`Wynik meczu: ${s.score.join(" : ")}.`);
         if (s.score[1] >= wins) return ctx.lose("Mecz przegrany", `Wynik: ${s.score.join(" : ")}.`);
         ctx.toast(winner === 0 ? "Runda dla ciebie!" : winner > 0 ? "Runda dla komputera" : "Remis, nikt nie przetrwał");

@@ -25,6 +25,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wisi
     "Trafiona litera pojawia się we wszystkich miejscach słowa. Chybiona dorysowuje fragment szubienicy, a gdy rysunek będzie gotowy, przegrywasz.",
     "Polskie znaki to osobne litery. Możesz pisać na klawiaturze albo klikać litery na ekranie.",
   ],
+  achievements: [
+    { id: "bez-pomylki", name: "Czysta karta", desc: "Odgadnij słowo bez żadnej pomyłki.", points: 10 },
+    { id: "prawie-bez", name: "Uważny", desc: "Odgadnij słowo na średnim poziomie z najwyżej jedną pomyłką.", points: 25 },
+    { id: "mistrz-slow", name: "Mistrz słownika", desc: "Odgadnij długie słowo na trudnym poziomie bez żadnej pomyłki.", points: 50 },
+  ],
   mount(board, ctx) {
     const { lives } = ctx.level;
     const { category, word } = Hangman.generate(WORDS_PL, ctx.level.min, ctx.level.max);
@@ -79,6 +84,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wisi
         replay(board, "shake");
       }
       render();
+      if (Hangman.solved(word, guessed)) {
+        if (!misses) ctx.achieve("bez-pomylki");
+        if (ctx.level.key === "medium" && misses <= 1) ctx.achieve("prawie-bez");
+        if (ctx.level.key === "hard" && !misses) ctx.achieve("mistrz-slow");
+      }
       if (Hangman.solved(word, guessed)) return ctx.win(misses ? `Pomyłki: ${misses}.` : "Bez ani jednej pomyłki!");
       if (misses >= lives) {
         letters.forEach((s) => s.classList.add("reveal"));

@@ -75,6 +75,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "waz"
     "Ściana, przeszkoda albo własny ogon kończą partię. Wygrywasz, gdy wąż osiągnie docelową długość.",
     "Sterowanie: strzałki albo WASD, na telefonie przesunięcie palcem. Spacja wstrzymuje grę.",
   ],
+  achievements: [
+    { id: "dwudziestka", name: "Długi wąż", desc: "Urośnij do długości 20.", points: 10 },
+    { id: "szybki-waz", name: "Szybki wąż", desc: "Wygraj średni poziom w mniej niż 90 sekund.", points: 25 },
+    { id: "mistrz-weza", name: "Mistrz węża", desc: "Wygraj trudny poziom w mniej niż 2 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { size, target, speed, bars } = ctx.level;
     const s = Snake.create(size, size, target, bars);
@@ -120,7 +125,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "waz"
         return ctx.lose("Zderzenie", why);
       }
       render();
-      if (s.body.length >= s.target) { running = false; return ctx.win(); }
+      if (s.body.length >= 20 && !s.got20) { s.got20 = true; ctx.achieve("dwudziestka"); }
+      if (s.body.length >= s.target) {
+        if (ctx.level.key === "medium" && ctx.time < 90) ctx.achieve("szybki-waz");
+        if (ctx.level.key === "hard" && ctx.time < 120) ctx.achieve("mistrz-weza");
+        running = false; return ctx.win();
+      }
       // każdy owoc przyspiesza o 1,5%, najwyżej do 55% początkowego czasu kroku
       timer = setTimeout(tick, Math.max(speed * 0.55, speed * Math.pow(0.985, eaten)));
     };

@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
     "Kosmici przesuwają się coraz szybciej, im mniej ich zostaje. Gdy dotrą do dołu, przegrywasz.",
     "Chowaj się za osłonami, ale pamiętaj, że pociski je kruszą. Masz trzy życia.",
   ],
+  achievements: [
+    { id: "ostatnie-dzialo", name: "Ostatnie działo", desc: "Wygraj, mając już tylko jedno życie.", points: 10 },
+    { id: "obronca-ziemi", name: "Obrońca Ziemi", desc: "Wygraj średni poziom bez utraty życia.", points: 25 },
+    { id: "as-obrony", name: "As obrony", desc: "Wygraj trudny poziom bez utraty życia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { waves, rows, step, fire } = ctx.level;
     const W = 100, H = 130, PY = 120;
@@ -112,7 +117,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
           if (a.y > PY - 6) { render(); return ctx.lose("Inwazja", "Kosmici wylądowali."); }
         }
         if (!alive().length) {
-          if (s.wave >= waves) { render(); return ctx.win(`Punkty: ${s.score}.`); }
+          if (s.wave >= waves) {
+            if (s.lives === 1) ctx.achieve("ostatnie-dzialo");
+            if (s.lives === 3 && ctx.level.key === "medium") ctx.achieve("obronca-ziemi");
+            if (s.lives === 3 && ctx.level.key === "hard") ctx.achieve("as-obrony");
+            render(); return ctx.win(`Punkty: ${s.score}.`); }
           s.wave++;
           ctx.toast(`Fala ${s.wave}`);
           Sound.line();

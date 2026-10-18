@@ -76,6 +76,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "gomo
     "Wygrywa ten, kto pierwszy ułoży pięć swoich znaków w linii: poziomo, pionowo albo na ukos.",
     "Pilnuj otwartych trójek komputera, czyli trzech znaków z wolnymi końcami: jeśli ich nie zablokujesz, zrobią się z nich czwórki nie do zatrzymania.",
   ],
+  achievements: [
+    { id: "szybka-piatka", name: "Szybka piątka", desc: "Ułóż pięć w rzędzie, stawiając najwyżej 10 krzyżyków.", points: 10 },
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Pokonaj komputer na średnim poziomie bez cofania ruchu.", points: 25 },
+    { id: "arcymistrz", name: "Arcymistrz piątek", desc: "Pokonaj komputer na trudnym poziomie bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n } = ctx.level;
     const b = new Array(n * n).fill(0);
@@ -103,7 +108,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "gomo
       render();
       if (line) {
         line.forEach((j) => cells[j].classList.add("win"));
-        p === 1 ? ctx.win("Pięć w rzędzie!") : ctx.lose("Komputer wygrał", "Komputer ułożył pięć w linii.");
+        if (p === 1) {
+          if (b.filter((v) => v === 1).length <= 10) ctx.achieve("szybka-piatka");
+          if (ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("bez-cofania");
+          if (ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("arcymistrz");
+          ctx.win("Pięć w rzędzie!");
+        } else ctx.lose("Komputer wygrał", "Komputer ułożył pięć w linii.");
         return true;
       }
       if (b.every(Boolean)) { ctx.lose("Remis", "Plansza się zapełniła."); return true; }

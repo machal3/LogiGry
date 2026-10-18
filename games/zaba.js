@@ -16,6 +16,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zaba
     "Na jezdni unikaj aut. Rzeki nie da się przepłynąć: skacz po pniach i żółwiach, które cię niosą. Wypadnięcie za brzeg kończy skok.",
     "Doprowadź żaby do wymaganej liczby wolnych liści na górze. Na każdą żabę masz 30 sekund i trzy życia na całą grę.",
   ],
+  achievements: [
+    { id: "ostatnia-zaba", name: "Ostatnia żaba", desc: "Wygraj, mając już tylko jedno życie.", points: 10 },
+    { id: "suche-lapki", name: "Suche łapki", desc: "Wygraj średni poziom bez utraty życia.", points: 25 },
+    { id: "krolowa-stawu", name: "Królowa stawu", desc: "Wygraj trudny poziom bez utraty życia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { homes, pace } = ctx.level;
     const N = 13, S = 10, W = N * S;
@@ -74,6 +79,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zaba
         s.homes.add(slot);
         Sound.line();
         render();
+        if (s.homes.size >= homes) {
+          if (s.lives === 1) ctx.achieve("ostatnia-zaba");
+          if (s.lives === 3 && ctx.level.key === "medium") ctx.achieve("suche-lapki");
+          if (s.lives === 3 && ctx.level.key === "hard") ctx.achieve("krolowa-stawu");
+        }
         if (s.homes.size >= homes) return ctx.win(`Zostało ${s.lives} ${plural(s.lives, "życie", "życia", "żyć")}.`);
         reset();
       }

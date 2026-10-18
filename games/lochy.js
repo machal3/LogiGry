@@ -115,6 +115,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
     "Przedmioty podnosisz, wchodząc na nie. Używasz ich w panelu: mikstury leczą, zwoje teleportują albo palą widocznych wrogów, lepsza broń i zbroja zakładają się same.",
     "Za pokonanych wrogów dostajesz doświadczenie. Nowy poziom daje więcej zdrowia i siły. Odpoczynek na pustym korytarzu powoli leczy.",
   ],
+  achievements: [
+    { id: "bogacz", name: "Bogacz", desc: "Zbierz 100 sztuk złota w jednej wyprawie.", points: 10 },
+    { id: "smokobojca", name: "Smokobójca", desc: "Pokonaj smoka strzegącego amuletu.", points: 25 },
+    { id: "weteran", name: "Weteran głębin", desc: "Zdobądź amulet z 5 pięter, mając co najmniej połowę zdrowia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { MW, MH, ITEMS } = Dungeon;
     const VW = 21, VH = 15, S = 10;
@@ -156,6 +161,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
       Sound.place(4);
       if (m.hp <= 0) {
         say(`Pokonujesz: ${m.name}. +${m.xp} doświadczenia.`, "good");
+        if (m.boss) ctx.achieve("smokobojca");
         s.xp += m.xp;
         if (Math.random() < 0.25) s.map.items.push({ kind: "gold", i: m.i, amount: 3 + rnd(8) * s.depth });
         while (s.xp >= xpNeed()) {
@@ -172,8 +178,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
     function pickUp() {
       for (const it of s.map.items.filter((x) => x.i === s.pos)) {
         s.map.items = s.map.items.filter((x) => x !== it);
-        if (it.kind === "gold") { s.gold += it.amount; say(`Zbierasz ${it.amount} sztuk złota.`); Sound.place(7); continue; }
-        if (it.kind === "amulet") { s.bag.push(it); say("Masz Amulet Głębin!", "good"); Sound.win(); render(); return ctx.win(`Poziom postaci ${s.lvl}, złoto ${s.gold}, tury ${s.turn}.`); }
+        if (it.kind === "gold") { s.gold += it.amount; if (s.gold >= 100) ctx.achieve("bogacz"); say(`Zbierasz ${it.amount} sztuk złota.`); Sound.place(7); continue; }
+        if (it.kind === "amulet") { if (ctx.level.key === "hard" && s.hp * 2 >= s.max) ctx.achieve("weteran"); s.bag.push(it); say("Masz Amulet Głębin!", "good"); Sound.win(); render(); return ctx.win(`Poziom postaci ${s.lvl}, złoto ${s.gold}, tury ${s.turn}.`); }
         if (it.kind === "weapon" && it.value > s.weapon[1]) { s.weapon = [it.label, it.value]; say(`Bierzesz do ręki: ${it.label} (+${it.value} ataku).`, "good"); Sound.flag(); continue; }
         if (it.kind === "armor" && it.value > s.armor[1]) { s.armor = [it.label, it.value]; say(`Zakładasz: ${it.label} (+${it.value} obrony).`, "good"); Sound.flag(); continue; }
         if (it.kind === "weapon" || it.kind === "armor") { s.gold += 5 * it.value; say(`${it.label} jest gorszy od twojego, sprzedajesz za ${5 * it.value} złota.`); continue; }
@@ -196,7 +202,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
       }
       if (it.kind === "fire") {
         const hitList = s.map.monsters.filter((m) => m.hp > 0 && s.seen.has(m.i));
-        hitList.forEach((m) => { m.hp -= 12 + s.depth * 2; m.awake = true; s.fx.push({ i: m.i, text: "ogień", t: 0.8, color: "#ff922b" }); if (m.hp <= 0) { s.xp += m.xp; say(`Ogień pochłania: ${m.name}.`, "good"); } });
+        hitList.forEach((m) => { m.hp -= 12 + s.depth * 2; m.awake = true; s.fx.push({ i: m.i, text: "ogień", t: 0.8, color: "#ff922b" }); if (m.hp <= 0) { if (m.boss) ctx.achieve("smokobojca"); s.xp += m.xp; say(`Ogień pochłania: ${m.name}.`, "good"); } });
         if (!hitList.length) say("Płomienie trafiają w pustkę.");
       }
       Sound.place(8);

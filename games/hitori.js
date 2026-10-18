@@ -134,6 +134,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "hito
     "Zamalowane pola nie mogą stykać się bokami. Wszystkie białe pola muszą łączyć się ze sobą w jeden obszar.",
     "Kliknięcie zamalowuje pole, drugie oznacza je kółkiem jako na pewno białe, trzecie czyści. Prawy przycisk od razu stawia kółko.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Czysty pędzel", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybkie oko", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz cieni", desc: "Rozwiąż trudny poziom w mniej niż 6 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, grid, solution } = Hitori.generate(ctx.level.n, ctx.level.density);
     const shade = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 kółko
@@ -150,7 +155,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "hito
       shade[i] = v;
       replay(cells[i], v === 1 ? "ink" : "pop");
       const res = render();
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 360 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (res.bad.has(i)) return Sound.error();
       v === 1 ? Sound.place(grid[i]) : v === 2 ? Sound.tap() : Sound.erase();
     };

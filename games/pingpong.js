@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
     "Odbicie brzegiem paletki posyła piłkę pod ostrym kątem. Każde odbicie trochę ją przyspiesza.",
     "Kto pierwszy zdobędzie wymaganą liczbę punktów, wygrywa mecz. Serwuje ten, kto stracił punkt.",
   ],
+  achievements: [
+    { id: "przewaga", name: "Wyraźna przewaga", desc: "Wygraj mecz różnicą co najmniej 3 punktów.", points: 10 },
+    { id: "do-zera", name: "Do zera", desc: "Wygraj mecz, nie tracąc ani jednego punktu.", points: 25 },
+    { id: "mistrz-stolu", name: "Mistrz stołu", desc: "Wygraj trudny poziom, tracąc najwyżej 2 punkty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { to, ai, err, ball } = ctx.level;
     const W = 100, H = 140, PW = 18, PH = 2.6, R = 1.8;
@@ -49,6 +54,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
       s.wait = 1;
       who === 0 ? Sound.line() : Sound.erase();
       render();
+      if (s.score[0] >= to) {
+        if (s.score[0] - s.score[1] >= 3) ctx.achieve("przewaga");
+        if (s.score[1] === 0) ctx.achieve("do-zera");
+        if (ctx.level.key === "hard" && s.score[1] <= 2) ctx.achieve("mistrz-stolu");
+      }
       if (s.score[0] >= to) ctx.win(`Wynik ${s.score[0]} : ${s.score[1]}.`);
       else if (s.score[1] >= to) ctx.lose("Mecz przegrany", `Wynik ${s.score[0]} : ${s.score[1]}.`);
     }

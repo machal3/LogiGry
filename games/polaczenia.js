@@ -75,6 +75,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pola
     "Rury nie mogą się krzyżować. Wejście na cudzą rurę przecina ją w tym miejscu.",
     "Wygrywasz, gdy wszystkie pary są połączone, a rury wypełniają całą planszę.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewna linia", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki monter", desc: "Rozwiąż średni poziom w mniej niż 3 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz połączeń", desc: "Rozwiąż trudny poziom w mniej niż 6 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, dots, ends } = Flow.generate(ctx.level.n, ctx.level.colors);
     const COLORS = ["#e03131", "#1c7ed6", "#2f9e44", "#f59f00", "#ae3ec9", "#0c8599", "#e8590c", "#f06595", "#5c940d", "#7048e8"];
@@ -154,7 +159,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pola
       const k = drawing;
       drawing = -1;
       const res = render();
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 180) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 360 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (res.linked[k]) { Sound.line(); return replay(lines[k], "fl-done"); }
       if (res.linked.every(Boolean) && !res.full) ctx.toast("Wszystko połączone, ale rury muszą wypełnić całą planszę");
     });

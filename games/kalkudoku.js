@@ -131,6 +131,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kalk
     "Pogrubione ramki wyznaczają klatki. Liczba w rogu to wynik działania na cyfrach klatki, np. 12+ to suma 12, a 2÷ to iloraz większej przez mniejszą.",
     "W jednej klatce cyfra może się powtórzyć, jeśli nie leży w tym samym wierszu ani kolumnie.",
   ],
+  achievements: [
+    { id: "bez-bledu", name: "Bez skreśleń", desc: "Rozwiąż planszę, nie wpisując ani jednej błędnej cyfry.", points: 10 },
+    { id: "sprint", name: "Szybkie rachunki", desc: "Rozwiąż średni poziom w mniej niż 5 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz klatek", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, cages } = Kalkudoku.generate(ctx.level.n, ctx.level.ops);
     const g = new Array(n * n).fill(0), notes = new Array(n * n).fill(0);
@@ -159,6 +164,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kalk
       return lab;
     });
 
+    let mistakes = 0;
     const save = ctx.undoable(([gs, ns, s]) => { gs.forEach((v, i) => (g[i] = v)); ns.forEach((v, i) => (notes[i] = v)); sel = s; render(); });
     const controls = digitControls(ctx, n, { put, remaining: () => Array.from({ length: n + 1 }, (_, d) => n - g.filter((v) => v === d).length) });
     const cageInfo = el("p", "");
@@ -194,8 +200,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kalk
       const res = render();
       ctx.progress(g.filter(Boolean).length / (n * n));
       if (!d) return Sound.erase();
-      if (res.bad.has(sel) || res.wrong.has(owner[sel])) { Sound.error(); return replay(cells[sel], "shake"); }
-      if (!g.includes(0) && !res.bad.size && res.right.size === cages.length) return ctx.win();
+      if (res.bad.has(sel) || res.wrong.has(owner[sel])) { mistakes++; Sound.error(); return replay(cells[sel], "shake"); }
+      if (!g.includes(0) && !res.bad.size && res.right.size === cages.length) {
+        if (!mistakes) ctx.achieve("bez-bledu");
+      if (ctx.level.key === "medium" && ctx.time < 300) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (res.right.has(owner[sel])) { Sound.line(); return sweep(cages[owner[sel]].cells.map((j) => cells[j])); }
       Sound.place(d);
     }

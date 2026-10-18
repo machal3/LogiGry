@@ -1,8 +1,9 @@
 // Narzędzie platformy gier (opis w AGENTS.md). Bez zależności, wystarczy node 18+.
-//   node narzedzia/gry.mjs              sprawdza wszystkie gry z gry/ i odświeża ich listę w index.html
-//   node narzedzia/gry.mjs sprawdz <id> sprawdza jedną grę (i też odświeża listę)
-//   node narzedzia/gry.mjs nowa <id>    tworzy gry/<id>/ z szablonu gry/_szablon/
-import { readFileSync, writeFileSync, existsSync, readdirSync, cpSync } from "node:fs";
+//   node narzedzia/gry.mjs lista                       wszystkie gry: gotowe, w budowie i zarezerwowane przez inne modele
+//   node narzedzia/gry.mjs nowa <id> "Nazwa" "Opis"    rezerwuje grę: tworzy gry/<id>/ z szablonu i pomysl.md
+//   node narzedzia/gry.mjs sprawdz <id>                sprawdza jedną grę (i odświeża listę w index.html)
+//   node narzedzia/gry.mjs                             sprawdza wszystkie gry i odświeża listę w index.html
+import { readFileSync, writeFileSync, existsSync, readdirSync, cpSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,12 +23,83 @@ const folders = () => readdirSync(GRY, { withFileTypes: true })
 function load(id) {
   const found = [];
   globalThis.registerGame = (g) => found.push(g);
-  try { require(join(GRY, id, "gra.js")); } catch (e) { return { error: `gra.js rzuca błąd przy wczytaniu: ${e.message}` }; }
+  const file = join(GRY, id, "gra.js");
+  delete require.cache[file]; // check() bywa wołane kilka razy w jednym uruchomieniu
+  try { require(file); } catch (e) { return { error: `gra.js rzuca błąd przy wczytaniu: ${e.message}` }; }
   finally { delete globalThis.registerGame; }
   return found.length === 1 ? { game: found[0] } : { error: `gra.js musi wywołać registerGame dokładnie raz (jest ${found.length})` };
 }
 
+// --- Rezerwacje: gry/<id>/pomysl.md powstaje, zanim gra ma kod, więc inne modele widzą zajęte pomysły ---
+
+const PLACEHOLDER = /\(wpisz|\(zasada/;
+function idea(id) {
+  const p = join(GRY, id, "pomysl.md");
+  if (!existsSync(p)) return null;
+  const t = readFileSync(p, "utf8");
+  // niewypełnione zaślepki „(wpisz…)” liczą się jak puste pola
+  const real = (s) => (s && !PLACEHOLDER.test(s) ? s.trim() : "");
+  const field = (k) => real((t.match(new RegExp(`^- ${k}: (.+)$`, "m")) || [])[1]);
+  const rulesPart = (t.split(/^## Zasady\s*$/m)[1] || "").split(/^## /m)[0];
+  return {
+    id, name: real((t.match(/^# (.+)$/m) || [])[1]), desc: field("opis"), author: field("autor"), cat: field("kategoria"),
+    rules: [...rulesPart.matchAll(/^\d+\.\s+(.+)$/gm)].map((m) => real(m[1])).filter(Boolean),
+  };
+}
+const complete = (i) => i.rules.length >= 2 && i.author && i.cat;
+
+// porównanie bez polskich znaków; podobieństwo opisów po wspólnych rdzeniach słów (pierwsze 4 litery, więc „słupek” = „słupkami”)
+// ponytail: tylko siatka bezpieczeństwa; inną mechanikę pod innymi słowami wyłapuje model, czytając lista
+const fold = (s) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[̀-ͯ]/g, "");
+const words = (s) => new Set(fold(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4).map((w) => w.slice(0, 4)));
+function similarity(a, b) {
+  const x = words(a), y = words(b);
+  const common = [...x].filter((w) => y.has(w)).length;
+  return common / Math.max(1, Math.min(x.size, y.size));
+}
+
+// Wszystkie znane gry: starsze z games.js i nowe z gry/ (z pomysl.md, także te bez gotowego kodu).
+function known() {
+  return [
+    ...GAMES.map((g) => ({ id: g.id, name: g.name, desc: g.desc, cat: g.cat, author: g.author, status: "gotowa", rules: [] })),
+    ...folders().map((id) => {
+      const i = idea(id) || { id, name: "", desc: "", rules: [] };
+      const ready = !check(id, folders().filter((x) => x !== id)).bad.length;
+      return { ...i, status: ready ? "gotowa" : complete(i) ? "w budowie" : "zarezerwowana" };
+    }),
+  ];
+}
+
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+// Każde własne osiągnięcie musi być gdzieś zdobywane (ctx.achieve("id")), a każde wywołanie musi mieć definicję.
+function achieveCalls(game, code) {
+  const defined = (game.achievements || []).map((a) => a.id);
+  const called = [...code.matchAll(/ctx\.achieve\(\s*["']([\w-]+)["']/g)].map((m) => m[1]);
+  return [
+    ...defined.filter((a) => !called.includes(a)).map((a) => `osiągnięcie "${a}" nie ma wywołania ctx.achieve("${a}"), więc nie da się go zdobyć`),
+    ...[...new Set(called)].filter((a) => !defined.includes(a)).map((a) => `ctx.achieve("${a}") wskazuje osiągnięcie, którego nie ma w achievements`),
+  ];
+}
+
+// Starsze gry z games/: osiągnięcia mają ten sam format co w nowych grach.
+function checkLegacy() {
+  globalThis.GAMES = GAMES;
+  let failed = 0;
+  for (const f of readdirSync(join(ROOT, "games")).filter((f) => f.endsWith(".js"))) {
+    const code = readFileSync(join(ROOT, "games", f), "utf8");
+    const id = (code.match(/GAMES\.find\(\(g\) => g\.id === "([\w-]+)"\)/) || [])[1];
+    if (!id) continue; // pliki pomocnicze (słownik)
+    require(join(ROOT, "games", f));
+    const game = GAMES.find((g) => g.id === id);
+    const bad = [...gameProblems(game, []).filter((m) => m.startsWith("achievements")), ...achieveCalls(game, code)];
+    if (!bad.length) continue;
+    failed++;
+    console.log(`BŁĄD games/${f} (${id})`);
+    bad.forEach((m) => console.log(`     - ${m}`));
+  }
+  return failed;
+}
 
 function check(id, others) {
   const bad = [], warn = [];
@@ -43,8 +115,16 @@ function check(id, others) {
   if (error) bad.push(error);
   else {
     if (game.id !== id) bad.push(`id w registerGame ("${game.id}") musi być równe nazwie folderu ("${id}")`);
-    if (game.name === "Dziesiątka" && id !== "dziesiatka") bad.push("to wciąż gra z szablonu: zmień nazwę, opis, kolor, ikonę i mechanikę");
-    bad.push(...gameProblems(game, [...LEGACY_IDS, ...others]));
+    if (code.includes("cells.push(d, 10 - d)")) bad.push("to wciąż kod z szablonu: napisz mechanikę swojej gry");
+    bad.push(...gameProblems(game, [...LEGACY_IDS, ...others]), ...achieveCalls(game, code));
+    const i = idea(id);
+    if (!i) bad.push("brak pomysl.md: grę rezerwuje się przez node narzedzia/gry.mjs nowa");
+    else {
+      if (i.name !== game.name) bad.push(`nazwa w pomysl.md ("${i.name}") i w gra.js ("${game.name}") musi być taka sama`);
+      if (!complete(i)) bad.push("pomysl.md: uzupełnij autora, kategorię i co najmniej 2 zasady");
+    }
+    const taken = [...GAMES.map((g) => g.name), ...others.map((o) => idea(o)?.name || "")];
+    if (taken.some((n) => n && fold(n) === fold(game.name))) bad.push(`nazwa "${game.name}" jest już zajęta przez inną grę`);
   }
 
   const cssFile = join(dir, "gra.css");
@@ -71,8 +151,9 @@ function check(id, others) {
   return { bad, warn };
 }
 
-// Odtwarza listę gier w index.html między znacznikami GRY-CSS i GRY-JS.
-function writeIndex(ids) {
+// Odtwarza listę gier w index.html między znacznikami GRY-CSS i GRY-JS. Na stronę trafiają tylko gry, które przechodzą sprawdzenie.
+function writeIndex(all) {
+  const ids = all.filter((id) => !check(id, all.filter((x) => x !== id)).bad.length);
   const file = join(ROOT, "index.html");
   const html = readFileSync(file, "utf8");
   const block = (tag, lines) => (s) => s.replace(new RegExp(`(<!-- ${tag}: start[^>]*-->)[\\s\\S]*?(\\s*<!-- ${tag}: koniec -->)`), (_, a, b) => [a, ...lines].join("\n  ") + b);
@@ -81,17 +162,62 @@ function writeIndex(ids) {
   if (out !== html) writeFileSync(file, out);
 }
 
-const [cmd, arg] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const [cmd, arg] = args;
+
+if (cmd === "lista") {
+  const all = known();
+  console.log(`Wszystkie gry (${all.length}). Nowa gra musi mieć INNĄ mechanikę niż każda z nich, nie tylko inną nazwę.\n`);
+  for (const g of all) {
+    console.log(`[${g.status}] ${g.name || "(bez nazwy)"} (${g.id}${g.cat ? `, ${g.cat}` : ""}${g.author ? `, ${g.author}` : ""}): ${g.desc}`);
+    if (g.status !== "gotowa") g.rules.forEach((r, k) => console.log(`     ${k + 1}. ${r}`));
+  }
+  process.exit(0);
+}
 
 if (cmd === "nowa") {
-  if (!/^[a-z0-9-]+$/.test(arg || "")) { console.error("Użycie: node narzedzia/gry.mjs nowa <id>   (id: małe litery, cyfry, myślniki)"); process.exit(1); }
-  if (existsSync(join(GRY, arg)) || LEGACY_IDS.includes(arg)) { console.error(`Gra "${arg}" już istnieje. Wybierz inne id.`); process.exit(1); }
+  const [, , name = "", desc = ""] = args;
+  const force = args.includes("--inna");
+  if (!/^[a-z0-9-]+$/.test(arg || "") || !name || name.length > 24 || desc.length < 20 || desc.length > 110) {
+    console.error('Użycie: node narzedzia/gry.mjs nowa <id> "Nazwa gry" "Opis w jednym-dwóch zdaniach, 20–110 znaków"\n(id: małe litery bez polskich znaków, cyfry, myślniki; nazwa do 24 znaków)');
+    process.exit(1);
+  }
+  const all = known();
+  const same = all.find((g) => g.id === arg || (g.name && fold(g.name) === fold(name)));
+  if (same) { console.error(`Zajęte: "${same.name}" (${same.id}, ${same.status}). Wybierz inną grę. Listę zobaczysz: node narzedzia/gry.mjs lista`); process.exit(1); }
+  const close = all.filter((g) => similarity(`${name} ${desc}`, `${g.name} ${g.desc}`) >= 0.5);
+  if (close.length && !force) {
+    console.error("Ta gra wygląda podobnie do:");
+    close.forEach((g) => console.error(`  - ${g.name} (${g.id}, ${g.status}): ${g.desc}`));
+    console.error('Wybierz inną grę. Jeśli mechanika jest naprawdę inna, dodaj na końcu --inna i opisz różnicę w pomysl.md.');
+    process.exit(1);
+  }
+  // mkdir bez recursive zgłasza błąd, gdy folder już jest, więc dwa modele nie zarezerwują tego samego id
+  try { mkdirSync(join(GRY, arg)); } catch { console.error(`Gra "${arg}" właśnie została zarezerwowana przez kogoś innego. Wybierz inne id.`); process.exit(1); }
   cpSync(join(GRY, "_szablon"), join(GRY, arg), { recursive: true });
   for (const f of ["gra.js", "gra.css", "test.js"]) {
     const p = join(GRY, arg, f);
-    writeFileSync(p, readFileSync(p, "utf8").replaceAll('"szablon"', `"${arg}"`).replaceAll("szablon-", `${arg}-`).replaceAll("gry/szablon/", `gry/${arg}/`));
+    writeFileSync(p, readFileSync(p, "utf8").replaceAll('"szablon"', `"${arg}"`).replaceAll("szablon-", `${arg}-`).replaceAll("gry/szablon/", `gry/${arg}/`)
+      .replace('name: "Dziesiątka"', `name: ${JSON.stringify(name)}`).replace(/desc: "[^"]*"/, `desc: ${JSON.stringify(desc)}`));
   }
-  console.log(`Utworzono gry/${arg}/. Przerób gra.js i gra.css, potem: node narzedzia/gry.mjs sprawdz ${arg}`);
+  writeFileSync(join(GRY, arg, "pomysl.md"), `# ${name}
+
+- id: ${arg}
+- opis: ${desc}
+- autor: (wpisz swój model z wersją)
+- kategoria: (wpisz klucz kategorii z games.js)
+
+## Zasady
+1. (zasada: co robi gracz)
+2. (zasada: kiedy wygrywa, kiedy przegrywa)
+3. (zasada: czym różnią się poziomy)
+
+## Czym różni się od podobnych gier
+(wpisz, jeśli na liście jest coś podobnego; inaczej usuń tę linię)
+`);
+  console.log(`Zarezerwowano: ${name} (gry/${arg}/).
+TERAZ, zanim napiszesz kod: uzupełnij gry/${arg}/pomysl.md (autor, kategoria, zasady), żeby inne modele widziały Twój pomysł.
+Potem przerób gra.js i gra.css i sprawdź: node narzedzia/gry.mjs sprawdz ${arg}`);
   process.exit(0);
 }
 
@@ -106,6 +232,8 @@ for (const id of only) {
   bad.forEach((m) => console.log(`     - ${m}`));
   warn.forEach((m) => console.log(`     ~ ${m}`));
 }
+// pełne sprawdzenie obejmuje też osiągnięcia starszych gier
+if (cmd !== "sprawdz") failed += checkLegacy();
 writeIndex(all);
 console.log(`\nGier w gry/: ${all.length}. Lista w index.html odświeżona.${failed ? ` Do poprawy: ${failed}.` : ""}`);
 process.exit(failed ? 1 : 0);

@@ -81,6 +81,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "hydr
     "Kliknięcie obraca kafel w prawo, prawy przycisk w lewo. Na klawiaturze: strzałki wybierają kafel, spacja obraca, L blokuje.",
     "Kafel, którego ustawienia jesteś pewien, zablokuj w trybie „Blokuj” albo klawiszem L, żeby go przypadkiem nie obrócić.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Złota rączka", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Pogotowie hydrauliczne", desc: "Rozwiąż średni poziom w mniej niż 3 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz instalacji", desc: "Rozwiąż trudny poziom w mniej niż 6 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, src, base } = Pipes.generate(ctx.level.n);
     const turns = Pipes.last.turns.slice();
@@ -119,7 +124,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "hydr
       moves++;
       const before = Pipes.flow(base.map((m, j) => Pipes.rot(m, turns[j] - (j === i ? k : 0))), n, src);
       const on = render();
-      if (on.every(Boolean)) return ctx.win();
+      if (on.every(Boolean)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 180) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 360 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       const gained = on.reduce((s, v, j) => s + (v && !before[j]), 0);
       if (gained) { Sound.place(Math.min(9, 1 + gained)); [...on.keys()].filter((j) => on[j] && !before[j]).forEach((j) => replay(cells[j], "fill")); }
       else Sound.tap();

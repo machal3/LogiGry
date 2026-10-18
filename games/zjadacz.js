@@ -51,6 +51,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
     "Duch, który cię dogoni, zabiera życie. Po zjedzeniu dużej kropki duchy na chwilę uciekają i można je zjeść.",
     "Tunel po bokach przenosi na drugą stronę labiryntu. Masz trzy życia.",
   ],
+  achievements: [
+    { id: "lowca-duchow", name: "Łowca duchów", desc: "Zjedz ducha po zjedzeniu dużej kropki.", points: 10 },
+    { id: "trzy-duchy", name: "Uczta", desc: "Zjedz trzy duchy na jednej dużej kropce.", points: 25 },
+    { id: "nietykalny", name: "Nietykalny", desc: "Wygraj trudny poziom bez utraty życia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { MAP, W, H, DIRS, BACK, at, open } = PacMan;
     const { gspeed, fright } = ctx.level;
@@ -117,6 +122,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
       if (s.dots.delete(i)) { s.score += 10; s.eaten++; if (s.eaten % 2) Sound.tap(); }
       if (s.power.delete(i)) { s.score += 50; s.fright = fright; s.combo = 0; s.ghosts.forEach((gh) => { if (!gh.eaten) gh.dir = BACK[gh.dir]; }); Sound.line(); }
       render();
+      if (!s.dots.size && !s.power.size && s.lives === 3 && ctx.level.key === "hard") ctx.achieve("nietykalny");
       if (!s.dots.size && !s.power.size) ctx.win(`Punkty: ${s.score}.`);
     }
     const pos = (e) => { const [dx, dy] = DIRS[e.dir]; return [(e.x + dx * e.t) * S + S / 2, (e.y + dy * e.t) * S + S / 2]; };
@@ -140,7 +146,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
           advance(e, dt, ghostChoose);
           const [ax, ay] = pos(e), [bx, by] = pos(p);
           if (!e.eaten && Math.hypot(ax - bx, ay - by) < S * 0.75) {
-            if (s.fright) { e.eaten = true; s.combo = (s.combo || 0) + 1; s.score += 200 * s.combo; Sound.place(9); }
+            if (s.fright) { e.eaten = true; s.combo = (s.combo || 0) + 1; ctx.achieve("lowca-duchow"); if (s.combo >= 3) ctx.achieve("trzy-duchy"); s.score += 200 * s.combo; Sound.place(9); }
             else { s.dying = 1.2; s.lives--; Sound.lose(); render(); }
           }
         }

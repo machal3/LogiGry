@@ -501,7 +501,7 @@ function playGame(game, tools, root) {
   root.replaceChildren(progress, arena);
   root.dataset.gra = game.id; // style gier z gry/<id>/gra.css zaczynają się od [data-gra="<id>"]
 
-  let cleanups = [], timer = 0, history = [], restore = null;
+  let cleanups = [], timer = 0, history = [], restore = null, undos = 0;
   const stop = () => {
     clearInterval(timer);
     cleanups.forEach((f) => f());
@@ -510,6 +510,7 @@ function playGame(game, tools, root) {
   const undo = () => {
     if (!history.length || !restore || current?.done) return;
     restore(history.pop());
+    undos++;
     undoBtn.disabled = !history.length;
   };
   let current = null;
@@ -543,6 +544,7 @@ function playGame(game, tools, root) {
     clock.textContent = fmt(0);
     history = [];
     restore = null;
+    undos = 0;
     undoBtn.disabled = true;
     undoBtn.hidden = true;
     area.className = "board-area intro";
@@ -553,6 +555,13 @@ function playGame(game, tools, root) {
     toast.setAttribute("aria-live", "polite");
     let toastTimer = 0;
     const earned = []; // osiągnięcia zdobyte w tej partii, pokazywane na ekranie wyniku
+    // blok „Osiągnięcia” w panelu; odświeżany, gdy coś zostanie zdobyte
+    const achBox = el("details", "panel-block ach-box");
+    const fillAch = () => {
+      const list = achievementList(game);
+      const sum = el("summary", "panel-title", `Osiągnięcia ${list.querySelectorAll(".on").length} / ${Profile.achievements(game).length}`);
+      achBox.replaceChildren(sum, list);
+    };
     setTimeout(() => area.classList.remove("intro"), 1200);
 
     const finish = (won, title, lines, actions, message) => {
@@ -590,6 +599,9 @@ function playGame(game, tools, root) {
       level,
       done: false,
       panel,
+      // sekundy od początku partii i liczba cofnięć: do warunków osiągnięć
+      get time() { return seconds; },
+      get undos() { return undos; },
       on(target, type, fn, opts) {
         target.addEventListener(type, fn, opts);
         cleanups.push(() => target.removeEventListener(type, fn, opts));
@@ -626,6 +638,7 @@ function playGame(game, tools, root) {
           return;
         }
         earned.push(a);
+        fillAch();
         Sound.line();
         ctx.toast(`Osiągnięcie: ${a.name} +${a.points} pkt`);
         if (!ctx.done) { updatePoints(); replay(document.querySelector(".nav-points"), "bump"); }
@@ -637,6 +650,7 @@ function playGame(game, tools, root) {
         const before = prev.games[game.id]?.best?.[level.key];
         Profile.award(game.id, level.key, level.points, seconds);
         earned.push(...Profile.checkAuto(game));
+        fillAch();
         const gained = Profile.load().points - prev.points;
         ctx.progress(1);
         Sound.win();
@@ -675,11 +689,8 @@ function playGame(game, tools, root) {
       timer = setInterval(() => (clock.textContent = fmt(++seconds)), 1000);
       game.mount(board, ctx);
       if (game.rules && !game.big) panel.append(panelBlock("Zasady", ...game.rules.map((t) => el("p", "", t))));
-      const box = el("details", "panel-block ach-box");
-      const sum = el("summary", "panel-title");
-      box.append(sum, achievementList(game));
-      sum.textContent = `Osiągnięcia ${box.querySelectorAll(".on").length} / ${Profile.achievements(game).length}`;
-      panel.append(box, el("p", "game-author", `Grę stworzył: ${game.author}`));
+      fillAch();
+      panel.append(achBox, el("p", "game-author", `Grę stworzył: ${game.author}`));
     };
     let seen = true;
     try { seen = !!localStorage.getItem(helpKey); } catch {}
@@ -831,6 +842,8 @@ function renderProfile() {
   const pts = el("p", "pf-points");
   pts.append(el("strong", "", p.points), " pkt");
   head.append(name, el("p", "pf-rank", rank.name), pts);
+  const achLink = el("a", "pf-ach-link", "Zobacz swoje osiągnięcia");
+  achLink.href = "#/osiagniecia";
 
   if (rank.next) {
     const [min, label] = rank.next;
@@ -845,6 +858,7 @@ function renderProfile() {
     bar.append(fill);
     head.append(bar, el("p", "pf-next", `${min - p.points} pkt do rangi ${label}`));
   }
+  head.append(achLink);
 
   const list = el("ul", "pf-games");
   // rozegrane gry na górze, najwięcej punktów najpierw
@@ -858,7 +872,6 @@ function renderProfile() {
     const achN = Object.keys(g.ach || {}).length, achAll = Profile.achievements(game).length;
     info.append(el("a", "pf-game", game.name), el("span", "pf-meta", `${g.solved ? `Rozwiązane: ${g.solved}` : "Jeszcze nie rozwiązana"}${achAll ? ` · osiągnięcia ${achN} / ${achAll}` : ""}`));
     info.firstChild.href = `#/gra/${game.id}`;
-    if (achN) info.append(achievementList(game));
     const best = el("dl", "pf-best");
     (game.levels || []).forEach((lv) => {
       if (g.best[lv.key] == null) return;
@@ -879,6 +892,94 @@ function renderProfile() {
     el("p", "pf-note", "Profil jest zapisany tylko w tej przeglądarce."), reset);
 }
 
+// --- Osiągnięcia ---
+
+const achView = { show: 0 }; // 0 wszystkie, 1 zdobyte, 2 do zdobycia
+// rok tylko, gdy inny niż bieżący
+const dateFmt = (t) => {
+  const d = new Date(t);
+  return d.toLocaleDateString("pl-PL", { day: "numeric", month: "long", ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }) });
+};
+
+function renderAchievements() {
+  const p = Profile.load();
+  const root = document.getElementById("achievements");
+  root.replaceChildren();
+  // wszystkie osiągnięcia wszystkich gier: [gra, osiągnięcie, kiedy zdobyte albo undefined]
+  const rows = GAMES.flatMap((game) => Profile.achievements(game).map((a) => [game, a, p.games[game.id]?.ach?.[a.id]]));
+  const got = rows.filter((r) => r[2]);
+  const ptsGot = got.reduce((s, r) => s + r[1].points, 0);
+  const ptsAll = rows.reduce((s, r) => s + r[1].points, 0);
+
+  const head = el("header", "pf-head");
+  const big = el("p", "pf-points");
+  big.append(el("strong", "", got.length), ` z ${rows.length}`);
+  const bar = el("div", "pf-bar");
+  bar.setAttribute("role", "progressbar");
+  bar.setAttribute("aria-valuemin", 0);
+  bar.setAttribute("aria-valuemax", rows.length);
+  bar.setAttribute("aria-valuenow", got.length);
+  bar.setAttribute("aria-label", "Zdobyte osiągnięcia");
+  const fill = el("span");
+  fill.style.width = `${(got.length / rows.length) * 100}%`;
+  bar.append(fill);
+  head.append(el("h1", "ac-title", "Osiągnięcia"), big, bar, el("p", "pf-next", `Punkty z osiągnięć: ${ptsGot} z ${ptsAll}. Każde osiągnięcie liczy się raz.`));
+  root.append(head);
+
+  // ostatnio zdobyte
+  if (got.length) {
+    const recent = el("ul", "ac-recent");
+    got.slice().sort((a, b) => b[2] - a[2]).slice(0, 6).forEach(([game, a, t]) => {
+      const li = el("li");
+      paint(li, game);
+      const icon = el("span", "ac-icon");
+      icon.append(glyph(game.glyph));
+      const txt = el("span", "ac-text");
+      txt.append(el("strong", "", a.name), el("span", "", `${game.name} · ${dateFmt(t)}`));
+      li.append(icon, txt);
+      recent.append(li);
+    });
+    root.append(el("h2", "pf-sub", "Ostatnio zdobyte"), recent);
+  }
+
+  const seg = segmented("Pokaż osiągnięcia", ["Wszystkie", "Zdobyte", "Do zdobycia"], (k) => { achView.show = k; renderAchievements(); });
+  const top = el("div", "ac-bar");
+  top.append(el("h2", "pf-sub", "Wszystkie gry"), seg.el);
+  root.append(top);
+  requestAnimationFrame(() => seg.set(achView.show));
+
+  const list = el("ul", "ac-games");
+  // gry z postępem na górze, potem w kolejności z listy gier
+  const byGame = GAMES.map((game) => [game, rows.filter((r) => r[0] === game)]).filter(([, r]) => r.length);
+  const done = (r) => r.filter((x) => x[2]).length;
+  byGame.sort((a, b) => done(b[1]) / b[1].length - done(a[1]) / a[1].length);
+  byGame.forEach(([game, r]) => {
+    const shown = r.filter((x) => (achView.show === 1 ? x[2] : achView.show === 2 ? !x[2] : true));
+    if (!shown.length) return;
+    const li = el("li", "ac-game");
+    const head = el("a", "ac-head");
+    head.href = `#/gra/${game.id}`;
+    const icon = el("span", "pf-icon");
+    paint(icon, game);
+    icon.append(glyph(game.glyph));
+    const name = el("span", "ac-name");
+    name.append(el("strong", "", game.name), el("span", "", `${done(r)} z ${r.length}`));
+    head.append(icon, name);
+    const items = el("ul", "ac-items");
+    shown.forEach(([, a, t]) => {
+      const it = el("li", t ? "on" : "");
+      const txt = el("span", "ac-text");
+      txt.append(el("strong", "", a.name), el("span", "", a.desc));
+      it.append(el("span", "ac-star", t ? "★" : "☆"), txt, el("span", "ac-pts", t ? dateFmt(t) : `${a.points} pkt`));
+      it.lastChild.title = t ? `+${a.points} pkt` : "";
+      items.append(it);
+    });
+    li.append(head, items);
+    list.append(li);
+  });
+  root.append(list.children.length ? list : el("p", "pf-note", "Nic tu jeszcze nie ma. Zagraj w dowolną grę, pierwsze osiągnięcie przyjdzie z pierwszą wygraną."));
+}
+
 // --- Nawigacja ---
 
 let teardown = null;
@@ -889,11 +990,12 @@ function route() {
   const hash = location.hash;
   const id = (hash.match(/^#\/gra\/([\w-]+)$/) || [])[1];
   const game = GAMES.find((g) => g.id === id);
-  const view = game ? "game" : hash === "#/profil" ? "profile" : "home";
-  for (const v of ["home", "game", "profile"]) document.getElementById(v).hidden = v !== view;
+  const view = game ? "game" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
+  for (const v of ["home", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
   document.body.dataset.view = view;
   updatePoints();
-  document.title = game ? `${game.name} | Logigra` : view === "profile" ? "Profil | Logigra" : "Logigra";
+  document.title = game ? `${game.name} | Logigra` : { profile: "Profil | Logigra", achievements: "Osiągnięcia | Logigra" }[view] || "Logigra";
+  document.querySelector(".nav-ach").toggleAttribute("aria-current", view === "achievements");
 
   if (view === "home") {
     buildList();
@@ -903,6 +1005,7 @@ function route() {
   }
   window.scrollTo(0, 0);
   if (view === "profile") return renderProfile();
+  if (view === "achievements") return renderAchievements();
 
   paint(document.getElementById("game"), game);
   document.getElementById("game-icon").replaceChildren(glyph(game.glyph));

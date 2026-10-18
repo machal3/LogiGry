@@ -207,6 +207,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "krol
     "Każdą planszę da się rozwiązać bez zgadywania. Na trudnym przydaje się zasada: jeśli dwa regiony mieszczą się w dwóch wierszach, inne regiony nie mają tam królowych.",
     "Kliknięcie stawia krzyżyk, drugie królową. Przeciągnij, żeby oznaczyć wiele pól krzyżykami. Klawiatura: strzałki, Spacja, Q, X.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewna korona", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybka koronacja", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrzyni królowych", desc: "Rozwiąż trudny poziom w mniej niż 6 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, regions } = Queens.generate(ctx.level.size, ...ctx.level.tiers);
     const s = new Array(n * n).fill(0); // 0 puste, 1 krzyżyk, 2 królowa
@@ -244,7 +249,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "krol
       const q = queens();
       ctx.progress((q.size - state.bad.size) / n);
       if (v !== 2) return v ? Sound.tap() : Sound.erase();
-      if (state.solved) return ctx.win();
+      if (state.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 360 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (state.bad.has(i)) {
         Sound.error();
         state.bad.forEach((j) => replay(cells[j], "shake"));

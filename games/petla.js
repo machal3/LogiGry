@@ -118,6 +118,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "petl
     "Cyfra w polu mówi, ile z jego czterech boków należy do pętli. Pola bez cyfry mogą mieć dowolną liczbę.",
     "Kliknij albo przeciągnij po krawędziach, żeby rysować. Prawy przycisk stawia krzyżyk tam, gdzie kreski na pewno nie ma.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Jedna kreska", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybka pętla", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz pętli", desc: "Rozwiąż trudny poziom w mniej niż 10 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, clues } = Loop.generate(ctx.level.n, ctx.level.frac, ctx.level.show);
     const E = Loop.H(n) + n * (n + 1);
@@ -186,7 +191,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "petl
       state[e] = paint;
       if (paint === 1) { lines[e].classList.remove("grow"); void lines[e].getBBox(); lines[e].classList.add("grow"); }
       const res = render();
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 600 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (paint === 1) Sound.place(1 + (state.filter((x) => x === 1).length % 9));
       else if (paint === 2) Sound.flag();
       else Sound.erase();

@@ -32,6 +32,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "slow
     "Po każdej próbie kafel w kolorze gry oznacza literę na właściwym miejscu, żółty literę, która jest w słowie gdzie indziej, a szary literę, której nie ma.",
     "Polskie litery są osobnymi literami: ó to nie o, a ł to nie l. Pisz na klawiaturze albo klikaj na ekranie.",
   ],
+  achievements: [
+    { id: "w-trzech", name: "Bystre oko", desc: "Odgadnij słowo w najwyżej trzech próbach.", points: 10 },
+    { id: "w-dwoch", name: "Jasnowidz", desc: "Odgadnij słowo w najwyżej dwóch próbach.", points: 25 },
+    { id: "mistrz-slow", name: "Mistrz słów", desc: "Odgadnij słowo z 6 liter w najwyżej trzech próbach.", points: 50 },
+  ],
   mount(board, ctx) {
     const { len, tries } = ctx.level;
     const answer = pick(Wordle.words(len, WORDS_PL));
@@ -89,6 +94,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "slow
       cur = "";
       render();
       setTimeout(() => { if (!ctx.done) renderKeys(); }, len * 120 + 200);
+      if (won) {
+        if (done.length <= 3) ctx.achieve("w-trzech");
+        if (done.length <= 2) ctx.achieve("w-dwoch");
+        if (done.length <= 3 && ctx.level.key === "hard") ctx.achieve("mistrz-slow");
+      }
       if (won) { Sound.line(); return setTimeout(() => ctx.win(`Odgadnięte w ${done.length}. próbie.`), len * 120 + 300); }
       Sound.place(1 + sc.filter((v) => v === 2).length * 2);
       if (done.length >= tries) setTimeout(() => ctx.lose("Nie tym razem", `Szukane słowo: ${answer.toUpperCase()}.`), len * 120 + 300);

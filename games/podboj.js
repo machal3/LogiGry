@@ -76,6 +76,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "podb
     "Atak: kliknij swój region z co najmniej dwiema armiami, a potem sąsiedni region wroga. Atakujący rzuca do trzech kości, obrońca do dwóch, wyższe oczko wygrywa, remis broni obrońca. Zdobyty region zajmują armie atakujące.",
     "Umocnienie: raz na turę przenieś armie między dwoma sąsiednimi własnymi regionami. Potem zakończ turę.",
   ],
+  achievements: [
+    { id: "blitz", name: "Blitzkrieg", desc: "Podbij całą mapę na łatwym poziomie w najwyżej 12 turach.", points: 10 },
+    { id: "zdobywca", name: "Zdobywca", desc: "Podbij całą mapę na średnim poziomie w najwyżej 18 turach.", points: 25 },
+    { id: "imperator", name: "Imperator", desc: "Podbij całą mapę na trudnym poziomie w najwyżej 25 turach.", points: 50 },
+  ],
   mount(board, ctx) {
     const { GW, GH } = Conquest;
     const lv = ctx.level;
@@ -175,6 +180,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "podb
       render();
     }
     function checkEnd() {
+      if (own(0).length === R.length) {
+        const k = ctx.level.key;
+        if (k === "easy" && s.turn <= 12) ctx.achieve("blitz");
+        if (k === "medium" && s.turn <= 18) ctx.achieve("zdobywca");
+        if (k === "hard" && s.turn <= 25) ctx.achieve("imperator");
+      }
       if (own(0).length === R.length) { ctx.win(`Cała mapa w ${s.turn} ${plural(s.turn, "turę", "tury", "tur")}.`); return true; }
       if (!own(0).length) { ctx.lose("Podbity", "Straciłeś ostatni region."); return true; }
       return false;

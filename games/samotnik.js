@@ -91,6 +91,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "samo
     "Wygrywasz, gdy na planszy zostanie jeden pionek. Na pełnej planszy zaczyna się od pustego środka.",
     "Kliknij pionek, a potem podświetlone pole docelowe. Gdy zabraknie ruchów, cofnij kilka ostatnich.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Zostaw jeden pionek bez cofania ruchu.", points: 10 },
+    { id: "srodek", name: "W samym środku", desc: "Zostaw ostatni pionek na środku planszy.", points: 25 },
+    { id: "mistrz-samotnika", name: "Mistrz samotnika", desc: "Na pełnej planszy zostaw ostatni pionek na środku.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N, HOLES } = PegSolitaire;
     const peg = PegSolitaire.generate(ctx.level.pegs).peg.slice();
@@ -138,6 +143,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "samo
       const left = peg.reduce((s, v) => s + v, 0);
       Sound.place(1 + (left % 9));
       render();
+      if (left === 1) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (peg[3 * N + 3]) ctx.achieve("srodek");
+        if (peg[3 * N + 3] && ctx.level.key === "hard") ctx.achieve("mistrz-samotnika");
+      }
       if (left === 1) return ctx.win(peg[3 * N + 3] ? "Ostatni pionek stoi na samym środku. Mistrzostwo." : "");
       if (!PegSolitaire.jumps(peg).length) { Sound.error(); ctx.toast(`Brak ruchów, zostało ${left}. Cofnij kilka ruchów`); }
     };

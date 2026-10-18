@@ -222,6 +222,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sudo
     "Każdą planszę da się rozwiązać bez zgadywania. Łatwy wymaga tylko szukania jedynego miejsca dla cyfry, średni par i blokad w kwadratach, trudny technik takich jak X-wing.",
     "Klawiatura: strzałki, cyfry, Backspace. N przełącza notatki, Ctrl+Z cofa.",
   ],
+  achievements: [
+    { id: "bez-bledu", name: "Bez skreśleń", desc: "Rozwiąż planszę, nie wpisując ani jednej błędnej cyfry.", points: 10 },
+    { id: "sprint", name: "Szybkie sudoku", desc: "Rozwiąż średni poziom w mniej niż 8 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz sudoku", desc: "Rozwiąż trudny poziom w mniej niż 15 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { puzzle } = Sudoku.generate(ctx.level.tier, ctx.level.minGivens);
     const g = puzzle.slice(), notes = new Array(81).fill(0);
@@ -247,6 +252,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sudo
     });
     roundCorners(cells, 9);
 
+    let mistakes = 0;
     const save = ctx.undoable(([gs, ns, s]) => {
       gs.forEach((v, i) => (g[i] = v));
       ns.forEach((v, i) => (notes[i] = v));
@@ -302,11 +308,17 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sudo
       if (!d) return Sound.erase();
       const bad = Sudoku.conflicts(g);
       if (bad.has(sel)) {
+        mistakes++;
         Sound.error();
         replay(cells[sel], "shake");
         return;
       }
-      if (!g.includes(0) && bad.size === 0) return ctx.win();
+      if (!g.includes(0) && bad.size === 0) {
+        if (!mistakes) ctx.achieve("bez-bledu");
+      if (ctx.level.key === "medium" && ctx.time < 480) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 900 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       // ukończony wiersz, kolumna lub kwadrat: błysk rozchodzi się od wpisanego pola
       const done = units(sel).filter((u) => u.every((j) => g[j] && !bad.has(j)));
       if (!done.length) return Sound.place(d);

@@ -71,6 +71,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "twie
     "Armata nie sięga latających, mróz spowalnia, tesla razi kilku wrogów naraz, a snajper sięga daleko. Pancerni wrogowie odejmują część obrażeń każdego trafienia, więc lepiej bić ich mocnymi strzałami.",
     "Falę wzywasz przyciskiem. Wcześniejsze wezwanie daje premię złota. Ostatnia fala przyprowadza bossa. Wróg, który dojdzie do bramy, zabiera życia.",
   ],
+  achievements: [
+    { id: "ostatnia-linia", name: "Ostatnia linia", desc: "Obroń bramę, mając najwyżej 3 życia.", points: 10 },
+    { id: "mur", name: "Żelazny mur", desc: "Wygraj średni poziom bez utraty życia.", points: 25 },
+    { id: "niezdobyta", name: "Twierdza niezdobyta", desc: "Wygraj trudny poziom bez utraty życia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { COLS, ROWS, S, TOWERS, ENEMIES } = TowerDefense;
     const lv = ctx.level;
@@ -260,6 +265,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "twie
       if (!s.queue.length && !s.enemies.length && !s.waveDone) {
         s.waveDone = true;
         s.gold += 20 + s.wave * 3;
+        if (s.wave >= lv.waves) {
+          if (s.lives <= 3) ctx.achieve("ostatnia-linia");
+          if (s.lives === lv.lives && ctx.level.key === "medium") ctx.achieve("mur");
+          if (s.lives === lv.lives && ctx.level.key === "hard") ctx.achieve("niezdobyta");
+        }
         if (s.wave >= lv.waves) { render(); return ctx.win(`Zostało ${s.lives} ${plural(s.lives, "życie", "życia", "żyć")}, pokonani wrogowie: ${s.kills}.`); }
         ctx.toast(`Fala ${s.wave} odparta`);
       }

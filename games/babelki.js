@@ -62,6 +62,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "babe
     "Trzy albo więcej stykających się bąbelków w jednym kolorze pęka. Bąbelki, które straciły połączenie z sufitem, spadają.",
     "Co kilka strzałów z góry dochodzi nowy rząd. Wyczyść planszę, zanim bąbelki dotrą do linii na dole. Spacja zamienia bąbelek z następnym.",
   ],
+  achievements: [
+    { id: "lawina", name: "Lawina", desc: "Strąć jednym strzałem co najmniej 10 bąbelków.", points: 25 },
+    { id: "celne-oko", name: "Celne oko", desc: "Wyczyść planszę, oddając najwyżej tyle strzałów, ile to połowa bąbelków na starcie.", points: 25 },
+    { id: "blyskawiczne-pekanie", name: "Błyskawiczne pękanie", desc: "Wygraj trudny poziom w mniej niż 2 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { COLS, R } = Bubbles;
     const W = COLS * 2 * R, H = 150, LIMIT = 124, SX = W / 2, SY = 140;
@@ -109,11 +114,15 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "babe
         const fall = Bubbles.floating(s);
         fall.forEach(([a, d]) => { drop(a, d, false); s.grid[a][d] = -1; });
         s.score += grp.length * 10 + fall.length * 20;
+        if (grp.length + fall.length >= 10) ctx.achieve("lawina");
         Sound.line();
         if (fall.length) Sound.place(9);
       } else Sound.place(3);
       s.shots++;
-      if (!total()) { render(); return ctx.win(`Punkty: ${s.score}.`); }
+      if (!total()) {
+        if (s.shots <= s.start / 2) ctx.achieve("celne-oko");
+        if (ctx.level.key === "hard" && ctx.time < 120) ctx.achieve("blyskawiczne-pekanie");
+        render(); return ctx.win(`Punkty: ${s.score}.`); }
       if (s.shots % ctx.level.every === 0) { Bubbles.pushRow(s); Sound.erase(); }
       if (!present().includes(s.cur)) s.cur = nextColor();
       if (!present().includes(s.next)) s.next = nextColor();

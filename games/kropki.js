@@ -65,6 +65,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "krop
     "Kto narysuje czwarty bok kwadratu, zdobywa go i od razu rysuje kolejną kreskę.",
     "Wygrywa ten, kto zbierze więcej kwadratów. Unikaj rysowania trzeciego boku: przeciwnik zamknie kwadrat i pójdzie dalej.",
   ],
+  achievements: [
+    { id: "dwa-do-jednego", name: "Dwa do jednego", desc: "Wygraj, mając co najmniej dwa razy więcej kwadratów niż komputer.", points: 10 },
+    { id: "strateg", name: "Strateg", desc: "Wygraj na planszy 4 × 4, oddając komputerowi najwyżej 4 kwadraty.", points: 25 },
+    { id: "wladca-kropek", name: "Władca kropek", desc: "Wygraj na planszy 5 × 5, oddając komputerowi najwyżej 8 kwadratów.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n } = ctx.level;
     const H = DotsBoxes.H(n), E = H + n * (n + 1);
@@ -121,6 +126,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "krop
     function over() {
       if (lines.some((v) => !v)) return false;
       const me = owner.filter((v) => v === 1).length, ai = owner.filter((v) => v === 2).length;
+      if (me > ai) {
+        if (me >= 2 * ai) ctx.achieve("dwa-do-jednego");
+        if (ctx.level.key === "medium" && ai <= 4) ctx.achieve("strateg");
+        if (ctx.level.key === "hard" && ai <= 8) ctx.achieve("wladca-kropek");
+      }
       if (me > ai) ctx.win(`${me} : ${ai}`);
       else ctx.lose(me === ai ? "Remis" : "Komputer wygrał", `${me} : ${ai}`);
       return true;
