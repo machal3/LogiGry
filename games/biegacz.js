@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "bieg
     "Strzałka w dół albo przesunięcie palcem w dół: schylanie, przydatne pod lecącymi ptakami.",
     "Przebiegnij wymagany dystans. Każda przeszkoda trafiona kończy bieg.",
   ],
+  achievements: [
+    { id: "rozbieg", name: "Rozbieg", desc: "Przebiegnij 300 metrów w jednej partii.", points: 10 },
+    { id: "kilometr", name: "Kilometr", desc: "Przebiegnij kilometr w jednej partii.", points: 25 },
+    { id: "bez-schylania", name: "Wyprostowany", desc: "Wygraj trudny poziom, ani razu się nie schylając.", points: 50 },
+  ],
   mount(board, ctx) {
     const { target, speed, birds } = ctx.level;
     const W = 120, H = 60, GROUND = 50;
@@ -49,6 +54,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "bieg
         s.y = Math.max(0, s.y + s.vy * dt);
         if (s.y === 0) s.vy = 0;
         s.duck = keys.arrowdown || keys.s || (touch && s.duck);
+        if (s.duck) s.ducked = true;
         s.next -= dt;
         if (s.next <= 0) {
           const bird = Math.random() < birds;
@@ -67,6 +73,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "bieg
         }
         s.obs = s.obs.filter((o) => o.x > -20);
         render();
+        if (!s.got300 && s.dist >= 300) { s.got300 = true; ctx.achieve("rozbieg"); }
+        if (!s.got1000 && s.dist >= 1000) { s.got1000 = true; ctx.achieve("kilometr"); }
+        if (s.dist >= target && !s.ducked && ctx.level.key === "hard") ctx.achieve("bez-schylania");
         if (s.dist >= target) ctx.win();
       }
       draw();

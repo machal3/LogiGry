@@ -72,6 +72,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "czwo
     "Wygrywa ten, kto pierwszy ułoży cztery swoje krążki w linii: poziomo, pionowo albo na ukos.",
     "Kliknij kolumnę albo naciśnij klawisz 1–7. Zaczynasz ty. Remis, gdy plansza się zapełni.",
   ],
+  achievements: [
+    { id: "szybka-czworka", name: "Szybka czwórka", desc: "Wygraj, kładąc najwyżej 7 krążków.", points: 10 },
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Pokonaj komputer na średnim poziomie bez cofania ruchu.", points: 25 },
+    { id: "pogromca", name: "Pogromca maszyn", desc: "Pokonaj komputer na trudnym poziomie bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { C, R } = Connect4;
     const b = new Array(C * R).fill(0);
@@ -105,7 +110,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "czwo
       const w = Connect4.winner(b);
       if (w) {
         w.line.forEach((i) => holes[i].classList.add("win"));
-        if (w.v === 1) ctx.win("Cztery w linii!");
+        if (w.v === 1) {
+          if (b.filter((v) => v === 1).length <= 7) ctx.achieve("szybka-czworka");
+          if (ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("bez-cofania");
+          if (ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("pogromca");
+          ctx.win("Cztery w linii!");
+        }
         else ctx.lose("Komputer wygrał", "Cztery krążki komputera w linii.");
         return true;
       }

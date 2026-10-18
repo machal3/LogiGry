@@ -49,6 +49,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wysc
     "Spacja to ręczny hamulec do driftu. Driftowanie ładuje nitro, które odpalasz klawiszem Shift albo N.",
     "Żółte strzałki na torze przyspieszają, plamy oleju wpychają w poślizg, a jazda po trawie mocno spowalnia. Pozycję liczymy po pokonanym dystansie.",
   ],
+  achievements: [
+    { id: "podium", name: "Podium", desc: "Ukończ wyścig na jednym z trzech pierwszych miejsc.", points: 10 },
+    { id: "czysta-jazda", name: "Czysta jazda", desc: "Wygraj wyścig, ani razu nie wyjeżdżając na trawę.", points: 25 },
+    { id: "mistrz-kierownicy", name: "Mistrz kierownicy", desc: "Wygraj trudny wyścig, ani razu nie wyjeżdżając na trawę.", points: 50 },
+  ],
   mount(board, ctx) {
     const lv = ctx.level;
     const W = 250, H = 180, TW = 17;
@@ -89,6 +94,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wysc
       c.idx = i;
       c.prog = c.lap * N + i;
       const grass = dist > TW / 2;
+      if (grass && c === me) s.grass = true;
       let max = grass ? 34 : 78;
       if (c.boost > 0) { c.boost -= dt; max += 40; thr = 1; }
       c.v += (thr > 0 ? thr * 70 : thr * 120) * dt;
@@ -144,6 +150,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wysc
           for (const c of cars) if (!c.finished && c.lap >= lv.laps) { c.finished = true; c.finT = s.t; s.finishedOrder.push(c); }
           if (me.finished) {
             const pl = s.finishedOrder.indexOf(me) + 1;
+            if (pl <= 3) ctx.achieve("podium");
+            if (pl === 1 && !s.grass) ctx.achieve("czysta-jazda");
+            if (pl === 1 && !s.grass && ctx.level.key === "hard") ctx.achieve("mistrz-kierownicy");
             if (pl === 1) ctx.win(`Pierwsze miejsce, czas ${s.t.toFixed(1)} s.`);
             else ctx.lose(`Miejsce ${pl}`, `Zwycięzca był szybszy o ${(s.t - s.finishedOrder[0].finT).toFixed(1)} s.`);
           }

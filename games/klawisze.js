@@ -16,6 +16,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "klaw
     "Stuknięcie białego pola kończy grę, tak samo jak czarny klawisz, który ucieknie.",
     "Na klawiaturze kolumny to D, F, J i K. Klawisze z czasem przyspieszają.",
   ],
+  achievements: [
+    { id: "pierwsze-takty", name: "Pierwsze takty", desc: "Zagraj 25 klawiszy w jednej partii.", points: 10 },
+    { id: "pol-utworu", name: "Pół utworu", desc: "Zagraj 60 klawiszy w jednej partii.", points: 25 },
+    { id: "wirtuoz", name: "Wirtuoz", desc: "Wygraj trudny poziom w mniej niż 40 sekund.", points: 50 },
+  ],
   mount(board, ctx) {
     const { target, speed, accel } = ctx.level;
     const W = 100, H = 150, COLS = 4, RH = H / 4;
@@ -44,6 +49,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "klaw
         Sound.place(SONG[s.hit % SONG.length]);
         s.hit++;
         render();
+        if (s.hit === 25) ctx.achieve("pierwsze-takty");
+        if (s.hit === 60) ctx.achieve("pol-utworu");
+        if (s.hit >= target && ctx.level.key === "hard" && ctx.time < 40) ctx.achieve("wirtuoz");
         if (s.hit >= target) ctx.win();
         return;
       }

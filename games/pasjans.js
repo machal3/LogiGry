@@ -65,6 +65,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pasj
     "Gdy nic nie pasuje, odkryj kartę z talii. Każde rozdanie da się wygrać, ale trzeba myśleć o kolejności.",
     "Na łatwym i średnim po królu może być as i odwrotnie, na trudnym nie. Cofanie jest tylko na łatwym.",
   ],
+  achievements: [
+    { id: "seria-10", name: "Seria", desc: "Zdejmij 10 kart pod rząd.", points: 10 },
+    { id: "seria-15", name: "Długa seria", desc: "Zdejmij 15 kart pod rząd.", points: 25 },
+    { id: "mistrz-pasjansa", name: "Mistrz pasjansa", desc: "Wygraj trudny poziom z serią co najmniej 12 kart.", points: 50 },
+  ],
   mount(board, ctx) {
     const { wrap } = ctx.level;
     const { peaks, stock } = TriPeaks.generate(wrap);
@@ -112,9 +117,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pasj
       top = peaks[i];
       streak++;
       best = Math.max(best, streak);
+      if (streak === 10) ctx.achieve("seria-10");
+      if (streak === 15) ctx.achieve("seria-15");
       cards[i].classList.add("fly");
       Sound.place(Math.min(9, streak));
       render();
+      if (gone === (1 << 28) - 1 && ctx.level.key === "hard" && best >= 12) ctx.achieve("mistrz-pasjansa");
       if (gone === (1 << 28) - 1) return ctx.win(`Najdłuższa seria: ${best}.`);
       if (i < 3) Sound.line();
       stuckCheck();

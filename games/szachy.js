@@ -192,6 +192,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "szac
     "Roszada: przesuń króla o dwa pola w stronę wieży. Bicie w przelocie i promocja piona działają tak jak w turnieju; przy promocji wybierasz figurę.",
     "Wygrywasz, dając mata. Pat, powtórzenie 50 posunięć bez bicia i ruchu pionem albo zbyt mało materiału oznaczają remis.",
   ],
+  achievements: [
+    { id: "szybki-mat", name: "Szybki mat", desc: "Daj mata w najwyżej 40 posunięciach.", points: 10 },
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Daj mata komputerowi na średnim poziomie bez cofania ruchu.", points: 25 },
+    { id: "arcymistrz", name: "Arcymistrz", desc: "Daj mata komputerowi na trudnym poziomie bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const GLYPH = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
     let st = Chess.start();
@@ -215,6 +220,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "szac
     function finish() {
       const res = Chess.status(st);
       if (!res) return false;
+      if (res === "mate" && st.turn === "b") {
+        if (log.length <= 40) ctx.achieve("szybki-mat");
+        if (ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("bez-cofania");
+        if (ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("arcymistrz");
+      }
       if (res === "mate") st.turn === "b" ? ctx.win(`Mat w ${log.length} ${plural(log.length, "posunięciu", "posunięciach", "posunięciach")}.`) : ctx.lose("Mat", "Komputer dał ci mata.");
       else ctx.lose("Remis", { stalemate: "Pat: brak ruchu, ale nie ma szacha.", fifty: "50 posunięć bez bicia i ruchu pionem.", material: "Za mało figur, by dać mata." }[res]);
       return true;

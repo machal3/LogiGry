@@ -26,6 +26,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pami
     "Odkrywaj po dwie karty. Takie same zostają odkryte, różne zakrywają się z powrotem.",
     "Znajdź wszystkie pary jak najszybciej. Na łatwiejszych poziomach karty pokazują się na chwilę na starcie.",
   ],
+  achievements: [
+    { id: "dobra-pamiec", name: "Dobra pamięć", desc: "Wygraj 4 × 4 w najwyżej 12 ruchach.", points: 10 },
+    { id: "fotograficzna", name: "Pamięć fotograficzna", desc: "Wygraj 5 × 4 w najwyżej 16 ruchach.", points: 25 },
+    { id: "mistrz-pamieci", name: "Mistrz pamięci", desc: "Wygraj 6 × 6 w najwyżej 36 ruchach.", points: 50 },
+  ],
   mount(board, ctx) {
     const { cols, rows, peek } = ctx.level;
     const pairs = (cols * rows) / 2;
@@ -100,7 +105,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pami
         found++;
         [a, c].forEach((j) => { cards[j].classList.add("done"); replay(cards[j], "match"); });
         render();
-        if (found === pairs) return ctx.win();
+        if (found === pairs) {
+          const k = ctx.level.key;
+          if (k === "easy" && moves <= 12) ctx.achieve("dobra-pamiec");
+          if (k === "medium" && moves <= 16) ctx.achieve("fotograficzna");
+          if (k === "hard" && moves <= 36) ctx.achieve("mistrz-pamieci");
+          return ctx.win();
+        }
         return Sound.line();
       }
       Sound.erase();

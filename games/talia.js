@@ -72,6 +72,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
     "Blok chroni przed obrażeniami do końca tury. Siła zwiększa ataki, osłabienie je zmniejsza, podatność zwiększa otrzymane obrażenia, trucizna rani co turę, kolce oddają atakującemu.",
     "Po wygranej walce wybierasz jedną z trzech nowych kart. Mniejsza, mocna talia często jest lepsza od dużej.",
   ],
+  achievements: [
+    { id: "na-wlosku", name: "Na włosku", desc: "Pokonaj smoka, mając najwyżej 10 punktów zdrowia.", points: 10 },
+    { id: "smukla-talia", name: "Smukła talia", desc: "Pokonaj smoka talią z najwyżej 15 kart.", points: 25 },
+    { id: "pogromca-smokow", name: "Pogromca smoków", desc: "Pokonaj smoka na trudnym poziomie, mając co najmniej połowę zdrowia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { CARDS, ENEMIES, RELICS } = Deck;
     const lv = ctx.level;
@@ -268,6 +273,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
         f.busy = true;
         const boss = f.enemies.some((e) => e.boss);
         wait(() => {
+          if (boss) {
+            if (s.hp <= 10) ctx.achieve("na-wlosku");
+            if (s.deck.length <= 15) ctx.achieve("smukla-talia");
+            if (ctx.level.key === "hard" && s.hp * 2 >= s.max) ctx.achieve("pogromca-smokow");
+          }
           if (boss) { renderRun(); return ctx.win(`Smok pokonany! Zdrowie ${s.hp} / ${s.max}, talia ${s.deck.length} kart.`); }
           if (s.relics.includes("vial")) s.hp = Math.min(s.max, s.hp + 5);
           s.gold += f.big ? 35 + rnd(15) : 12 + rnd(10);

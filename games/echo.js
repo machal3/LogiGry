@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "echo
     "Każda runda dokłada jeden krok na końcu. Dojdź do sekwencji o wymaganej długości.",
     "Klikaj pola albo naciskaj klawisze z numerami pól. Na łatwym jedna pomyłka jest wybaczona: sekwencja zostanie pokazana jeszcze raz.",
   ],
+  achievements: [
+    { id: "bez-pomylki", name: "Czyste ucho", desc: "Wygraj na 4 polach bez żadnej pomyłki.", points: 10 },
+    { id: "pamiec-slonia", name: "Pamięć słonia", desc: "Powtórz bezbłędnie sekwencję 10 kroków.", points: 25 },
+    { id: "szybkie-echo", name: "Szybkie echo", desc: "Wygraj na 9 polach w mniej niż 2 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { pads, cols, speed } = ctx.level;
     const COLORS = ["#2f9e44", "#e03131", "#fab005", "#1c7ed6", "#ae3ec9", "#f76707", "#15aabf", "#f06595", "#5c940d"];
@@ -67,7 +72,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "echo
       s.at++;
       render();
       if (s.at < s.seq.length) return;
-      if (s.seq.length >= s.target) return later(() => ctx.win(), 250);
+      if (s.seq.length >= 10) ctx.achieve("pamiec-slonia");
+      if (s.seq.length >= s.target) {
+        if (ctx.level.key === "easy" && s.lives === ctx.level.lives) ctx.achieve("bez-pomylki");
+        if (ctx.level.key === "hard" && ctx.time < 120) ctx.achieve("szybkie-echo");
+        return later(() => ctx.win(), 250);
+      }
       s.playing = true;
       later(nextRound, 650);
     }

@@ -72,6 +72,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "przy
     "Wskocz wrogowi na głowę, żeby go pokonać. Dotknięcie z boku, kolce i upadek w przepaść zabierają życie; wracasz do ostatniej flagi kontrolnej.",
     "Drzwi otwiera klucz z tego samego etapu. Sprężyna wybija wysoko, ruchome platformy wożą, a niebieski kryształ daje podwójny skok. 50 monet to dodatkowe życie.",
   ],
+  achievements: [
+    { id: "skarbnik", name: "Skarbnik", desc: "Zbierz 25 monet w jednej przygodzie.", points: 10 },
+    { id: "bez-upadku", name: "Bez upadku", desc: "Ukończ średni poziom bez utraty życia.", points: 25 },
+    { id: "legenda", name: "Legenda", desc: "Ukończ trudny poziom bez utraty życia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { T, ROWS } = Platformer;
     const lv = ctx.level;
@@ -117,6 +122,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "przy
       if (s.dead) return;
       s.dead = 1;
       s.lives--;
+      s.hurt = true;
       s.shake = 1;
       burst(s.p.x + s.p.w / 2, s.p.y + s.p.h / 2, theme.c, 16, 60, 120, 1.4);
       Sound.lose();
@@ -198,7 +204,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "przy
           else die("Auć! Wróg cię dopadł");
           continue;
         }
-        if (t.kind === "coin") { t.got = true; s.coins++; burst(t.x, t.y, "#ffd43b", 7, 35, 40, 0.8); Sound.place(5 + (s.coins % 4)); if (s.coins % 50 === 0) { s.lives++; ctx.toast("Dodatkowe życie!"); } render(); }
+        if (t.kind === "coin") { t.got = true; s.coins++; if (s.coins === 25) ctx.achieve("skarbnik"); burst(t.x, t.y, "#ffd43b", 7, 35, 40, 0.8); Sound.place(5 + (s.coins % 4)); if (s.coins % 50 === 0) { s.lives++; ctx.toast("Dodatkowe życie!"); } render(); }
         if (t.kind === "key") { t.got = true; s.key = true; burst(t.x, t.y, "#ffd43b", 14, 45, 20, 1); Sound.line(); ctx.toast("Masz klucz: drzwi się otworzą"); render(); }
         if (t.kind === "power") { t.got = true; s.dbl = true; burst(t.x, t.y, "#74c0fc", 16, 50, 10, 1.1); Sound.win(); ctx.toast("Podwójny skok! Skocz drugi raz w powietrzu"); render(); }
         if (t.kind === "spring" && p.vy > 0) { t.hit = s.t + 0.15; p.vy = -330; p.squash = -0.4; Sound.place(9); }
@@ -206,6 +212,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "przy
         if (t.kind === "goal") {
           t.got = true;
           Sound.win();
+          if (s.stage + 1 >= lv.stages && !s.hurt && ctx.level.key === "medium") ctx.achieve("bez-upadku");
+          if (s.stage + 1 >= lv.stages && !s.hurt && ctx.level.key === "hard") ctx.achieve("legenda");
           if (s.stage + 1 >= lv.stages) { render(); return ctx.win(`Monety: ${s.coins}, zostało żyć: ${s.lives}.`); }
           ctx.toast(`Etap ${s.stage + 2}!`);
           load(s.stage + 1);

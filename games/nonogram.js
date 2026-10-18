@@ -376,6 +376,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     "Każdy obrazek da się odkryć linia po linii, bez zgadywania.",
     "Przeciągaj, żeby malować wiele pól. Prawy przycisk stawia krzyżyk. Klawiatura: strzałki, spacja, X.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Bez gumki", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki rysownik", desc: "Rozwiąż średni poziom w mniej niż 5 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz obrazków", desc: "Rozwiąż trudny poziom w mniej niż 12 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { size: n, rows, cols, name } = Nonogram.generate(ctx.level.size);
     const s = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 krzyżyk
@@ -499,6 +504,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     board.addEventListener("blur", () => render());
 
     function check() {
+      if (Nonogram.matches(s, rows, cols, n, n)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 300) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 720 && ctx.undos === 0) ctx.achieve("mistrz");
+      
+      }
       if (Nonogram.matches(s, rows, cols, n, n)) ctx.win(name && `Wyszedł obrazek: ${name.toLowerCase()}.`);
     }
 

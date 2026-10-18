@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wspi
     "Chmurki przesuwające się na boki są ruchome, szare kruszą się po pierwszym skoku, a sprężyna wystrzeliwuje wysoko.",
     "Wespnij się na wymaganą wysokość. Upadek poniżej ekranu kończy grę.",
   ],
+  achievements: [
+    { id: "tysiac", name: "Tysiąc w górę", desc: "Wespnij się na wysokość 1000.", points: 10 },
+    { id: "chmury", name: "Ponad chmurami", desc: "Wespnij się na wysokość 2500.", points: 25 },
+    { id: "szybka-wspinaczka", name: "Szybka wspinaczka", desc: "Wygraj trudny poziom w mniej niż 3 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { target, moving, weak, gapMax } = ctx.level;
     const W = 100, H = 150;
@@ -64,6 +69,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wspi
         s.plats = s.plats.filter((p) => p.y < s.cam + H + 10);
         s.best = Math.max(s.best, Math.floor((140 - s.y) * 2));
         render();
+        if (s.best >= 1000 && !s.got1000) { s.got1000 = true; ctx.achieve("tysiac"); }
+        if (s.best >= 2500 && !s.got2500) { s.got2500 = true; ctx.achieve("chmury"); }
+        if (s.best >= target && ctx.level.key === "hard" && ctx.time < 180) ctx.achieve("szybka-wspinaczka");
         if (s.best >= target) ctx.win();
         if (s.y > s.cam + H + 10) { Sound.lose(); ctx.lose("Upadek", `Wysokość: ${s.best}.`); }
       }

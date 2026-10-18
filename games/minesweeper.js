@@ -123,10 +123,15 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sape
     "Prawy przycisk stawia flagę. Kliknięcie w cyfrę z kompletem flag dookoła odkrywa resztę sąsiadów.",
     "Pierwsze kliknięcie jest zawsze bezpieczne, a całą planszę da się rozwiązać samą logiką, bez zgadywania.",
   ],
+  achievements: [
+    { id: "szybki-saper", name: "Szybki saper", desc: "Wygraj łatwy poziom w mniej niż minutę.", points: 10 },
+    { id: "bez-flag", name: "Bez flag", desc: "Wygraj, nie stawiając ani jednej flagi.", points: 25 },
+    { id: "mistrz-sapera", name: "Mistrz sapera", desc: "Wygraj trudny poziom w mniej niż 3 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { w, h, mines: count } = ctx.level;
     const open = new Uint8Array(w * h), flags = new Uint8Array(w * h);
-    let mines = null, nums = null, flagMode = false, opened = 0;
+    let mines = null, nums = null, flagMode = false, opened = 0, usedFlags = false;
 
     board.classList.add("ms");
     board.style.setProperty("--cols", w);
@@ -153,6 +158,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sape
     const toggleFlag = (i) => {
       if (open[i]) return;
       flags[i] ^= 1;
+      if (flags[i]) usedFlags = true;
       flags[i] ? Sound.flag() : Sound.erase();
       render();
     };
@@ -177,6 +183,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "sape
       if (opened === w * h - count) {
         mines.forEach((m, j) => { if (m) flags[j] = 1; });
         render();
+        if (ctx.level.key === "easy" && ctx.time < 60) ctx.achieve("szybki-saper");
+        if (!usedFlags) ctx.achieve("bez-flag");
+        if (ctx.level.key === "hard" && ctx.time < 180) ctx.achieve("mistrz-sapera");
         ctx.win();
       }
     };

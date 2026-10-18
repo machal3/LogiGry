@@ -50,6 +50,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "skoc
     "Odwiedź każde pole planszy dokładnie raz. Zacznij od dowolnego pola (na 5 × 5 od narożnika).",
     "Dobra rada: skacz najpierw tam, skąd jest najmniej dalszych ruchów, a pola przy brzegach odwiedzaj wcześnie. Na łatwym poziomie te liczby widać na polach.",
   ],
+  achievements: [
+    { id: "bez-podpowiedzi", name: "Bez podpowiedzi", desc: "Obejdź planszę, nie używając podpowiedzi.", points: 10 },
+    { id: "szybki-skoczek", name: "Szybki skoczek", desc: "Obejdź planszę 6 × 6 w mniej niż 3 minuty.", points: 25 },
+    { id: "mistrz-skoczka", name: "Mistrz skoczka", desc: "Obejdź planszę 8 × 8 bez podpowiedzi i bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, fixed } = ctx.level;
     let path = [], hints = ctx.level.hints;
@@ -93,6 +98,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "skoc
       replay(cells[i], "land");
       Sound.place(1 + (path.length % 9));
       render();
+      if (path.length === n * n) {
+        const clean = hints === ctx.level.hints;
+        if (clean) ctx.achieve("bez-podpowiedzi");
+        if (ctx.level.key === "medium" && ctx.time < 180) ctx.achieve("szybki-skoczek");
+        if (clean && ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("mistrz-skoczka");
+      }
       if (path.length === n * n) return ctx.win(hints === ctx.level.hints ? "Bez żadnej podpowiedzi." : "");
       if (!Knight.next(n, i, used).length) { Sound.error(); ctx.toast("Skoczek utknął. Cofnij kilka ruchów"); }
     };

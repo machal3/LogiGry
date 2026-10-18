@@ -143,6 +143,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stat
     "Liczby przy wierszach i kolumnach mówią, ile pól statków w nich leży.",
     "Kliknięcie stawia fragment statku, drugie wodę, trzecie czyści. Prawy przycisk i przeciąganie rozlewają wodę. Kliknięcie liczby zalewa resztę spełnionego wiersza lub kolumny.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny celownik", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki zwiad", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Admirał", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, fleet, ship, rows, cols, hint } = Ships.generate(ctx.level.n, ctx.level.fleet, ctx.level.hints);
     const m = n + 1;
@@ -175,7 +180,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stat
     };
     const after = (placed) => {
       const res = render();
-      if (ship.every((v, i) => !!v === (mark[i] === 2))) return ctx.win();
+      if (ship.every((v, i) => !!v === (mark[i] === 2))) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (placed >= 0 && res.bad.has(placed)) return Sound.error();
       placed >= 0 ? Sound.place(3) : Sound.tap();
     };

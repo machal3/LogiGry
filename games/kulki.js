@@ -58,6 +58,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kulk
     "Pięć albo więcej kulek w jednym kolorze w linii, także ukośnej, znika i daje punkty. Dłuższe linie dają więcej.",
     "Każdy ruch bez zbicia dokłada trzy nowe kulki, widoczne wcześniej w panelu. Zbierz wymagane punkty, zanim plansza się zapełni.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Wygraj bez cofania ruchu.", points: 10 },
+    { id: "szybkie-kulki", name: "Szybkie kulki", desc: "Wygraj średni poziom w mniej niż 5 minut.", points: 25 },
+    { id: "mistrz-kulek", name: "Mistrz kulek", desc: "Wygraj trudny poziom bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N } = Lines;
     const COLORS = ["#e03131", "#1c7ed6", "#fab005", "#2f9e44", "#ae3ec9", "#15aabf", "#f76707"];
@@ -101,7 +106,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kulk
       }
       busy = false;
       render();
-      if (s.score >= target) ctx.win();
+      if (s.score >= target) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (ctx.level.key === "medium" && ctx.time < 300) ctx.achieve("szybkie-kulki");
+        if (ctx.level.key === "hard" && ctx.undos === 0) ctx.achieve("mistrz-kulek");
+        ctx.win();
+      }
     }
     function clear(at) {
       const gone = new Set();

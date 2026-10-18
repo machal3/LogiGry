@@ -57,6 +57,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "prze
     "Pokonani wrogowie zostawiają kryształy. Zbierz ich dość, a awansujesz i wybierzesz jedno z trzech ulepszeń: nową broń, mocniejszą broń albo ulepszenie bierne.",
     "Broń na 5. poziomie i pasujące do niej ulepszenie bierne łączą się w ewolucję po otwarciu skrzyni, którą zostawia boss. Opis ulepszenia mówi, z czym się łączy.",
   ],
+  achievements: [
+    { id: "setka", name: "Setka", desc: "Przetrwaj, pokonując co najmniej 100 wrogów.", points: 10 },
+    { id: "poziom-10", name: "Weteran", desc: "Przetrwaj, mając postać na poziomie co najmniej 10.", points: 25 },
+    { id: "nietkniety", name: "Ledwo draśnięty", desc: "Przetrwaj 4 minuty, mając co najmniej połowę zdrowia.", points: 50 },
+  ],
   mount(board, ctx) {
     const { WEAPONS, PASSIVES, FOES } = Survivors;
     const lv = ctx.level;
@@ -257,6 +262,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "prze
       if (s.chest && Math.hypot(s.chest.x - s.x, s.chest.y - s.y) < 5) openChest();
       while (s.xp >= need()) { s.xp -= need(); s.lvl++; levelUp(); break; }
       if (s.hp <= 0) { s.hp = 0; render(); return ctx.lose("Pokonany", `Przetrwałeś ${fmt(Math.floor(s.t))}, pokonani wrogowie: ${s.kills}.`); }
+      if (s.t >= lv.time) {
+        if (s.kills >= 100) ctx.achieve("setka");
+        if (s.lvl >= 10) ctx.achieve("poziom-10");
+        if (ctx.level.key === "hard" && s.hp * 2 >= s.max) ctx.achieve("nietkniety");
+      }
       if (s.t >= lv.time) { render(); return ctx.win(`Poziom ${s.lvl}, pokonani wrogowie: ${s.kills}.`); }
       uiT += dt;
       if (uiT > 0.25) { uiT = 0; render(); }

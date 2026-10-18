@@ -29,6 +29,35 @@ function load(id) {
 
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
+// Każde własne osiągnięcie musi być gdzieś zdobywane (ctx.achieve("id")), a każde wywołanie musi mieć definicję.
+function achieveCalls(game, code) {
+  const defined = (game.achievements || []).map((a) => a.id);
+  const called = [...code.matchAll(/ctx\.achieve\(\s*["']([\w-]+)["']/g)].map((m) => m[1]);
+  return [
+    ...defined.filter((a) => !called.includes(a)).map((a) => `osiągnięcie "${a}" nie ma wywołania ctx.achieve("${a}"), więc nie da się go zdobyć`),
+    ...[...new Set(called)].filter((a) => !defined.includes(a)).map((a) => `ctx.achieve("${a}") wskazuje osiągnięcie, którego nie ma w achievements`),
+  ];
+}
+
+// Starsze gry z games/: osiągnięcia mają ten sam format co w nowych grach.
+function checkLegacy() {
+  globalThis.GAMES = GAMES;
+  let failed = 0;
+  for (const f of readdirSync(join(ROOT, "games")).filter((f) => f.endsWith(".js"))) {
+    const code = readFileSync(join(ROOT, "games", f), "utf8");
+    const id = (code.match(/GAMES\.find\(\(g\) => g\.id === "([\w-]+)"\)/) || [])[1];
+    if (!id) continue; // pliki pomocnicze (słownik)
+    require(join(ROOT, "games", f));
+    const game = GAMES.find((g) => g.id === id);
+    const bad = [...gameProblems(game, []).filter((m) => m.startsWith("achievements")), ...achieveCalls(game, code)];
+    if (!bad.length) continue;
+    failed++;
+    console.log(`BŁĄD games/${f} (${id})`);
+    bad.forEach((m) => console.log(`     - ${m}`));
+  }
+  return failed;
+}
+
 function check(id, others) {
   const bad = [], warn = [];
   const dir = join(GRY, id);
@@ -44,7 +73,7 @@ function check(id, others) {
   else {
     if (game.id !== id) bad.push(`id w registerGame ("${game.id}") musi być równe nazwie folderu ("${id}")`);
     if (game.name === "Dziesiątka" && id !== "dziesiatka") bad.push("to wciąż gra z szablonu: zmień nazwę, opis, kolor, ikonę i mechanikę");
-    bad.push(...gameProblems(game, [...LEGACY_IDS, ...others]));
+    bad.push(...gameProblems(game, [...LEGACY_IDS, ...others]), ...achieveCalls(game, code));
   }
 
   const cssFile = join(dir, "gra.css");
@@ -106,6 +135,8 @@ for (const id of only) {
   bad.forEach((m) => console.log(`     - ${m}`));
   warn.forEach((m) => console.log(`     ~ ${m}`));
 }
+// pełne sprawdzenie obejmuje też osiągnięcia starszych gier
+if (cmd !== "sprawdz") failed += checkLegacy();
 writeIndex(all);
 console.log(`\nGier w gry/: ${all.length}. Lista w index.html odświeżona.${failed ? ` Do poprawy: ${failed}.` : ""}`);
 process.exit(failed ? 1 : 0);

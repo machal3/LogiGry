@@ -32,6 +32,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     "Gdy na stacji czeka zbyt wielu pasażerów, zaczyna się odliczanie. Pełny okrąg kończy grę. Co tydzień wybierasz nagrodę: nową linię, dodatkowy pociąg albo tunel.",
     "Dowieź wymaganą liczbę pasażerów. Zatrzymaj grę spacją, żeby spokojnie przebudować sieć.",
   ],
+  achievements: [
+    { id: "pierwsze-kursy", name: "Pierwsze kursy", desc: "Dowieź 50 pasażerów w jednej grze.", points: 10 },
+    { id: "plynny-ruch", name: "Płynny ruch", desc: "Wygraj średni poziom, nie dopuszczając do poważnego tłoku na żadnej stacji.", points: 25 },
+    { id: "dyspozytor", name: "Dyspozytor doskonały", desc: "Wygraj trudny poziom, nie dopuszczając do poważnego tłoku na żadnej stacji.", points: 50 },
+  ],
   mount(board, ctx) {
     const { SHAPES } = Metro;
     const lv = ctx.level;
@@ -213,10 +218,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       for (const st of s.stations) {
         if (st.wait.length > MAXW) {
           st.over += dt / 14;
+          if (st.over > 0.5) s.crowded = true;
           if (st.over >= 1) { renderStats(); return ctx.lose("Przepełniona stacja", `Dowiezieni pasażerowie: ${s.delivered}.`); }
         } else st.over = Math.max(0, st.over - dt / 20);
       }
       if (s.t > (s.week + 1) * 45) { s.week++; weekReward(); }
+      if (!s.got50 && s.delivered >= 50) { s.got50 = true; ctx.achieve("pierwsze-kursy"); }
+      if (s.delivered >= lv.target && !s.crowded && ctx.level.key === "medium") ctx.achieve("plynny-ruch");
+      if (s.delivered >= lv.target && !s.crowded && ctx.level.key === "hard") ctx.achieve("dyspozytor");
       if (s.delivered >= lv.target) { renderStats(); ctx.win(`Tygodnie: ${s.week + 1}, stacje: ${s.stations.length}.`); }
     }
     function shape(kind, x, y, r, fill, stroke) {

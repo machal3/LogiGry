@@ -188,6 +188,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wiez
     "Każdą planszę da się rozwiązać bez zgadywania. Na wyższych poziomach trzeba rozważać, które ułożenia całego wiersza pasują do obu wskazówek.",
     "Klawiatura: strzałki, cyfry, Backspace. N przełącza notatki.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny architekt", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybka zabudowa", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz wież", desc: "Rozwiąż trudny poziom w mniej niż 7 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, clues } = Towers.generate(ctx.level.size, ctx.level.keep, ctx.level.tier);
     const g = Array.from({ length: n }, () => new Array(n).fill(0));
@@ -269,7 +274,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wiez
       ctx.progress(g.flat().filter(Boolean).length / (n * n));
       if (asNote) return Sound.tap();
       if (!d) return Sound.erase();
-      if (state.solved) return ctx.win();
+      if (state.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 420 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       // błąd: powtórzona wysokość albo złamana wskazówka w tej linii
       const lineClues = [c, n + c, 2 * n + r, 3 * n + r];
       if (state.dupes.has(sel) || lineClues.some((k) => state.clueState[k] === false)) {

@@ -61,6 +61,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "farm
     "Każda akcja kosztuje energię, która wraca po nocy. Truskawki, pomidory i kukurydza owocują wielokrotnie. Ceny zmieniają się codziennie, więc warto czekać na dobry dzień.",
     "Wrony zjadają rośliny, chyba że stoi przy nich strach na wróble. Zraszacz sam podlewa sąsiednie pola. Kury dają jajka, jeśli mają karmę.",
   ],
+  achievements: [
+    { id: "pierwszy-tysiac", name: "Pierwszy tysiąc", desc: "Zarób na targu 1000 zł w jednym sezonie.", points: 10 },
+    { id: "przed-czasem", name: "Przed czasem", desc: "Uzbieraj cel, gdy do końca sezonu zostało co najmniej 5 dni.", points: 25 },
+    { id: "magnat", name: "Magnat rolny", desc: "Wygraj trudny poziom w najwyżej 20 dni.", points: 50 },
+  ],
   mount(board, ctx) {
     const { CROPS } = Farm;
     const lv = ctx.level, n = lv.cols;
@@ -147,6 +152,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "farm
     ctx.on(document, "pointerup", () => (painting = false));
     heldKeys(ctx, (k) => { const t = TOOLS[+k - 1]; if (t) { s.tool = t[0]; render(); } if (k === "enter") sleep(); });
 
+    function farmAch(days) {
+      if (days <= lv.days - 5) ctx.achieve("przed-czasem");
+      if (ctx.level.key === "hard" && days <= 20) ctx.achieve("magnat");
+    }
     function sleep() {
       if (ctx.done) return;
       const events = Farm.grow(s, n);
@@ -157,7 +166,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "farm
       Sound.place(1);
       if (events.length) msg(events[0]);
       render();
-      if (s.money >= lv.goal) return ctx.win(`Uzbierane ${s.money} zł w ${s.day - 1} ${plural(s.day - 1, "dzień", "dni", "dni")}.`);
+      if (s.money >= lv.goal) return farmAch(s.day - 1), ctx.win(`Uzbierane ${s.money} zł w ${s.day - 1} ${plural(s.day - 1, "dzień", "dni", "dni")}.`);
       if (s.day > lv.days) ctx.lose("Koniec sezonu", `Zebrane ${s.money} z ${lv.goal} zł.`);
     }
     function sell(k, all) {
@@ -167,9 +176,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "farm
       s.stock[k] -= cnt;
       s.money += cnt * s.prices[k];
       s.earned += cnt * s.prices[k];
+      if (s.earned >= 1000) ctx.achieve("pierwszy-tysiac");
       Sound.place(9);
       render();
-      if (s.money >= lv.goal) ctx.win(`Uzbierane ${s.money} zł w ${s.day} ${plural(s.day, "dzień", "dni", "dni")}.`);
+      if (s.money >= lv.goal) farmAch(s.day), ctx.win(`Uzbierane ${s.money} zł w ${s.day} ${plural(s.day, "dzień", "dni", "dni")}.`);
     }
     function buy(price, fn) {
       if (s.money < price) { Sound.error(); return msg("Za mało pieniędzy"); }

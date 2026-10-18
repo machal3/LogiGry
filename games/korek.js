@@ -114,6 +114,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kore
     "Pojazdy jeżdżą tylko przód–tył, wzdłuż swojej osi. Przeciągnij pojazd albo zaznacz go i użyj strzałek.",
     "Każde przesunięcie, o dowolną liczbę pól, to jeden ruch. Spróbuj zmieścić się w najkrótszym rozwiązaniu.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny kierowca", desc: "Wyprowadź auto bez cofania ruchu.", points: 10 },
+    { id: "najkrotsza", name: "Najkrótsza droga", desc: "Wyprowadź auto w najmniejszej możliwej liczbie ruchów.", points: 25 },
+    { id: "mistrz-parkingu", name: "Mistrz parkingu", desc: "Na trudnym poziomie wyprowadź auto najkrótszą drogą.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N } = RushHour;
     const level = RushHour.generate(ctx.level.cars, ctx.level.lo, ctx.level.hi, ctx.level.budget);
@@ -149,6 +154,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kore
       Sound.place(1 + (moves % 9));
       render();
       if (RushHour.solved(cars)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (moves <= level.moves) ctx.achieve("najkrotsza");
+        if (moves <= level.moves && ctx.level.key === "hard") ctx.achieve("mistrz-parkingu");
         els[0].classList.add("leave");
         Sound.line();
         setTimeout(() => ctx.win(moves <= level.moves ? "Najkrótszą możliwą drogą." : `Najkrótsze rozwiązanie miało ${level.moves} ${plural(level.moves, "ruch", "ruchy", "ruchów")}.`), 450);

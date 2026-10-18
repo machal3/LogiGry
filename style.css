@@ -344,7 +344,45 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 }
 
 /* --- Profil --- */
-#profile { padding-block: 40px 96px; }
+#profile, #achievements { padding-block: 40px 96px; }
+.nav-link[aria-current] { color: var(--text); }
+.pf-ach-link { display: inline-block; margin-top: 20px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* --- Osiągnięcia --- */
+.ac-title { margin: 0 0 16px; font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 600; line-height: 1.1; letter-spacing: -0.04em; }
+.ac-bar { display: flex; align-items: end; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin: 48px 0 16px; }
+.ac-bar .pf-sub { margin: 0; }
+.ac-recent { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.ac-recent li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--gold) 14%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.ac-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--c); }
+.ac-icon .glyph { width: 56%; }
+.ac-text { display: grid; min-width: 0; }
+.ac-text span { color: var(--muted); font-size: 0.875rem; }
+.ac-games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.ac-game { padding: 20px; border-radius: var(--radius); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.ac-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ac-head:hover strong { text-decoration: underline; }
+.ac-name { display: grid; }
+.ac-name strong { font-size: 1.125rem; }
+.ac-name span { color: var(--muted); font-size: 0.875rem; }
+.ac-items { list-style: none; margin: 0; padding: 0; }
+.ac-items li { display: grid; grid-template-columns: 20px 1fr auto; align-items: start; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.ac-items li:not(.on) { opacity: 0.55; }
+.ac-star { color: var(--gold); font-size: 1.05rem; line-height: 1.4; }
+.ac-items li:not(.on) .ac-star { color: var(--muted); }
+.ac-pts { font-size: 0.8125rem; color: var(--muted); white-space: nowrap; line-height: 1.9; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+  .ac-games { grid-template-columns: 1fr; }
+  .nav-right { gap: 14px; }
+}
 .pf-head {
   padding: 32px;
   border-radius: var(--radius);

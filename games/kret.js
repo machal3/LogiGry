@@ -15,6 +15,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kret
     "Na średnim i trudnym z nor wyskakują też bomby: trafiona bomba zabiera jedno z trzech żyć.",
     "Zdobądź wymaganą liczbę trafień, zanim minie czas. Krety z czasem wychylają się coraz krócej.",
   ],
+  achievements: [
+    { id: "zloty-kret", name: "Złoty kret", desc: "Traf złotego kreta.", points: 10 },
+    { id: "celne-oko", name: "Celne oko", desc: "Wygraj, ani razu nie trafiając w pustą norę.", points: 25 },
+    { id: "saper", name: "Saper", desc: "Wygraj trudny poziom, nie trafiając żadnej bomby.", points: 50 },
+  ],
   mount(board, ctx) {
     const { cols, rows, target, up, every, bombs, time } = ctx.level;
     const s = { hits: 0, lives: 3, left: time, misses: 0 };
@@ -78,12 +83,17 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "kret
         if (s.lives <= 0) { render(); return ctx.lose("Bum!", "Trzy bomby to o trzy za dużo."); }
       } else {
         s.hits += k === "gold" ? 3 : 1;
+        if (k === "gold") ctx.achieve("zloty-kret");
         Sound.place(k === "gold" ? 9 : 1 + (s.hits % 7));
         const f = el("span", "wm-pow", k === "gold" ? "+3" : "+1");
         holes[i].append(f);
         setTimeout(() => f.remove(), 600);
       }
       render();
+      if (s.hits >= target) {
+        if (!s.misses) ctx.achieve("celne-oko");
+        if (ctx.level.key === "hard" && s.lives === 3) ctx.achieve("saper");
+      }
       if (s.hits >= target) ctx.win(`Zostało ${Math.ceil(s.left)} s.`);
     };
     board.addEventListener("pointerdown", (e) => {

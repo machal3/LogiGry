@@ -115,6 +115,11 @@ achievements: [
 - Zdobywasz je w `mount` przez `ctx.achieve("id")`. Wywołaj **przed** `ctx.win()`, wtedy pojawi się na ekranie wyniku.
   Można też w trakcie partii (np. „zbierz 3 bonusy naraz”), gracz zobaczy dymek. Ponowne wywołanie nic nie robi.
 - Nie powielaj osiągnięć automatycznych („wygraj trudny poziom”). Warunek musi dać się sprawdzić w kodzie gry.
+- Każde osiągnięcie musi mieć w kodzie wywołanie `ctx.achieve("jego-id")` z dosłownym id (nie `ctx.achieve(zmienna)`); narzędzie to sprawdza w obie strony.
+- Sprawdzenie w pętli animacji wołaj raz, np. z flagą: `if (!s.got && s.dist >= 300) { s.got = true; ctx.achieve("rozbieg"); }`.
+- Dobre wzory: bez cofania (`ctx.undos === 0`), czas (`ctx.level.key === "hard" && ctx.time < 300`), bez utraty życia, rekordowa seria, najkrótsze rozwiązanie. Przykłady w `games/*.js` (szukaj `achievements:`).
+
+Gracz widzi wszystkie osiągnięcia na stronie `#/osiagniecia` (link „Osiągnięcia” w nawigacji) i w panelu gry.
 
 Rangi gracza zależą od sumy punktów ze wszystkich gier; nie zmieniasz ich.
 
@@ -159,7 +164,9 @@ Pola planszy to przyciski z `gridCells` (mają `aria-label`), nie `div` z `oncli
 | `ctx.win(tekst?)` | wygrana: punkty, osiągnięcia automatyczne, ekran wyniku. Tekst = jedno zdanie podsumowania |
 | `ctx.lose(tytuł, tekst)` | przegrana, np. `ctx.lose("Koniec czasu", "Trafienia: 12 z 20.")` |
 | `ctx.done` | `true` po wygranej/przegranej; wtedy ignoruj ruchy gracza |
-| `ctx.achieve(id)` | zdobycie własnego osiągnięcia |
+| `ctx.achieve(id)` | zdobycie własnego osiągnięcia; `id` zawsze jako dosłowny napis, np. `ctx.achieve("bez-bledu")` |
+| `ctx.time` | sekundy od początku partii (do osiągnięć „w mniej niż…”) |
+| `ctx.undos` | ile razy gracz cofnął ruch w tej partii (do osiągnięć „bez cofania”) |
 | `ctx.progress(0..1)` | postęp partii na pasku pod nagłówkiem |
 | `ctx.toast(tekst)` | krótki dymek na dole planszy |
 | `ctx.undoable(przywróć)` | włącza „Cofnij”; zwraca `zapisz(stan)`, które wołasz przed każdym ruchem |

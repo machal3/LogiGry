@@ -111,6 +111,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "klej
     "Cztery w linii zostawiają klejnot z paskami, który zbija cały rząd albo kolumnę. Pięć w linii albo kształt L czy T zostawia bombę, która zbija pola wokół.",
     "Zdobądź wymaganą liczbę punktów, zanim skończą się ruchy. Kaskady mnożą punkty.",
   ],
+  achievements: [
+    { id: "zapas", name: "Z zapasem", desc: "Wygraj, mając w zapasie co najmniej 5 ruchów.", points: 10 },
+    { id: "oszczedny-jubiler", name: "Oszczędny jubiler", desc: "Wygraj średni poziom, mając w zapasie co najmniej 10 ruchów.", points: 25 },
+    { id: "krolewski-skarbiec", name: "Królewski skarbiec", desc: "Wygraj trudny poziom, mając w zapasie co najmniej 5 ruchów.", points: 50 },
+  ],
   mount(board, ctx) {
     const { N } = Gems;
     const { kinds, target } = ctx.level;
@@ -200,6 +205,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "klej
       }
       busy = false;
       render();
+      if (s.score >= target) {
+        if (s.moves >= 5) ctx.achieve("zapas");
+        if (ctx.level.key === "medium" && s.moves >= 10) ctx.achieve("oszczedny-jubiler");
+        if (ctx.level.key === "hard" && s.moves >= 5) ctx.achieve("krolewski-skarbiec");
+      }
       if (s.score >= target) return ctx.win(`${s.score} punktów, zostało ${s.moves} ${plural(s.moves, "ruch", "ruchy", "ruchów")}.`);
       if (s.moves <= 0) ctx.lose("Koniec ruchów", `Zabrakło ${target - s.score} punktów.`);
     }

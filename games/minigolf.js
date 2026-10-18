@@ -70,6 +70,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mini
     "Piasek mocno hamuje piłkę. Wpadnięcie do wody kosztuje jedno uderzenie karne i powrót na poprzednie miejsce.",
     "Zagraj trzy dołki. Na jednym dołku możesz uderzyć najwyżej kilka razy. Klawiatura: strzałki celują i ustalają siłę, spacja uderza.",
   ],
+  achievements: [
+    { id: "ponizej-par", name: "Poniżej par", desc: "Skończ dołek w mniej uderzeniach, niż wynosi par.", points: 10 },
+    { id: "hole-in-one", name: "Dołek jednym uderzeniem", desc: "Traf do dołka pierwszym uderzeniem.", points: 25 },
+    { id: "mistrz-pola", name: "Mistrz pola", desc: "Skończ trudny poziom z wynikiem poniżej par.", points: 50 },
+  ],
   mount(board, ctx) {
     const W = 100, H = 150;
     const holes = Golf.HOLES[ctx.level.set].map((h) => JSON.parse(JSON.stringify(h)));
@@ -156,11 +161,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mini
           s.sinking = 0;
           scores.push(s.strokes);
           s.total += s.strokes;
+          if (s.strokes < h.par) ctx.achieve("ponizej-par");
+          if (s.strokes === 1) ctx.achieve("hole-in-one");
           const diff = s.strokes - h.par;
           ctx.toast(s.strokes === 1 ? "Hole in one!" : diff < 0 ? "Poniżej par!" : diff === 0 ? "Par" : `${diff > 0 ? "+" : ""}${diff} ponad par`);
           if (s.hole === holes.length - 1) {
             render();
             const par = holes.reduce((a, x) => a + x.par, 0);
+            if (ctx.level.key === "hard" && s.total < par) ctx.achieve("mistrz-pola");
             return ctx.win(`Wynik: ${s.total} przy par ${par}.`);
           }
           s.hole++;

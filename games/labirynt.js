@@ -85,6 +85,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "labi
     "Na średnim i trudnym wyjście jest zamknięte, dopóki nie zbierzesz wszystkich kluczy. Na trudnym widzisz tylko najbliższą okolicę.",
     "Strzałki albo WASD idą o pole, przesunięcie palcem jedzie do najbliższego rozwidlenia, a kliknięcie w pole prowadzi tam najkrótszą drogą.",
   ],
+  achievements: [
+    { id: "sprinter", name: "Sprinter", desc: "Przejdź łatwy labirynt w mniej niż 30 sekund.", points: 10 },
+    { id: "poszukiwacz", name: "Poszukiwacz kluczy", desc: "Przejdź średni labirynt z kluczami w mniej niż 90 sekund.", points: 25 },
+    { id: "we-mgle", name: "We mgle", desc: "Przejdź trudny labirynt we mgle w mniej niż 3 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, fog } = ctx.level;
     const { open, keys } = Maze.generate(n, ctx.level.keys, ctx.level.loops);
@@ -117,7 +122,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "labi
       } else Sound.tap();
       render();
       if (at === exit) {
-        if (got.size === keys.length) ctx.win();
+        if (got.size === keys.length) {
+          if (ctx.level.key === "easy" && ctx.time < 30) ctx.achieve("sprinter");
+          if (ctx.level.key === "medium" && ctx.time < 90) ctx.achieve("poszukiwacz");
+          if (ctx.level.key === "hard" && ctx.time < 180) ctx.achieve("we-mgle");
+          ctx.win();
+        }
         else { ctx.toast(`Wyjście zamknięte. Brakuje ${keys.length - got.size} ${plural(keys.length - got.size, "klucza", "kluczy", "kluczy")}`); Sound.error(); }
       }
       return true;

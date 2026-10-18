@@ -84,6 +84,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "reve
     "Ruch musi przejąć choć jeden pion. Kto nie ma ruchu, traci kolejkę. Gra kończy się, gdy nikt nie może się ruszyć.",
     "Wygrywa ten, kto ma więcej pionów. Narożniki są najcenniejsze, bo nie da się ich odebrać. Kropki pokazują możliwe ruchy.",
   ],
+  achievements: [
+    { id: "przewaga", name: "Miażdżąca przewaga", desc: "Wygraj z przewagą co najmniej 10 pionów.", points: 10 },
+    { id: "bez-cofania", name: "Bez odwrotu", desc: "Pokonaj komputer na średnim poziomie bez cofania ruchu.", points: 25 },
+    { id: "mistrz-reversi", name: "Mistrz reversi", desc: "Pokonaj komputer na trudnym poziomie bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const b = Reversi.start();
     Reversi.last = { b };
@@ -107,6 +112,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "reve
     }
     function end() {
       const me = b.filter((v) => v === 1).length, ai = b.filter((v) => v === 2).length;
+      if (me > ai) {
+        if (me - ai >= 10) ctx.achieve("przewaga");
+        if (ctx.undos === 0 && ctx.level.key === "medium") ctx.achieve("bez-cofania");
+        if (ctx.undos === 0 && ctx.level.key === "hard") ctx.achieve("mistrz-reversi");
+      }
       if (me > ai) ctx.win(`${me} : ${ai}`);
       else ctx.lose(me === ai ? "Remis" : "Komputer wygrał", `${me} : ${ai}`);
     }

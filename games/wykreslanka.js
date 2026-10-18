@@ -52,6 +52,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wykr
     "Na łatwym słowa biegną w prawo albo w dół, na średnim także po skosie, a na trudnym również wspak.",
     "Słowa mogą się krzyżować i dzielić litery.",
   ],
+  achievements: [
+    { id: "bystre-oko", name: "Bystre oko", desc: "Znajdź wszystkie słowa na planszy 8 × 8 w mniej niż minutę.", points: 10 },
+    { id: "tropiciel", name: "Tropiciel słów", desc: "Znajdź wszystkie słowa na planszy 10 × 10 w mniej niż 2 minuty.", points: 25 },
+    { id: "mistrz-wykreslanki", name: "Mistrz wykreślanki", desc: "Znajdź wszystkie słowa na planszy 12 × 12 w mniej niż 4 minuty.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n } = ctx.level;
     const { category, grid, words } = WordSearch.generate(WORDS_PL, n, ctx.level.count, ctx.level.dirs);
@@ -120,7 +125,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wykr
       replay(chips[k], "pop");
       Sound.line();
       render();
-      if (found.size === words.length) ctx.win();
+      if (found.size === words.length) {
+        if (ctx.level.key === "easy" && ctx.time < 60) ctx.achieve("bystre-oko");
+        if (ctx.level.key === "medium" && ctx.time < 120) ctx.achieve("tropiciel");
+        if (ctx.level.key === "hard" && ctx.time < 240) ctx.achieve("mistrz-wykreslanki");
+        ctx.win();
+      }
     });
 
     function render() {

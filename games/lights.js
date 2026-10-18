@@ -77,6 +77,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "swia
     "Kolejność kliknięć nie ma znaczenia, a dwa kliknięcia w to samo pole się znoszą, więc każde pole klikasz najwyżej raz.",
     "Liczba ruchów jest ograniczona. Na trudnym poziomie masz ich dokładnie tyle, ile wymaga najkrótsze rozwiązanie, więc każdy ruch trzeba przemyśleć. Po wyczerpaniu limitu cofnij ruchy.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny włącznik", desc: "Zgaś planszę bez cofania ruchu.", points: 10 },
+    { id: "najkrotsza", name: "Najkrótsza droga", desc: "Zgaś planszę 5 × 5 lub 6 × 6 w najmniejszej możliwej liczbie ruchów.", points: 25 },
+    { id: "mistrz-swiatel", name: "Mistrz świateł", desc: "Zgaś planszę 7 × 7 bez cofania ruchu.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, lit, moves: best } = Lights.generate(ctx.level.size, ctx.level.min);
     let moves = 0, sel = 0;
@@ -144,7 +149,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "swia
         replay(cells[j], "flip");
       });
       const left = render();
-      if (!left) return ctx.win();
+      if (!left) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (moves <= best && ctx.level.key !== "hard") ctx.achieve("najkrotsza");
+        if (ctx.level.key === "hard" && ctx.undos === 0) ctx.achieve("mistrz-swiatel");
+        return ctx.win();
+      }
       Sound.place(1 + (left % 9));
     });
     cellKeys(ctx, {

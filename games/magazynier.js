@@ -119,6 +119,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "maga
     "Skrzynię można tylko pchać, nigdy ciągnąć, i to pojedynczo. Skrzynia wepchnięta w róg zostaje tam na zawsze, wtedy pomoże cofnięcie.",
     "Sterowanie: strzałki, WASD albo przesunięcie palcem. Kliknięcie wolnego pola prowadzi tam magazyniera najkrótszą drogą.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Bez wycofywania", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Sprawny magazynier", desc: "Rozwiąż średni poziom w mniej niż 3 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz magazynu", desc: "Rozwiąż trudny poziom w mniej niż 6 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { w, h, wall, goals } = Sokoban.generate(ctx.level.w, ctx.level.h, ctx.level.boxes, ctx.level.density);
     const s = { w, h, wall, goals, boxes: Sokoban.last.boxes.slice(), player: Sokoban.last.player };
@@ -159,7 +164,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "maga
         if (onGoal) replay(boxEls[res.pushed], "pop");
       } else Sound.tap();
       render();
-      if (Sokoban.solved(s)) ctx.win();
+      if (Sokoban.solved(s)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 180) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 360 && ctx.undos === 0) ctx.achieve("mistrz");
+      ctx.win();
+      }
       return true;
     };
     directionInput(ctx, board, (dir) => { clearInterval(walking); step(dir); });

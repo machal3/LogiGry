@@ -78,6 +78,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "prob
     "Kliknij probówkę, z której chcesz przelać, a potem docelową. Przelać można tylko do pustej albo na taki sam kolor na wierzchu, o ile jest miejsce.",
     "Przelewa się cała górna warstwa jednego koloru, ile się zmieści. Cofanie ruchów jest bez limitu.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewna ręka", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki laborant", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz alchemii", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { CAP } = WaterSort;
     const COLORS = ["#e03131", "#1c7ed6", "#f59f00", "#2f9e44", "#ae3ec9", "#0c8599", "#f06595", "#e8590c", "#82c91e", "#364fc7"];
@@ -129,7 +134,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "prob
       const full = tubes[i].length === CAP && tubes[i].every((c) => c === tubes[i][0]);
       if (full) { Sound.line(); replay(els[i], "corked"); } else Sound.place(1 + (tubes[i][0] % 9));
       render(i, k);
-      if (WaterSort.done(tubes)) ctx.win();
+      if (WaterSort.done(tubes)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      ctx.win();
+      }
       else if (!tubes.some((a, x) => tubes.some((b, y) => x !== y && WaterSort.amount(a, b)))) ctx.toast("Brak ruchów. Cofnij kilka ruchów");
     };
     board.addEventListener("click", (e) => {

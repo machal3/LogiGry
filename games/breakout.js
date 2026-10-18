@@ -100,6 +100,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "cegi
     "Miejsce trafienia w paletkę ustala kąt odbicia: brzegiem kierujesz piłkę na boki. Na trudnym górne cegły trzeba trafić dwa razy.",
     "Sterowanie: mysz albo palec, na klawiaturze strzałki. Kliknięcie lub spacja wystrzeliwuje piłkę.",
   ],
+  achievements: [
+    { id: "na-wlosku", name: "Na włosku", desc: "Rozbij wszystkie cegły na ostatniej piłce.", points: 10 },
+    { id: "czysta-gra", name: "Czysta gra", desc: "Wygraj średni poziom bez straty piłki.", points: 25 },
+    { id: "mistrz-paletki", name: "Mistrz paletki", desc: "Wygraj trudny poziom bez straty piłki.", points: 50 },
+  ],
   mount(board, ctx) {
     const { W, H } = Breakout;
     const s = Breakout.create(ctx.level, GAMES.map((g) => g.color));
@@ -185,7 +190,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "cegi
           if (s.lives <= 0) ctx.lose("Koniec piłek", "Piłka spadła za paletkę.");
           else { Sound.error(); ctx.toast("Piłka stracona. Kliknij, żeby wystrzelić następną"); }
         }
-        if (!Breakout.left(s)) ctx.win();
+        if (!Breakout.left(s)) {
+          if (s.lives === 1) ctx.achieve("na-wlosku");
+          if (s.lives === ctx.level.lives && ctx.level.key === "medium") ctx.achieve("czysta-gra");
+          if (s.lives === ctx.level.lives && ctx.level.key === "hard") ctx.achieve("mistrz-paletki");
+          ctx.win();
+        }
       }
       draw(dt);
       raf = requestAnimationFrame(frame);

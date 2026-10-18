@@ -195,6 +195,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     "Każdą planszę da się rozwiązać bez zgadywania. Na wyższych poziomach trzeba pilnować, by żadna grupa wysp nie została odcięta od reszty.",
     "Przeciągnij od wyspy do wyspy albo kliknij obie po kolei. Kliknięcie w most dokłada drugi, a potem usuwa oba.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewna ręka", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki budowniczy", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Architekt archipelagu", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { w, h, islands } = Bridges.generate(ctx.level.size, ctx.level.size, ctx.level.islands, ctx.level.hard);
     const nb = Bridges.neighbors(islands, w, h);
@@ -293,7 +298,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
       bridges.set(k, (cur + 1) % 3);
       drawPair(k, cur < 2);
       render();
-      if (Bridges.solved(islands, bridges)) return ctx.win();
+      if (Bridges.solved(islands, bridges)) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       // wyspa, która właśnie dostała komplet mostów, „odbija”
       const { sums } = Bridges.status(islands, bridges);
       const fresh = [a, b].filter((i) => sums[i] === islands[i].n && before[i] !== islands[i].n);

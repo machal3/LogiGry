@@ -100,6 +100,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pros
     "W każdym prostokącie jest dokładnie jedna liczba i równa się ona liczbie jego pól.",
     "Przeciągnij od rogu do rogu, żeby narysować prostokąt. Kliknięcie w narysowany prostokąt go usuwa.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewne cięcie", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki geometra", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz prostokątów", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const { n, clues } = Shikaku.generate(ctx.level.n, ctx.level.maxA);
     let rects = []; // prostokąty gracza
@@ -163,7 +168,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "pros
       rects = rects.filter((x) => !Shikaku.cellsOf(x, n).some((j) => mine.has(j)));
       rects.push(q);
       const res = render(rects.length - 1);
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       Shikaku.good(q, n, clues) ? Sound.place(Math.min(9, q.h * q.w)) : Sound.error();
     });
     function showGhost() {

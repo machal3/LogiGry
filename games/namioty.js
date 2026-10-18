@@ -77,6 +77,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "nami
     "Liczby przy wierszach i kolumnach mówią, ile stoi w nich namiotów.",
     "Kliknięcie stawia namiot, drugie trawę, trzecie czyści. Prawy przycisk i przeciąganie rozkładają trawę. Kliknięcie w liczbę zatrawia resztę spełnionego wiersza lub kolumny.",
   ],
+  achievements: [
+    { id: "bez-cofania", name: "Pewny obozowicz", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "sprint", name: "Szybki biwak", desc: "Rozwiąż średni poziom w mniej niż 4 min.", points: 25 },
+    { id: "mistrz", name: "Mistrz kempingu", desc: "Rozwiąż trudny poziom w mniej niż 8 min, bez cofania.", points: 50 },
+  ],
   mount(board, ctx) {
     const p = Tents.generate(ctx.level.n, ctx.level.fill);
     const { n, trees, rows, cols } = p;
@@ -110,7 +115,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "nami
     };
     const after = (placedTent) => {
       const res = render();
-      if (res.solved) return ctx.win();
+      if (res.solved) {
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (ctx.level.key === "medium" && ctx.time < 240) ctx.achieve("sprint");
+      if (ctx.level.key === "hard" && ctx.time < 480 && ctx.undos === 0) ctx.achieve("mistrz");
+      return ctx.win();
+      }
       if (placedTent >= 0 && (res.touching.has(placedTent) || res.lonely.has(placedTent))) return Sound.error();
       placedTent >= 0 ? Sound.place(4) : Sound.tap();
     };
