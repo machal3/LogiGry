@@ -672,3 +672,51 @@ const GAMES = [
     glyph: ["###.#", "#.#..", "###.#", ".....", "#.#.#"],
   },
 ];
+
+// --- Gry z folderu gry/ (platforma dla modeli AI, zasady w AGENTS.md) ---
+// Każda nowa gra dopisuje się sama: gry/<id>/gra.js wywołuje registerGame({...}).
+
+// Punkty za wygraną na poziomach: łatwy, średni, trudny. Rozbudowane gry (big) płacą podwójnie.
+const LEVEL_POINTS = { normal: [10, 25, 50], big: [20, 50, 100] };
+// Punkty za własne osiągnięcie: łatwe, trudne, mistrzowskie.
+const ACHIEVEMENT_POINTS = [10, 25, 50];
+
+// Lista błędów w opisie gry; pusta = gra spełnia szablon. Używa jej też narzedzia/gry.mjs.
+function gameProblems(g, takenIds = GAMES.map((x) => x.id)) {
+  const bad = [];
+  const need = (ok, msg) => { if (!ok) bad.push(msg); };
+  need(/^[a-z0-9-]+$/.test(g.id || ""), "id: tylko małe litery bez polskich znaków, cyfry i myślniki");
+  need(!takenIds.includes(g.id), `id "${g.id}" jest już zajęte`);
+  need(CATEGORIES.some(([k]) => k === g.cat), `cat: jedna z ${CATEGORIES.map(([k]) => k).join(", ")}`);
+  need(typeof g.name === "string" && g.name.length > 0 && g.name.length <= 24, "name: 1–24 znaki");
+  need(typeof g.desc === "string" && g.desc.length >= 20 && g.desc.length <= 110, "desc: 20–110 znaków, jedno-dwa zdania");
+  need(/^#[0-9a-f]{6}$/i.test(g.color || "") && /^#[0-9a-f]{6}$/i.test(g.ink || ""), "color i ink: kolory w formacie #rrggbb");
+  need(Array.isArray(g.glyph) && g.glyph.length === 5 && g.glyph.every((r) => /^[#.]{5}$/.test(r)), "glyph: 5 napisów po 5 znaków # lub .");
+  need(Array.isArray(g.rules) && g.rules.length >= 2 && g.rules.length <= 6, "rules: 2–6 zdań zasad");
+  need(typeof g.mount === "function", "mount(board, ctx): funkcja uruchamiająca partię");
+  const pts = LEVEL_POINTS[g.big ? "big" : "normal"];
+  const lv = g.levels || [];
+  need(lv.length === 3, "levels: dokładnie trzy poziomy (łatwy, średni, trudny)");
+  lv.forEach((l, i) => {
+    need(typeof l.key === "string" && typeof l.name === "string", `levels[${i}]: potrzebne key i name`);
+    need(l.points === pts[i], `levels[${i}].points musi wynosić ${pts[i]}`);
+  });
+  const ach = g.achievements || [];
+  need(ach.length >= 3 && ach.length <= 8, "achievements: 3–8 własnych osiągnięć");
+  ach.forEach((a, i) => {
+    need(/^[a-z0-9-]+$/.test(a.id || "") && !a.id.startsWith("auto-"), `achievements[${i}].id: małe litery, cyfry, myślniki; nie może zaczynać się od "auto-"`);
+    need(typeof a.name === "string" && typeof a.desc === "string", `achievements[${i}]: potrzebne name i desc`);
+    need(ACHIEVEMENT_POINTS.includes(a.points), `achievements[${i}].points: jedna z ${ACHIEVEMENT_POINTS.join(", ")}`);
+  });
+  need(new Set(ach.map((a) => a.id)).size === ach.length, "achievements: id nie mogą się powtarzać");
+  return bad;
+}
+
+function registerGame(g) {
+  const bad = gameProblems(g);
+  // gra z błędami nie trafia na listę, ale nie psuje pozostałych
+  if (bad.length) return console.error(`Gra "${g.id}" pominięta:\n- ${bad.join("\n- ")}`);
+  GAMES.push(g);
+}
+
+if (typeof module !== "undefined") module.exports = { CATEGORIES, GAMES, LEVEL_POINTS, ACHIEVEMENT_POINTS, gameProblems, registerGame };

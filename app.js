@@ -499,6 +499,7 @@ function playGame(game, tools, root) {
   progress.append(progressFill);
   arena.append(area, panel);
   root.replaceChildren(progress, arena);
+  root.dataset.gra = game.id; // style gier z gry/<id>/gra.css zaczynają się od [data-gra="<id>"]
 
   let cleanups = [], timer = 0, history = [], restore = null;
   const stop = () => {
@@ -551,6 +552,7 @@ function playGame(game, tools, root) {
     const toast = el("p", "toast");
     toast.setAttribute("aria-live", "polite");
     let toastTimer = 0;
+    const earned = []; // osiągnięcia zdobyte w tej partii, pokazywane na ekranie wyniku
     setTimeout(() => area.classList.remove("intro"), 1200);
 
     const finish = (won, title, lines, actions, message) => {
@@ -569,7 +571,13 @@ function playGame(game, tools, root) {
       });
       const acts = el("div", "result-actions");
       acts.append(...actions, button("Pokaż planszę", "linkish", () => overlay.remove()));
-      card.append(stats, acts);
+      card.append(stats);
+      if (earned.length) {
+        const ach = el("ul", "result-ach");
+        earned.forEach((a) => ach.append(el("li", "", `${a.name} +${a.points} pkt`)));
+        card.append(ach);
+      }
+      card.append(acts);
       const overlay = el("div", "result");
       overlay.setAttribute("role", "dialog");
       overlay.setAttribute("aria-label", title);
@@ -610,19 +618,33 @@ function playGame(game, tools, root) {
       progress(f) {
         progressFill.style.transform = `scaleX(${Math.max(0, Math.min(1, f))})`;
       },
+      // Własne osiągnięcie gry (id z game.achievements). Punkty dolicza się raz, przy pierwszym zdobyciu.
+      achieve(id) {
+        const a = Profile.unlock(game, id);
+        if (!a) {
+          if (!Profile.achievements(game).some((x) => x.id === id)) console.error(`Nieznane osiągnięcie "${id}" w grze "${game.id}"`);
+          return;
+        }
+        earned.push(a);
+        Sound.line();
+        ctx.toast(`Osiągnięcie: ${a.name} +${a.points} pkt`);
+        if (!ctx.done) { updatePoints(); replay(document.querySelector(".nav-points"), "bump"); }
+      },
       // message: opcjonalny tekst pod tytułem ekranu wyniku
       win(message) {
         if (ctx.done) return;
         const prev = Profile.load();
         const before = prev.games[game.id]?.best?.[level.key];
         Profile.award(game.id, level.key, level.points, seconds);
+        earned.push(...Profile.checkAuto(game));
+        const gained = Profile.load().points - prev.points;
         ctx.progress(1);
         Sound.win();
         confetti(area, [game.color, game.color, game.color, ...GAMES.map((g) => g.color)]);
         // punkty w nawigacji doliczają się po chwili, z podskokiem
         const pill = document.querySelector(".nav-points");
         const anim = ++navAnim;
-        countUp(document.getElementById("nav-points"), level.points, (v) => `${prev.points + v} pkt`, 1000, 900, () => anim === navAnim);
+        countUp(document.getElementById("nav-points"), gained, (v) => `${prev.points + v} pkt`, 1000, 900, () => anim === navAnim);
         setTimeout(() => replay(pill, "bump"), 1000);
         const record = before == null || seconds < before;
         const next = game.levels[idx + 1];
@@ -653,6 +675,11 @@ function playGame(game, tools, root) {
       timer = setInterval(() => (clock.textContent = fmt(++seconds)), 1000);
       game.mount(board, ctx);
       if (game.rules && !game.big) panel.append(panelBlock("Zasady", ...game.rules.map((t) => el("p", "", t))));
+      const box = el("details", "panel-block ach-box");
+      const sum = el("summary", "panel-title");
+      box.append(sum, achievementList(game));
+      sum.textContent = `Osiągnięcia ${box.querySelectorAll(".on").length} / ${Profile.achievements(game).length}`;
+      panel.append(box);
     };
     let seen = true;
     try { seen = !!localStorage.getItem(helpKey); } catch {}
@@ -776,6 +803,19 @@ function updatePoints() {
 
 // --- Profil ---
 
+// Odznaki osiągnięć gry: zdobyte w kolorze, pozostałe przygaszone; opis w podpowiedzi.
+function achievementList(game) {
+  const got = Profile.load().games[game.id]?.ach || {};
+  const list = el("ul", "ach-list");
+  Profile.achievements(game).forEach((a) => {
+    const li = el("li", got[a.id] ? "on" : "");
+    li.title = a.desc;
+    li.append(el("strong", "", a.name), el("span", "", `${a.desc} ${a.points} pkt`));
+    list.append(li);
+  });
+  return list;
+}
+
 function renderProfile() {
   const p = Profile.load();
   const rank = Profile.rank(p.points);
@@ -815,8 +855,10 @@ function renderProfile() {
     paint(icon, game);
     icon.append(glyph(game.glyph));
     const info = el("div", "pf-info");
-    info.append(el("a", "pf-game", game.name), el("span", "pf-meta", g.solved ? `Rozwiązane: ${g.solved}` : "Jeszcze nie rozwiązana"));
+    const achN = Object.keys(g.ach || {}).length, achAll = Profile.achievements(game).length;
+    info.append(el("a", "pf-game", game.name), el("span", "pf-meta", `${g.solved ? `Rozwiązane: ${g.solved}` : "Jeszcze nie rozwiązana"}${achAll ? ` · osiągnięcia ${achN} / ${achAll}` : ""}`));
     info.firstChild.href = `#/gra/${game.id}`;
+    if (achN) info.append(achievementList(game));
     const best = el("dl", "pf-best");
     (game.levels || []).forEach((lv) => {
       if (g.best[lv.key] == null) return;

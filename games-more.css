@@ -1560,7 +1560,7 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .rl-bag { display: grid; gap: 6px; }
 .rl-item { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 10px; min-height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--bg); text-align: left; font-size: 0.875rem; cursor: pointer; }
 .rl-item i { width: 12px; height: 12px; border-radius: 50%; background: var(--ic); }
-.rl-item kbd { font: 500 0.75rem "Geist", system-ui; color: var(--muted); }
+.rl-item kbd { font: 500 0.75rem var(--font); color: var(--muted); }
 .rl-item:hover { box-shadow: inset 0 0 0 1px var(--muted); }
 .rl-log { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 0.8125rem; color: var(--muted); }
 .rl-log li:first-child { color: var(--text); }
@@ -1660,7 +1660,7 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .sv-opt b { font-size: 1.0625rem; }
 .sv-opt p { margin: 0; font-size: 0.875rem; color: var(--muted); }
 .sv-opt em { font-style: normal; font-size: 0.75rem; color: var(--c); }
-.sv-opt kbd { position: absolute; top: 10px; right: 12px; font: 500 0.75rem "Geist", system-ui; color: var(--muted); }
+.sv-opt kbd { position: absolute; top: 10px; right: 12px; font: 500 0.75rem var(--font); color: var(--muted); }
 .sv-kit { display: flex; gap: 6px; flex-wrap: wrap; }
 .sv-kit .chip { box-shadow: inset 3px 0 0 var(--oc, transparent); }
 .sv-kit .chip.evo { background: #fff3bf; color: #a35400; font-weight: 600; }
@@ -1726,7 +1726,7 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .fm-tool i.ic-sickle { background: #adb5bd; border-radius: 50% 50% 0 50%; }
 .fm-tool i.ic-sprinkler { background: #1c7ed6; border-radius: 50%; }
 .fm-tool i.ic-scare { background: #ffd43b; border-radius: 50% 50% 4px 4px; }
-.fm-tool kbd { position: absolute; top: 4px; right: 6px; font: 500 0.625rem "Geist", system-ui; color: var(--muted); }
+.fm-tool kbd { position: absolute; top: 4px; right: 6px; font: 500 0.625rem var(--font); color: var(--muted); }
 .fm-tool.on { box-shadow: inset 0 0 0 2px var(--c); background: color-mix(in srgb, var(--c) 12%, var(--bg)); }
 .fm-seeds { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .fm-seeds .chip { border: 0; cursor: pointer; box-shadow: inset 3px 0 0 var(--cc); font-size: 0.75rem; }
@@ -1749,7 +1749,7 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .mt-lines { display: grid; gap: 6px; }
 .mt-line { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; min-height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--bg); font-size: 0.8125rem; text-align: left; cursor: pointer; }
 .mt-line i { height: 6px; border-radius: 999px; background: var(--lc); }
-.mt-line kbd { font: 500 0.75rem "Geist", system-ui; color: var(--muted); }
+.mt-line kbd { font: 500 0.75rem var(--font); color: var(--muted); }
 .mt-line.on { box-shadow: inset 0 0 0 2px var(--lc); }
 
 /* --- Podbój --- */

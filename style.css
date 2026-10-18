@@ -1,46 +1,9 @@
-:root {
-  --bg: #eef0f4;
-  --surface: #ffffff;
-  --text: #15161b;
-  --muted: #5f6472;
-  --line: #dcdfe6;
-  --tile: #ffffff;
-  --tile-edge: #d3d7e0;
-  --shadow: rgba(30, 38, 70, 0.22);
-  --radius: 28px;
-  --pad: clamp(16px, 4vw, 56px);
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #171a21;
-    --surface: #20242d;
-    --text: #eef0f5;
-    --muted: #9aa1b0;
-    --line: #2c313c;
-    --tile: #262b35;
-    --tile-edge: #343a47;
-    --shadow: rgba(0, 0, 0, 0.5);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #171a21;
-  --surface: #20242d;
-  --text: #eef0f5;
-  --muted: #9aa1b0;
-  --line: #2c313c;
-  --tile: #262b35;
-  --tile-edge: #343a47;
-  --shadow: rgba(0, 0, 0, 0.5);
-  color-scheme: dark;
-}
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font: 400 1rem/1.55 "Geist", system-ui, sans-serif;
+  font: 400 1rem/1.55 var(--font);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -287,7 +250,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   padding: 1px 8px;
   border-radius: 6px;
   box-shadow: inset 0 0 0 1px var(--line);
-  font: 500 0.8125rem/1.5 "Geist", system-ui, sans-serif;
+  font: 500 0.8125rem/1.5 var(--font);
 }
 .search:focus-within kbd { display: none; }
 .sort span { font-size: 0.9375rem; }
@@ -297,7 +260,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   border: 0;
   background: none;
   color: var(--text);
-  font: 600 0.9375rem "Geist", system-ui, sans-serif;
+  font: 600 0.9375rem var(--font);
   cursor: pointer;
   outline: none;
 }
@@ -324,7 +287,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line);
   color: var(--text);
-  font: 500 0.9375rem "Geist", system-ui, sans-serif;
+  font: 500 0.9375rem var(--font);
   cursor: pointer;
   transition: background-color 150ms, color 150ms, transform 120ms;
 }
@@ -395,7 +358,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   border-bottom: 2px dashed transparent;
   background: none;
   color: var(--text);
-  font: 600 clamp(2rem, 5vw, 3.25rem) / 1.1 "Geist", system-ui, sans-serif;
+  font: 600 clamp(2rem, 5vw, 3.25rem) / 1.1 var(--font);
   letter-spacing: -0.04em;
 }
 .pf-name:hover { border-bottom-color: var(--line); }
@@ -407,7 +370,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .pf-next { margin: 10px 0 0; color: var(--muted); }
 .pf-sub { margin: 48px 0 16px; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; }
 .pf-games { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.pf-games li {
+.pf-games > li {
   display: grid;
   grid-template-columns: 56px 1fr auto auto;
   align-items: center;
@@ -426,7 +389,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .pf-best dd { margin: 0; font-variant-numeric: tabular-nums; }
 .pf-pts { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 6ch; text-align: right; }
 .pf-note { margin: 32px 0 12px; color: var(--muted); }
-.danger { color: #c4314b; }
+.danger { color: var(--danger); }
 
 footer {
   padding-block: 32px 48px;
@@ -446,7 +409,7 @@ footer {
   .sort span { display: none; }
 }
 @media (max-width: 560px) {
-  .pf-games li { grid-template-columns: 48px 1fr auto; }
+  .pf-games > li { grid-template-columns: 48px 1fr auto; }
   .pf-best { grid-column: 2 / -1; }
   .bento li:nth-child(n) { grid-column: span 2; }
   .bento { grid-auto-rows: minmax(200px, auto); }

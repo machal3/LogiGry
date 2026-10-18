@@ -1,0 +1,48 @@
+/* Motyw całej strony. Zmiana wyglądu = zmiana wartości tutaj; gry i przyciski biorą je ze zmiennych.
+   Gry nie definiują własnych przycisków ani paneli, więc nowy motyw działa od razu we wszystkich grach. */
+:root {
+  /* kolory interfejsu */
+  --bg: #eef0f4;
+  --surface: #ffffff;
+  --text: #15161b;
+  --muted: #5f6472;
+  --line: #dcdfe6;
+  --tile: #ffffff;
+  --tile-edge: #d3d7e0;
+  --shadow: rgba(30, 38, 70, 0.22);
+  --danger: #c4314b;
+  --gold: #e3a008;
+  --accent: #3550e6;
+
+  /* kształt i czcionka */
+  --font: "Geist", system-ui, sans-serif;
+  --radius: 28px;
+  --radius-btn: 999px;
+  --btn-h: 42px;
+  --pad: clamp(16px, 4vw, 56px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171a21;
+    --surface: #20242d;
+    --text: #eef0f5;
+    --muted: #9aa1b0;
+    --line: #2c313c;
+    --tile: #262b35;
+    --tile-edge: #343a47;
+    --shadow: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171a21;
+  --surface: #20242d;
+  --text: #eef0f5;
+  --muted: #9aa1b0;
+  --line: #2c313c;
+  --tile: #262b35;
+  --tile-edge: #343a47;
+  --shadow: rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
