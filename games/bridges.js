@@ -193,14 +193,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     "Liczba na wyspie mówi, ile mostów z niej wychodzi. Między dwiema wyspami mogą być najwyżej dwa mosty, tylko w poziomie lub pionie.",
     "Mosty nie mogą się krzyżować, a wszystkie wyspy muszą tworzyć jedną całość.",
     "Każdą planszę da się rozwiązać bez zgadywania. Na wyższych poziomach trzeba pilnować, by żadna grupa wysp nie została odcięta od reszty.",
-    "Przeciągnij od wyspy w stronę drugiej (nie trzeba trafiać dokładnie) albo kliknij obie po kolei; zaznaczenie przechodzi na drugą wyspę, więc można kreślić łańcuch.",
-    "Kliknięcie w most dokłada drugi, a potem usuwa oba. Prawy przycisk myszy usuwa most od razu.",
+    "Możliwe połączenia widać od początku jako cienkie linie. Kliknij połączenie, żeby dołożyć most: pierwsze kliknięcie daje jeden, drugie dwa, trzecie usuwa.",
+    "Prawy przycisk myszy usuwa most od razu. Połączenia zablokowane przez inny most są wyszarzone.",
   ],
   mount(board, ctx) {
     const { w, h, islands } = Bridges.generate(ctx.level.size, ctx.level.size, ctx.level.islands, ctx.level.hard);
     const nb = Bridges.neighbors(islands, w, h);
     const bridges = new Map();
-    let sel = null, dragFrom = null;
 
     board.classList.add("br");
     board.style.setProperty("--cols", w);
@@ -215,10 +214,23 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     const S = 10, X = (c) => c * S + S / 2;
     const root = svg("svg", { viewBox: `0 0 ${w * S} ${h * S}`, class: "br-board", role: "group", "aria-label": "Plansza z wyspami" });
     for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) root.append(svg("circle", { cx: X(c), cy: X(r), r: 0.55, class: "br-dot" }));
-    const guides = svg("g", { class: "br-guides" });
     const layer = svg("g", {});
-    root.append(guides, layer);
+    const slots = svg("g", {});
+    root.append(layer, slots);
     const lines = new Map();
+    // Każde możliwe połączenie jest widoczne od początku; kliknięcie dokłada most.
+    const edges = [];
+    nb.forEach((list, a) => list.forEach(({ j }) => {
+      if (j < a) return;
+      const A = islands[a], B = islands[j];
+      const g = svg("g", { class: "br-slot", tabindex: 0, role: "button", "data-a": a, "data-b": j });
+      g.append(
+        svg("line", { class: "br-ghost", x1: X(A.c), y1: X(A.r), x2: X(B.c), y2: X(B.r) }),
+        svg("line", { class: "br-hit", x1: X(A.c), y1: X(A.r), x2: X(B.c), y2: X(B.r) }),
+      );
+      slots.append(g);
+      edges.push({ a, b: j, g });
+    }));
     const nodes = islands.map((isl, i) => {
       const g = svg("g", { class: "br-island c", tabindex: 0, role: "button", "data-i": i, style: `--k:${isl.r + isl.c}` });
       g.append(svg("circle", { cx: X(isl.c), cy: X(isl.r), r: 3.8 }));
@@ -226,6 +238,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
       t.textContent = isl.n;
       g.append(t);
       root.append(g);
+      g.style.pointerEvents = "none";
       return g;
     });
     board.append(root);
@@ -239,7 +252,6 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     const save = ctx.undoable((snap) => {
       bridges.clear();
       snap.forEach(([k, n]) => bridges.set(k, n));
-      sel = null;
       new Set([...lines.keys(), ...bridges.keys()]).forEach((k) => drawPair(k, false));
       render();
     });
@@ -275,7 +287,6 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
         });
         g.append(line);
       });
-      g.append(svg("line", { class: "br-hit", "data-a": a, "data-b": b, x1: X(A.c), y1: X(A.r), x2: X(B.c), y2: X(B.r) }));
       layer.append(g);
       lines.set(k, g);
     }
@@ -304,64 +315,30 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
       else if (cur < 2) Sound.place(cur + 3);
       else Sound.erase();
     };
-    const pick = (i) => {
-      if (ctx.done) return;
-      if (sel === null || sel === i) sel = sel === i ? null : i;
-      else if (pairOf(sel, i)) { const a = sel; sel = i; cycle(a, i); render(); return; }
-      else sel = i;
-      render();
-    };
-
-    // Cel przeciągnięcia: najbliższa wyspa w kierunku ruchu, nie trzeba trafiać dokładnie w kółko.
-    const dragTarget = (e) => {
-      const m = root.getScreenCTM().inverse();
-      const dx = (e.clientX * m.a + e.clientY * m.c + m.e) - X(islands[dragFrom].c);
-      const dy = (e.clientX * m.b + e.clientY * m.d + m.f) - X(islands[dragFrom].r);
-      if (Math.hypot(dx, dy) < 4) return null;
-      const dr = Math.abs(dy) > Math.abs(dx) ? Math.sign(dy) : 0, dc = dr ? 0 : Math.sign(dx);
-      const F = islands[dragFrom];
-      return nb[dragFrom].find(({ j }) => Math.sign(islands[j].r - F.r) === dr && Math.sign(islands[j].c - F.c) === dc)?.j ?? null;
-    };
-    let drop = null;
-    const setDrop = (j) => {
-      if (drop === j) return;
-      if (drop !== null) nodes[drop].classList.remove("drop");
-      drop = j;
-      if (j !== null) nodes[j].classList.add("drop");
-    };
+    const slotOf = (e) => e.target.closest(".br-slot");
     root.addEventListener("pointerdown", (e) => {
-      if (ctx.done || e.button === 2) return;
-      const isl = e.target.closest(".br-island");
-      if (isl) { e.preventDefault(); dragFrom = +isl.dataset.i; return; }
-      const hit = e.target.closest(".br-hit");
-      if (hit) { sel = null; cycle(+hit.dataset.a, +hit.dataset.b); }
-      else if (sel !== null) { sel = null; render(); }
+      const s = slotOf(e);
+      if (ctx.done || e.button === 2 || !s) return;
+      cycle(+s.dataset.a, +s.dataset.b);
     });
-    // prawy przycisk na moście usuwa go od razu
+    // prawy przycisk na połączeniu usuwa most od razu
     root.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      const hit = e.target.closest(".br-hit");
-      if (ctx.done || !hit) return;
-      const k = Bridges.key(+hit.dataset.a, +hit.dataset.b);
+      const s = slotOf(e);
+      if (ctx.done || !s) return;
+      const k = Bridges.key(+s.dataset.a, +s.dataset.b);
+      if (!bridges.get(k)) return;
       save([...bridges]);
       bridges.set(k, 0);
       drawPair(k, false);
       render();
       Sound.erase();
     });
-    ctx.on(document, "pointermove", (e) => { if (dragFrom !== null) setDrop(dragTarget(e)); });
-    ctx.on(document, "pointerup", (e) => {
-      if (dragFrom === null) return;
-      const from = dragFrom, to = dragTarget(e);
-      dragFrom = null;
-      setDrop(null);
-      if (to !== null) { sel = null; cycle(from, to); }
-      else pick(from);
-    });
     root.addEventListener("keydown", (e) => {
-      const isl = e.target.closest(".br-island");
-      if (isl && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick(+isl.dataset.i); }
-      if (e.key === "Escape" && sel !== null) { sel = null; render(); }
+      const s = slotOf(e);
+      if (ctx.done || !s || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      cycle(+s.dataset.a, +s.dataset.b);
     });
 
     function render() {
@@ -372,14 +349,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
         done += full;
         g.classList.toggle("done", full);
         g.classList.toggle("over", sums[i] > islands[i].n);
-        g.classList.toggle("sel", sel === i);
-        g.classList.toggle("cand", sel !== null && !!pairOf(sel, i));
         g.setAttribute("aria-label", `Wyspa ${islands[i].n}, mostów ${sums[i]}`);
       });
-      guides.replaceChildren();
-      if (sel !== null) nb[sel].forEach(({ j }) => {
-        const A = islands[sel], B = islands[j];
-        guides.append(svg("line", { class: "br-guide", x1: X(A.c), y1: X(A.r), x2: X(B.c), y2: X(B.r) }));
+      edges.forEach(({ a, b, g }) => {
+        const n = bridges.get(Bridges.key(a, b)) || 0;
+        g.classList.toggle("has", n > 0);
+        g.classList.toggle("blocked", !n && crosses(a, b));
+        g.setAttribute("aria-label", `Połączenie wysp ${islands[a].n} i ${islands[b].n}, mostów ${n}`);
       });
       progress.textContent = `Wyspy z kompletem mostów: ${done} z ${islands.length}`;
       ctx.progress(done / islands.length);
