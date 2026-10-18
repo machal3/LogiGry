@@ -609,6 +609,7 @@ body[data-view="game"] footer { display: none; }
 .br-island circle { fill: var(--surface); stroke: var(--text); stroke-width: 0.55; transition: fill 200ms, stroke 200ms, stroke-width 150ms; }
 .br-island text { font-size: 4.3px; font-weight: 600; fill: var(--text); pointer-events: none; transition: fill 200ms; }
 .br-island:hover circle { stroke-width: 0.9; }
+.br-island.drop circle { stroke: var(--c); stroke-width: 1.3; fill: color-mix(in srgb, var(--c) 25%, var(--surface)); }
 .br-island.cand circle { stroke: var(--c); stroke-width: 0.9; }
 .br-island.sel circle { fill: color-mix(in srgb, var(--c) 25%, var(--surface)); stroke: var(--c); stroke-width: 1.1; }
 .br-island.done circle { fill: var(--c); stroke: var(--c); }
