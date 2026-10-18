@@ -193,7 +193,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     "Liczba na wyspie mówi, ile mostów z niej wychodzi. Między dwiema wyspami mogą być najwyżej dwa mosty, tylko w poziomie lub pionie.",
     "Mosty nie mogą się krzyżować, a wszystkie wyspy muszą tworzyć jedną całość.",
     "Każdą planszę da się rozwiązać bez zgadywania. Na wyższych poziomach trzeba pilnować, by żadna grupa wysp nie została odcięta od reszty.",
-    "Przeciągnij od wyspy do wyspy albo kliknij obie po kolei. Kliknięcie w most dokłada drugi, a potem usuwa oba.",
+    "Przeciągnij od wyspy w stronę drugiej (nie trzeba trafiać dokładnie) albo kliknij obie po kolei; zaznaczenie przechodzi na drugą wyspę, więc można kreślić łańcuch.",
+    "Kliknięcie w most dokłada drugi, a potem usuwa oba. Prawy przycisk myszy usuwa most od razu.",
   ],
   mount(board, ctx) {
     const { w, h, islands } = Bridges.generate(ctx.level.size, ctx.level.size, ctx.level.islands, ctx.level.hard);
@@ -306,27 +307,56 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "most
     const pick = (i) => {
       if (ctx.done) return;
       if (sel === null || sel === i) sel = sel === i ? null : i;
-      else if (pairOf(sel, i)) { const a = sel; sel = null; cycle(a, i); return; }
+      else if (pairOf(sel, i)) { const a = sel; sel = i; cycle(a, i); render(); return; }
       else sel = i;
       render();
     };
 
+    // Cel przeciągnięcia: najbliższa wyspa w kierunku ruchu, nie trzeba trafiać dokładnie w kółko.
+    const dragTarget = (e) => {
+      const m = root.getScreenCTM().inverse();
+      const dx = (e.clientX * m.a + e.clientY * m.c + m.e) - X(islands[dragFrom].c);
+      const dy = (e.clientX * m.b + e.clientY * m.d + m.f) - X(islands[dragFrom].r);
+      if (Math.hypot(dx, dy) < 4) return null;
+      const dr = Math.abs(dy) > Math.abs(dx) ? Math.sign(dy) : 0, dc = dr ? 0 : Math.sign(dx);
+      const F = islands[dragFrom];
+      return nb[dragFrom].find(({ j }) => Math.sign(islands[j].r - F.r) === dr && Math.sign(islands[j].c - F.c) === dc)?.j ?? null;
+    };
+    let drop = null;
+    const setDrop = (j) => {
+      if (drop === j) return;
+      if (drop !== null) nodes[drop].classList.remove("drop");
+      drop = j;
+      if (j !== null) nodes[j].classList.add("drop");
+    };
     root.addEventListener("pointerdown", (e) => {
-      if (ctx.done) return;
+      if (ctx.done || e.button === 2) return;
       const isl = e.target.closest(".br-island");
       if (isl) { e.preventDefault(); dragFrom = +isl.dataset.i; return; }
       const hit = e.target.closest(".br-hit");
       if (hit) { sel = null; cycle(+hit.dataset.a, +hit.dataset.b); }
       else if (sel !== null) { sel = null; render(); }
     });
+    // prawy przycisk na moście usuwa go od razu
+    root.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const hit = e.target.closest(".br-hit");
+      if (ctx.done || !hit) return;
+      const k = Bridges.key(+hit.dataset.a, +hit.dataset.b);
+      save([...bridges]);
+      bridges.set(k, 0);
+      drawPair(k, false);
+      render();
+      Sound.erase();
+    });
+    ctx.on(document, "pointermove", (e) => { if (dragFrom !== null) setDrop(dragTarget(e)); });
     ctx.on(document, "pointerup", (e) => {
       if (dragFrom === null) return;
-      const from = dragFrom;
+      const from = dragFrom, to = dragTarget(e);
       dragFrom = null;
-      const t = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".br-island");
-      const to = t && root.contains(t) ? +t.dataset.i : from;
-      if (to !== from && pairOf(from, to)) { sel = null; cycle(from, to); }
-      else pick(to);
+      setDrop(null);
+      if (to !== null) { sel = null; cycle(from, to); }
+      else pick(from);
     });
     root.addEventListener("keydown", (e) => {
       const isl = e.target.closest(".br-island");
