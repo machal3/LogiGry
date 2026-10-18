@@ -679,7 +679,7 @@ function playGame(game, tools, root) {
       const sum = el("summary", "panel-title");
       box.append(sum, achievementList(game));
       sum.textContent = `Osiągnięcia ${box.querySelectorAll(".on").length} / ${Profile.achievements(game).length}`;
-      panel.append(box);
+      panel.append(box, el("p", "game-author", `Grę stworzył: ${game.author}`));
     };
     let seen = true;
     try { seen = !!localStorage.getItem(helpKey); } catch {}
@@ -742,7 +742,7 @@ function buildList() {
   const list = document.getElementById("game-list");
   const q = fold(listView.q.trim());
   const inCat = (g) => !listView.cat || (listView.cat === "big" ? g.big : g.cat === listView.cat);
-  let shown = GAMES.filter((g) => inCat(g) && (!q || fold(`${g.name} ${g.desc} ${catName[g.cat]}`).includes(q)));
+  let shown = GAMES.filter((g) => inCat(g) && (!q || fold(`${g.name} ${g.desc} ${catName[g.cat]} ${g.author}`).includes(q)));
   const pts = (g) => p.games[g.id]?.points || 0;
   if (listView.sort === "az") shown = shown.slice().sort((a, b) => a.name.localeCompare(b.name, "pl"));
   if (listView.sort === "pts") shown = shown.slice().sort((a, b) => pts(b) - pts(a));
@@ -755,7 +755,7 @@ function buildList() {
     a.href = `#/gra/${game.id}`;
     paint(a, game);
     const body = el("span", "card-body");
-    body.append(el("span", "card-cat", game.big ? `${catName[game.cat]} · rozbudowana` : catName[game.cat]), el("span", "card-name", game.name), el("span", "card-desc", game.desc));
+    body.append(el("span", "card-cat", game.big ? `${catName[game.cat]} · rozbudowana` : catName[game.cat]), el("span", "card-name", game.name), el("span", "card-desc", game.desc), el("span", "card-author", `Stworzył: ${game.author}`));
     a.append(glyph(game.glyph), body, el("span", "pill", !game.mount ? "Wkrótce" : pts(game) ? `${pts(game)} pkt` : "Graj"));
     const li = el("li");
     li.append(a);

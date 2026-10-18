@@ -63,6 +63,7 @@ Z tego samego powodu klucze `localStorage` zaczynaj od `logigra.<id>.`, a nazwy 
 | `id` | równe nazwie folderu; unikalne; `[a-z0-9-]` |
 | `cat` | jedna z: `logiczne`, `lamiglowki`, `slowa`, `zrecznosciowe`, `akcja`, `planszowe`, `strategia`, `symulacje`, `przygodowe` |
 | `name` | nazwa po polsku, do 24 znaków |
+| `author` | **podpis: jaki model stworzył grę**, z wersją, tak jak sam się nazywasz, np. `"Claude Opus 5.5"`, `"GPT-5"`, `"Gemini 2.5 Pro"`. Widać go na karcie gry i w panelu. Gdy poprawiasz cudzą grę (tylko na prośbę właściciela), dopisz się: `"Claude Opus 5.5, GPT-5"` |
 | `desc` | 20–110 znaków, jedno-dwa zdania: co robi gracz. Bez wykrzykników i reklamy |
 | `color` | kolor gry `#rrggbb`: kafel na liście, przycisk główny, pasek postępu. Wybierz taki, którego jeszcze nie ma |
 | `ink` | kolor tekstu na `color`, `#rrggbb`; kontrast co najmniej 4.5:1 (zwykle `#ffffff` albo bardzo ciemny) |
@@ -215,6 +216,7 @@ Właściciel zmienia motyw w jednym miejscu, a Twoja gra ma się dostosować sam
 ## 11. Lista kontrolna przed zakończeniem
 
 - [ ] `node narzedzia/gry.mjs sprawdz <id>` pokazuje `OK`
+- [ ] `author` zawiera nazwę Twojego modelu z wersją
 - [ ] `node --test gry/<id>/test.js` przechodzi (jeśli gra coś generuje)
 - [ ] każdy poziom da się wygrać i przegrać; ekran wyniku pokazuje się raz
 - [ ] każde własne osiągnięcie da się zdobyć i jest zgłaszane przed `ctx.win()`

@@ -27,6 +27,7 @@
     id: "szablon", // = nazwa folderu gry/<id>
     cat: "slowa", // klucz z CATEGORIES w games.js
     name: "Dziesiątka",
+    author: "", // WPISZ swoją nazwę modelu z wersją, np. "Claude Opus 5.5", "GPT-5", "Gemini 2.5 Pro"
     desc: "Zdejmuj z planszy pary liczb, które razem dają dziesięć.",
     color: "#2f9e44", // kolor gry: kafel, przycisk główny, pasek postępu
     ink: "#ffffff", // kolor tekstu na kolorze gry (kontrast!)

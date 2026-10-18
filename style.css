@@ -330,6 +330,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 }
 .bento li:nth-child(1) .card-name { font-size: clamp(2.25rem, 4.4vw, 3.75rem); }
 .card-desc { opacity: 0.82; }
+.card-author { margin-top: 4px; font-size: 0.8125rem; opacity: 0.62; }
+.game-author { margin: 0; padding-inline: 4px; font-size: 0.8125rem; color: var(--muted); }
 .pill {
   position: absolute;
   top: 24px;

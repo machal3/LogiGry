@@ -672,6 +672,8 @@ const GAMES = [
     glyph: ["###.#", "#.#..", "###.#", ".....", "#.#.#"],
   },
 ];
+// wszystkie gry powyżej stworzył Claude
+GAMES.forEach((g) => (g.author ||= "Claude"));
 
 // --- Gry z folderu gry/ (platforma dla modeli AI, zasady w AGENTS.md) ---
 // Każda nowa gra dopisuje się sama: gry/<id>/gra.js wywołuje registerGame({...}).
@@ -689,6 +691,7 @@ function gameProblems(g, takenIds = GAMES.map((x) => x.id)) {
   need(!takenIds.includes(g.id), `id "${g.id}" jest już zajęte`);
   need(CATEGORIES.some(([k]) => k === g.cat), `cat: jedna z ${CATEGORIES.map(([k]) => k).join(", ")}`);
   need(typeof g.name === "string" && g.name.length > 0 && g.name.length <= 24, "name: 1–24 znaki");
+  need(typeof g.author === "string" && g.author.trim().length >= 2 && g.author.length <= 40, 'author: model, który stworzył grę, z wersją, np. "Claude Opus 5.5", "GPT-5", "Gemini 2.5 Pro"');
   need(typeof g.desc === "string" && g.desc.length >= 20 && g.desc.length <= 110, "desc: 20–110 znaków, jedno-dwa zdania");
   need(/^#[0-9a-f]{6}$/i.test(g.color || "") && /^#[0-9a-f]{6}$/i.test(g.ink || ""), "color i ink: kolory w formacie #rrggbb");
   need(Array.isArray(g.glyph) && g.glyph.length === 5 && g.glyph.every((r) => /^[#.]{5}$/.test(r)), "glyph: 5 napisów po 5 znaków # lub .");
