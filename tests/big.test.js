@@ -43,6 +43,19 @@ test("metro: odległości do kształtu z przesiadkami", () => {
   assert.deepEqual([d.get(1), d.get(2), d.get(3), d.has(4)], [2, 1, 0, false]);
 });
 
+test("metro: odcinki pod kątem 45° i przystanki przed pociągiem", () => {
+  const M = g("metro");
+  for (const [a, b] of [[{ x: 0, y: 0 }, { x: 10, y: 4 }], [{ x: 5, y: 9 }, { x: 2, y: -3 }]]) {
+    const [p, m, q] = M.route(a, b);
+    assert.deepEqual([p, q], [a, b]);
+    const dx = Math.abs(q.x - m.x), dy = Math.abs(q.y - m.y);
+    assert.ok(Math.abs(dx - dy) < 1e-9); // druga część zawsze po przekątnej
+    assert.ok(m.x === a.x || m.y === a.y); // pierwsza część prosto
+  }
+  assert.deepEqual(M.ahead([1, 2, 3, 4], 1, 1), [3, 4]);
+  assert.deepEqual(M.ahead([1, 2, 3, 4], 2, -1), [2, 1]);
+});
+
 test("farma: podlana roślina rośnie, sucha nie", () => {
   const F = g("farma");
   const s = { plots: [{ crop: "radish", age: 0, water: true }, { crop: "radish", age: 0, water: false }], items: [null, null], stock: {}, prices: {}, chickens: 0, feed: 0 };
