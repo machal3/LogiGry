@@ -1,5 +1,6 @@
 /* Motyw całej strony. Zmiana wyglądu = zmiana wartości tutaj; gry i przyciski biorą je ze zmiennych.
-   Gry nie definiują własnych przycisków ani paneli, więc nowy motyw działa od razu we wszystkich grach. */
+   Gry nie definiują własnych przycisków ani paneli, więc nowy motyw działa od razu we wszystkich grach.
+   Pełny opis zmiennych dla twórców gier: AGENTS.md, punkt „Styl”. */
 :root {
   /* kolory interfejsu */
   --bg: #eef0f4;
@@ -14,9 +15,49 @@
   --gold: #e3a008;
   --accent: #3550e6;
 
+  /* paleta gier: pionki, karty, kafle, wykresy, płótno (canvasGame().theme.red itd.);
+     w ciemnym motywie jaśniejsza, więc kontrast z --surface zostaje */
+  --red: #d6334a;
+  --orange: #e8710a;
+  --yellow: #e3a008;
+  --green: #2f9e44;
+  --teal: #0c8599;
+  --blue: #3b5bdb;
+  --violet: #7048e8;
+  --pink: #d6336c;
+  --brown: #8a5a3c;
+  --gray: #868e96;
+  /* znaczenia: dobrze, źle, uwaga; gracz i przeciwnik (niebieski i pomarańczowy rozróżnia też daltonista) */
+  --ok: var(--green);
+  --bad: var(--danger);
+  --warn: var(--orange);
+  --p1: var(--blue);
+  --p2: var(--orange);
+
+  /* skala czcionek i odstępów: tylko te wartości, żeby gry wyglądały jak jedna strona */
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 2rem;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+
+  /* cienie i ruch */
+  --elev-1: 0 1px 2px var(--shadow);
+  --elev-2: 0 10px 24px -12px var(--shadow);
+  --elev-3: 0 30px 60px -30px var(--shadow);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  --dur: 180ms;
+
   /* kształt i czcionka */
   --font: "Geist", system-ui, sans-serif;
   --radius: 28px;
+  --radius-sm: 12px;
   --radius-btn: 999px;
   --btn-h: 42px;
   --pad: clamp(16px, 4vw, 56px);
@@ -32,6 +73,16 @@
     --tile: #262b35;
     --tile-edge: #343a47;
     --shadow: rgba(0, 0, 0, 0.5);
+    --red: #ff6b7f;
+    --orange: #ff9a3d;
+    --yellow: #fcc419;
+    --green: #51cf66;
+    --teal: #3bc9db;
+    --blue: #748ffc;
+    --violet: #9775fa;
+    --pink: #f783ac;
+    --brown: #c8946b;
+    --gray: #a4abb5;
     color-scheme: dark;
   }
 }
@@ -44,5 +95,15 @@
   --tile: #262b35;
   --tile-edge: #343a47;
   --shadow: rgba(0, 0, 0, 0.5);
+  --red: #ff6b7f;
+  --orange: #ff9a3d;
+  --yellow: #fcc419;
+  --green: #51cf66;
+  --teal: #3bc9db;
+  --blue: #748ffc;
+  --violet: #9775fa;
+  --pink: #f783ac;
+  --brown: #c8946b;
+  --gray: #a4abb5;
   color-scheme: dark;
 }

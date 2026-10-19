@@ -381,6 +381,9 @@ function gridCells(board, cols, rows, cls, { gap = 0.08, tag = "button", label =
   return cells;
 }
 
+// Zmienne motywu, które płótno dostaje w theme (theme.red, theme.p1...), bo canvas nie rozumie var().
+const CANVAS_VARS = ["text", "muted", "line", "surface", "bg", "c", "on", "danger", "gold", "red", "orange", "yellow", "green", "teal", "blue", "violet", "pink", "brown", "gray", "ok", "bad", "warn", "p1", "p2"];
+
 // Płótno gry zręcznościowej we współrzędnych W × H: dopasowanie do ekranu, kolory motywu, pętla klatek.
 function canvasGame(board, ctx, W, H, { max = 80, cls = "" } = {}) {
   board.classList.add("cvb");
@@ -401,7 +404,8 @@ function canvasGame(board, ctx, W, H, { max = 80, cls = "" } = {}) {
   const theme = {};
   const readTheme = () => {
     const cs = getComputedStyle(board);
-    for (const k of ["text", "muted", "line", "surface", "bg", "c", "on"]) theme[k] = cs.getPropertyValue(`--${k}`).trim();
+    for (const k of CANVAS_VARS) theme[k] = cs.getPropertyValue(`--${k}`).trim();
+    theme.font = cs.getPropertyValue("--font").trim();
   };
   readTheme();
   ctx.on(matchMedia("(prefers-color-scheme: dark)"), "change", readTheme);
@@ -409,6 +413,14 @@ function canvasGame(board, ctx, W, H, { max = 80, cls = "" } = {}) {
   ctx.onStop(() => { cancelAnimationFrame(raf); ro.disconnect(); });
   return {
     cv, g, theme, W, H,
+    // napis czcionką strony; size w jednostkach planszy, color to klucz motywu ("muted", "red") albo kolor
+    text(s, x, y, { size = 4, weight = 600, color = "text", align = "center", base = "middle" } = {}) {
+      g.font = `${weight} ${size}px ${theme.font}`;
+      g.fillStyle = theme[color] || color;
+      g.textAlign = align;
+      g.textBaseline = base;
+      g.fillText(s, x, y);
+    },
     // położenie wskaźnika w jednostkach planszy
     at(e) {
       const r = cv.getBoundingClientRect();
@@ -1034,7 +1046,7 @@ function route() {
   teardown = null;
   const hash = location.hash;
   const id = (hash.match(/^#\/gra\/([\w-]+)$/) || [])[1];
-  const game = GAMES.find((g) => g.id === id);
+  const game = GAMES.find((g) => g.id === id) || (hash === "#/zestaw" ? KIT_DEMO : null);
   const view = game ? "game" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
   for (const v of ["home", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
   document.body.dataset.view = view;

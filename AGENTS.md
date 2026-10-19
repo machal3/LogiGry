@@ -14,6 +14,7 @@ Twoja gra to jeden folder: `gry/<id>/`. Tworzysz i zmieniasz **wyłącznie** pli
 |---|---|
 | `index.html` | lista skryptów; Twoją grę dopisuje do niej narzędzie, nie Ty |
 | `app.js`, `games.js`, `profile.js`, `lib.js` | silnik platformy, rejestr, profil i punkty |
+| `zestaw.js`, `zestaw.css` | wspólny zestaw elementów gier (punkt 9 i 10) |
 | `theme.css`, `style.css`, `games.css`, `games-more.css` | motyw i wspólne style |
 | `games/*` | starsze gry |
 | `gry/<cudze-id>/`, `gry/_szablon/` | gry innych modeli i szablon |
@@ -51,7 +52,12 @@ Napisz w odpowiedzi jedno zdanie: „Zarezerwowano: <Nazwa> (<id>)”. Po nim w�
 # ... przerabiasz gry/<id>/gra.js i gry/<id>/gra.css na swoją grę ...
 node narzedzia/gry.mjs sprawdz <id>     # musi pokazać "OK"; dopiero wtedy gra pojawia się na stronie
 node --test gry/<id>/test.js            # test logiki gry (jeśli gra coś generuje albo liczy)
+node narzedzia/podglad.mjs <id>         # zrzuty ekranu i sprawdzenie wyświetlania (musi być bez "BŁĄD")
 ```
+`podglad` otwiera grę w Edge/Chrome bez okna, na każdym poziomie, na szerokim ekranie i telefonie (360 px), w jasnym i ciemnym motywie.
+Zgłasza planszę bez rozmiaru albo wystającą poza ekran, przewijanie strony w bok, elementy wystające poza planszę, przyciski bez opisu,
+za małe pola, za dużo bloków panelu i błędy w konsoli (także po wyjściu z gry). Wypisuje folder ze zrzutami: **obejrzyj je**,
+jeśli umiesz czytać obrazy, i porównaj z pokazem zestawu (`node narzedzia/podglad.mjs zestaw`). Uwagi (`~`) popraw, chyba że masz dobry powód.
 Nazwa w `gra.js` musi być taka sama jak w `pomysl.md`. Jeśli w trakcie zmienisz zasady, popraw je też w `pomysl.md`.
 
 Potem otwórz `index.html#/gra/<id>` w przeglądarce, zagraj na każdym poziomie do wygranej i do przegranej, sprawdź konsolę (zero błędów),
@@ -199,69 +205,181 @@ Pola planszy to przyciski z `gridCells` (mają `aria-label`), nie `div` z `oncli
 
 Nasłuchy na elementach wewnątrz `board` możesz dodawać zwykłym `addEventListener`, bo plansza znika z partią.
 
-## 8. Gotowe funkcje (z `app.js` i `lib.js`)
+## 8. Gotowe funkcje (z `app.js`, `zestaw.js` i `lib.js`)
 
+Najpierw szukaj tutaj. Gra zbudowana z tych samych klocków wygląda i działa jak reszta strony; własną wersję piszesz tylko wtedy,
+gdy niczego tu nie ma (i wtedy z tokenów z punktu 10).
+
+### Podstawy
 | Funkcja | Do czego |
 |---|---|
 | `el(tag, klasa, tekst)` | tworzy element |
 | `button(tekst, klasa, onClick)`, `iconButton(tekst, svgPath, klasa, onClick)` | przyciski |
-| `panelBlock(tytuł, ...dzieci)` | blok panelu |
-| `statBlock(ctx, tytuł, { meter, small })` | blok z dużą wartością; `.set(tekst, ułamekPaska, dopisek)` |
 | `segmented(etykieta, opcje, onPick)` | przełącznik; zwraca `{ el, set(k) }` |
-| `gridCells(board, kol, wier, klasa, { gap, label })` | siatka pól-przycisków dopasowana do ekranu; zwraca tablicę pól |
-| `selectionRing(board)` | płynna ramka zaznaczenia; zwraca `place(pole)` |
-| `cellKeys(ctx, { cols, rows, get, set, max, onDigit, keys })` | strzałki po siatce, cyfry, własne klawisze |
-| `digitControls(ctx, max, { put, remaining })` | klawiatura cyfr z notatkami (jak w sudoku) |
-| `canvasGame(board, ctx, W, H, { max, cls })` | płótno gry zręcznościowej: `{ g, theme, at(e), loop(frame) }`; `theme` ma kolory motywu |
-| `heldKeys(ctx, onDown)`, `directionInput(ctx, obszar, onDir)`, `touchPad(ctx, keys, lista)` | sterowanie: klawisze trzymane, kierunki z klawiatury i przesunięć palcem, przyciski dotykowe (ikony `i-left`, `i-right`, `i-up`, `i-down`, `i-cw`, `i-ccw`) |
-| `replay(node, "shake")`, `sweep(pola)` | drżenie przy błędzie, fala światła przez pola |
+| `replay(node, klasa)` | odtwarza animację od nowa: `"shake"` (błąd), `"tick"`, `"flash"`, `"ui-pop"`, `"ui-flip"`, `"ui-roll"`, `"ui-drop"` |
+| `sweep(pola)` | fala światła przez pola (podpowiedź, ułożona linia) |
 | `Sound.tap() .place(n) .erase() .flag() .line() .error()` | dźwięki (wygrana i przegrana grają same) |
 | `rnd(n)`, `pick(tablica)`, `shuffle(tablica)`, `plural(n, "ruch", "ruchy", "ruchów")`, `fmt(sekundy)` | losowanie, odmiana, czas |
 
-Gotowe sceny dla płótna: klasa `space`, `arcade` albo `neon` na `board` (ciemna paleta niezależna od motywu).
-Przykłady użycia znajdziesz w `games/*.js` (np. `kret.js`: siatka i zręczność, `breakout.js`: płótno, `sudoku.js`: cyfry). Czytaj, nie zmieniaj.
+### Plansze (dokładnie jedna na grę, szczegóły w punkcie 9)
+| Funkcja | Do czego |
+|---|---|
+| `gridCells(board, kol, wier, klasa, { gap, label })` | siatka pól-przycisków; zwraca tablicę pól |
+| `canvasGame(board, ctx, W, H, { max, cls })` | płótno: `{ g, theme, text(...), at(e), loop(frame) }` |
+| `svgBoard(board, W, H, { max, cls })` | rysunek SVG: `{ svg, add(tag, atrybuty, rodzic), at(e) }`; `svgEl(tag, atrybuty, rodzic)` tworzy element SVG |
+| `fitBoard(board, kol, wier, { max, cls })` | własny układ z elementów HTML (karty, kości, pionki), mierzony w `var(--s)` |
+| `selectionRing(board)` | płynna ramka zaznaczenia; zwraca `place(pole)` |
 
-## 9. Wygląd i motyw
+### Panel
+| Funkcja | Do czego |
+|---|---|
+| `panelBlock(tytuł, ...dzieci)` | blok panelu z dowolną treścią (przyciski, przełącznik) |
+| `statBlock(ctx, tytuł, { meter, small })` | jedna wartość: duża (najważniejsza liczba gry) albo `small`; `.set(tekst, ułamekPaska, dopisek)` |
+| `statsBlock(ctx, tytuł, ["Punkty", "Ruchy"])` | 2–4 małe wartości w jednym bloku; `.set("Punkty", 12)` |
+| `pipsBlock(ctx, tytuł, max, { icon })` | życia, rundy, ładunki jako znaczki: `icon` `"dot"`, `"heart"`, `"star"`, `"bolt"`; `.set(n, dopisek)` |
+| `logBlock(ctx, tytuł, { max })` | dziennik zdarzeń (ruch komputera, wynik rundy); `.add(tekst, "ok" \| "bad" \| "warn")`, `.clear()` |
+| `legendBlock(ctx, tytuł, [[kształt, barwa, opis]])` | legenda znaków planszy; kształt `circle`, `square`, `diamond`, `ring`, `line`; barwa z palety (`"p1"`, `"red"`) |
+| `digitControls(ctx, max, { put, remaining })` | klawiatura cyfr z notatkami (jak w sudoku) |
+| `touchPad(ctx, keys, lista)` | przyciski dotykowe trzymane jak klawisze (ikony `i-left`, `i-right`, `i-up`, `i-down`, `i-cw`, `i-ccw`) |
 
-Cały wygląd strony (kolory, zaokrąglenia, wysokość przycisków, czcionka) jest w `theme.css`.
-Właściciel zmienia motyw w jednym miejscu, a Twoja gra ma się dostosować sama. Dlatego w `gra.css`:
+### Elementy planszy (wymiar z `var(--s)`, kolory z palety, działają w obu motywach)
+| Funkcja | Element |
+|---|---|
+| `playingCard(ranga, kolor, { down, tag })`, `drawCard(karta, ranga, kolor, down)` | karta: ranga 1–13 (1 = as, 11 W, 12 D, 13 K), kolor `"s"` pik, `"h"` kier, `"d"` karo, `"c"` trefl; szerokość `--card-w` (domyślnie bok pola) |
+| `die(wartość, { tag })`, `drawDie(kość, wartość, rzut)` | kość 1–6; `rzut = true` animuje; szerokość `--die-w` |
+| `piece(kto, { mark, label })` | pionek: `1` gracz (`--p1`), `2` przeciwnik (`--p2`, z pierścieniem), albo barwa palety `"green"`; `mark` np. `"K"` dla damki; szerokość `--piece-w` (domyślnie 0,8 pola) |
+| `letterTile(litera, punkty, { tag })` | płytka z literą; szerokość `--tile-w` |
+| `letterKeys(ctx, onKey, { enter, back, rows })` | klawiatura liter z polskimi znakami, działa też fizyczna; `{ el, set(litera, "ok" \| "near" \| "miss") }`; `el` wstawiasz sam |
 
-- Każdy selektor zaczyna się od `[data-gra="<id>"]` (platforma ustawia ten atrybut na obszarze gry). Nazwy klas z krótkim prefiksem gry, np. `.dz-pole`.
-- Kolory tylko ze zmiennych: `--text`, `--muted`, `--line`, `--surface`, `--bg`, `--danger`, `--gold`, kolor gry `--c` i tekst na nim `--on`.
-  Odcienie robisz przez `color-mix(in srgb, var(--c) 30%, transparent)`.
-  Gdy gra naprawdę potrzebuje własnych barw (np. kolory klejnotów), zdefiniuj je raz jako zmienne `--<id>-...` na `[data-gra="<id>"]`, także w wersji ciemnej.
-- Zaokrąglenia przez `var(--radius)` albo względem pola (`calc(var(--s) * 0.2)`), czcionka `var(--font)`.
-- **Nie zmieniaj wyglądu** `.btn`, `.btn-ghost`, `.seg`, `.panel-*`, `.result-*`, `.toast`, nagłówka ani nawigacji. Narzędzie to odrzuci.
-- Ciemny motyw ma działać bez dodatkowej pracy: jeśli używasz zmiennych, działa.
-- Animacje: nazwy `@keyframes <id>-...`; szanuj `@media (prefers-reduced-motion: reduce)`.
+### Sterowanie
+| Funkcja | Do czego |
+|---|---|
+| `cellKeys(ctx, { cols, rows, get, set, max, onDigit, keys })` | strzałki po siatce, cyfry, własne klawisze |
+| `heldKeys(ctx, onDown)` | klawisze trzymane (gry zręcznościowe) |
+| `directionInput(ctx, obszar, onDir)` | kierunek z klawiatury i przesunięcia palcem |
 
-## 10. Jakość
+Wszystkie elementy zobaczysz na żywo pod adresem `index.html#/zestaw` (trzy karty: Elementy, Siatka, Paleta) i na zrzutach
+`node narzedzia/podglad.mjs zestaw`. Przykłady gier: `games/*.js` (np. `kret.js`: siatka i zręczność, `breakout.js`: płótno,
+`sudoku.js`: cyfry). Czytaj, nie zmieniaj.
 
-- **Język**: cały tekst dla gracza po polsku, spokojnym tonem, bez wykrzykników i emoji. Komentarze w kodzie też po polsku, krótko, tylko gdy kod nie mówi sam za siebie.
+## 9. Plansza: jak ma się skalować
+
+Plansza ma wypełniać dostępne miejsce na każdym ekranie, od telefonu 360 × 740 do monitora, bez przewijania. Platforma liczy bok pola
+`--s` z miejsca na ekranie i z liczby pól planszy. Ty wybierasz **jedną** z czterech funkcji i mierzysz wszystko w `var(--s)`.
+
+| Twoja plansza | Funkcja | Przykład |
+|---|---|---|
+| kratki, pola do klikania | `gridCells(board, kol, wier, "xx-grid")` | łamigłówki, saper, memory |
+| ruch, fizyka, dużo obiektów | `canvasGame(board, ctx, W, H, { max, cls })` | zręcznościowe, akcja, symulacje |
+| linie, okręgi, plansza z punktami i połączeniami | `svgBoard(board, W, H, { max, cls })` | młynek, sieci, mapy, zegary |
+| karty, kości, pionki, własny układ HTML | `fitBoard(board, kol, wier, { max, cls })` | gry karciane, kościane, mankala |
+
+- **`fitBoard`**: plansza to prostokąt `kol × wier` pól o boku `var(--s)`. Wszystko w środku (szerokość, wysokość, odstęp, czcionka,
+  zaokrąglenie, cień) podajesz jako `calc(var(--s) * 0.8)`. Licz pola z marginesem: 5 kart po 1 polu z odstępem 0,2 to `fitBoard(board, 6.2, ...)`.
+- **`canvasGame` i `svgBoard`**: rysujesz we własnych jednostkach `W × H` (np. 100 × 70); proporcja `W : H` to kształt planszy.
+  `max` to największy bok jednej z 10 kolumn w px, więc plansza ma najwyżej `10 × max` px szerokości. Dobre proporcje: 4 : 3, 16 : 10, 1 : 1,
+  pionowe 3 : 4 dla gier, w których coś spada. Przy grubszych liniach i napisach nie zmniejszaj ich poniżej 2,5 jednostki na 100.
+- `max` (px na pole): łamigłówki 56–72, plansze i karty 80–96, płótno 80–100. Za mały `max` daje malutką planszę na monitorze.
+- **Nie wolno**: `width`/`height` w px ani w `%` na planszy i jej elementach, `vw`/`vh`, własne `ResizeObserver` do skalowania,
+  styl na samym `[data-gra="<id>"]` poza zmiennymi (to obszar planszy *i* panelu; narzędzie to odrzuca). Wyjątek: obramowania i cienie 1–3 px.
+- Na telefonie panel jest pod planszą i zajmuje najwyżej 40% ekranu, bloki `statBlock(..., { small: true })` i `pipsBlock` stają po dwa w rzędzie.
+  Nie ukrywaj niczego ważnego tylko w panelu, jeśli gracz musi to widzieć podczas ruchu: pokaż to na planszy.
+- Pola do klikania mają co najmniej 20 px na telefonie (siatka 15 × 15 to granica). Większą planszę podziel albo przybliżaj.
+
+## 10. Styl: jeden wygląd dla wszystkich gier
+
+Wszystkie gry mają wyglądać jak jedna strona, nawet gdy pisze je wiele różnych modeli. Wygląd strony jest w `theme.css` (tokeny)
+i `zestaw.css` (elementy). Właściciel zmienia motyw w jednym miejscu, a Twoja gra dostosowuje się sama, jeśli używa tokenów.
+
+### Tokeny: używaj tylko ich
+| Grupa | Zmienne |
+|---|---|
+| interfejs | `--text`, `--muted` (tekst drugorzędny), `--line` (linie, obramowania), `--surface` (pola, karty), `--bg` (tło, puste miejsca), `--shadow` |
+| kolor gry | `--c` (Twój `color`) i `--on` (tekst na nim, Twój `ink`): zaznaczenie, główny akcent, Twoje pionki w grach jednoosobowych |
+| paleta | `--red`, `--orange`, `--yellow`, `--green`, `--teal`, `--blue`, `--violet`, `--pink`, `--brown`, `--gray` (w ciemnym motywie same jaśnieją) |
+| znaczenia | `--ok` (dobrze), `--bad` (błąd), `--warn` (uwaga), `--gold` (nagroda, gwiazdka), `--danger` (strata) |
+| gracze | `--p1` gracz (niebieski), `--p2` przeciwnik (pomarańczowy); para, którą rozróżnia też daltonista |
+| czcionka | `--font`; rozmiary w panelu `--fs-xs`, `--fs-sm`, `--fs`, `--fs-lg`, `--fs-xl`; na planszy `calc(var(--s) * 0.45)` |
+| odstępy | `--sp-1` 4 px, `--sp-2` 8, `--sp-3` 12, `--sp-4` 16, `--sp-5` 24 (w panelu); na planszy ułamki `var(--s)` |
+| kształt | `--radius` (duże bloki), `--radius-sm`; pole: `calc(var(--s) * 0.2)` |
+| cień | `--elev-1` (leży), `--elev-2` (uniesione, zaznaczone), `--elev-3` (cała plansza) |
+| ruch | `--ease`, `--ease-pop` (z lekkim odbiciem), `--dur` (180 ms) |
+
+Odcienie: `color-mix(in srgb, var(--c) 30%, var(--surface))`. Własne barwy (np. 6 rodzajów klejnotów) bierz z palety;
+dopiero gdy jej nie starcza, zdefiniuj `--<id>-...` na `[data-gra="<id>"]`, także w wersji ciemnej (`@media (prefers-color-scheme: dark)`).
+
+### Sceny: tło planszy
+Klasa w `cls` funkcji planszy (albo `board.classList.add(...)`). Sceny ustawiają też czytelne `--text`, `--line` i `--surface` na sobie.
+| Klasa | Kiedy |
+|---|---|
+| (brak) | domyślnie: pola `--surface` na tle strony; łamigłówki, gry logiczne |
+| `paper` | kratka jak w zeszycie: gry na papierze, rysowanie, kropki |
+| `wood` | drewniana plansza: gry planszowe, mankala, tryktrak, młynek |
+| `felt` | zielony stół: gry karciane i kościane |
+| `slate` | ciemna tablica: gry ze szkicami, kredą, schematami |
+| `space`, `arcade`, `neon` | ciemne sceny płótna: kosmos, automaty, neon |
+
+### Stany pól: to samo znaczenie w każdej grze
+Dodawaj te klasy do pól z `gridCells` i do elementów z zestawu, zamiast wymyślać własne kolory:
+`is-sel` zaznaczone, `is-on` włączone/zamalowane (kolor gry), `is-ok` dobrze, `is-bad` błąd (paski, nie sam kolor), `is-hint` podpowiedź
+(pulsuje dwa razy), `is-lock` dane od początku (nie do zmiany), `is-dim` nieaktywne. Kursor klawiatury: `cursor`. Zobacz kartę „Siatka” w `#/zestaw`.
+
+### Płótno (`canvasGame`)
+- Kolory tylko z `theme`: `theme.text`, `theme.muted`, `theme.line`, `theme.surface`, `theme.bg`, `theme.c`, `theme.on`, cała paleta
+  (`theme.red` ... `theme.gray`), `theme.ok`, `theme.bad`, `theme.warn`, `theme.gold`, `theme.p1`, `theme.p2`. Czytaj je w każdej klatce
+  (zmieniają się z motywem), nie kopiuj do stałych na starcie.
+- Napisy przez `cv.text("12", x, y, { size: 5, weight: 700, color: "muted", align: "left" })` (czcionka strony). Nie ustawiaj `g.font` sam.
+- Wynik, życia i czas pokazuj w panelu (`statsBlock`, `pipsBlock`), nie rysuj ich na płótnie. Na płótnie tylko to, co należy do świata gry.
+- Scena: `cls: "space" | "arcade" | "neon"` dla ciemnych światów, `"paper" | "wood" | "felt" | "slate"` dla stołu; bez sceny płótno ma tło `--surface`.
+
+### Panel
+- Kolejność: stan (najważniejsza liczba w `statBlock` z dużą wartością, potem `statsBlock`/`pipsBlock`), potem narzędzia i przyciski.
+- Najwyżej 4 własne bloki. Kilka małych liczb łącz w jeden `statsBlock` zamiast osobnych bloków.
+- Jeden przycisk `btn` (główna akcja), reszta `btn-ghost`; wszystkie z `wide`, gdy stoją same w bloku. Rząd przycisków: `el("div", "panel-row")`.
+- Tytuły bloków: rzeczownik, 1–2 słowa („Ruchy”, „Twoja ręka”), bez dwukropka.
+
+### `gra.css`
+- Każdy selektor zaczyna się od `[data-gra="<id>"]`. Nazwy klas z krótkim prefiksem gry, np. `.dz-pole`.
+- Kolory tylko z tokenów. Rozmiary na planszy tylko z `var(--s)`. Czcionka `var(--font)`.
+- **Nie zmieniaj wyglądu** `.btn`, `.btn-ghost`, `.seg`, `.panel-*`, `.result-*`, `.toast`, nagłówka, nawigacji ani elementów zestawu (`.ui-*`).
+  Elementy zestawu możesz ustawiać (położenie) i zmieniać im rozmiar przez `--card-w`, `--die-w`, `--piece-w`, `--tile-w`.
+- Animacje: nazwy `@keyframes <id>-...`, czas 150–400 ms, krzywe `var(--ease)` albo `var(--ease-pop)`; wyłącz je
+  w `@media (prefers-reduced-motion: reduce)`.
+- Ciemny motyw działa sam, jeśli używasz tokenów. Sprawdź go na zrzutach z `podglad`.
+
+### Tekst
+- Po polsku, spokojnie, bez wykrzykników i emoji. Liczby z jednostką: „3 z 5”, „12 pkt”, „0:45”.
+- `ctx.toast` na krótkie zdarzenia (1 zdanie, do 50 znaków), `logBlock` na historię, `ctx.lose(tytuł, tekst)` z konkretnym powodem.
+
+## 11. Jakość
+
 - **Sterowanie**: mysz, dotyk i klawiatura. Gra musi dać się przejść na telefonie (360 px szerokości).
-- **Dostępność**: pola i przyciski bez tekstu mają `aria-label`; nie przekazuj informacji samym kolorem.
+- **Dostępność**: pola i przyciski bez tekstu mają `aria-label`; nie przekazuj informacji samym kolorem (dodaj kształt, znak albo tekst).
 - **Uczciwość**: każda wygenerowana plansza musi być do rozwiązania (sprawdź w `test.js`); losowość nie może dać partii nie do wygrania.
 - **Wydajność**: pętle animacji tylko przez `canvasGame().loop` albo `requestAnimationFrame` z `ctx.onStop`; nic nie może działać po wyjściu z gry.
 - **Bez zależności**: bez bibliotek, CDN, `fetch`, `import`. Jeden plik `gra.js`.
+- **Komentarze** po polsku, krótko, tylko gdy kod nie mówi sam za siebie.
 
-## 11. Lista kontrolna przed zakończeniem
+## 12. Lista kontrolna przed zakończeniem
 
 - [ ] gra była zarezerwowana przez `nowa`, zanim powstał kod, a `pomysl.md` ma aktualne zasady
-- [ ] `node narzedzia/gry.mjs sprawdz <id>` pokazuje `OK`
+- [ ] `node narzedzia/gry.mjs sprawdz <id>` pokazuje `OK` (bez uwag `~`, chyba że masz dobry powód)
+- [ ] `node narzedzia/podglad.mjs <id>` nie pokazuje `BŁĄD`, a zrzuty wyglądają jak reszta strony (porównaj z `podglad zestaw`)
+- [ ] plansza z `gridCells`, `canvasGame`, `svgBoard` albo `fitBoard`; wymiary w `var(--s)`; kolory z tokenów i palety
+- [ ] użyłeś gotowych elementów z punktu 8 wszędzie, gdzie pasują (karty, kości, pionki, bloki panelu, stany `is-*`)
 - [ ] `author` zawiera nazwę Twojego modelu z wersją
 - [ ] `node --test gry/<id>/test.js` przechodzi (jeśli gra coś generuje)
 - [ ] każdy poziom da się wygrać i przegrać; ekran wyniku pokazuje się raz
 - [ ] każde własne osiągnięcie da się zdobyć i jest zgłaszane przed `ctx.win()`
-- [ ] brak błędów w konsoli, także po wyjściu z gry i zmianie poziomu w trakcie partii
-- [ ] działa na wąskim ekranie i w ciemnym motywie
 - [ ] zmieniłeś tylko pliki w `gry/<id>/`
-
 ---
 
 ## Dla właściciela
 
 - **Motyw**: zmień wartości w `theme.css` (kolory, `--radius-btn`, `--btn-h`, `--font`). Przyciski, przełączniki i panele we wszystkich grach biorą je ze zmiennych.
 - **Sprawdzenie wszystkich nowych gier**: `node narzedzia/gry.mjs` (pokazuje błędy i odświeża listę w `index.html`).
+- **Wygląd gier**: `node narzedzia/podglad.mjs <id> [<id>...]` (zrzuty i usterki wyświetlania); pokaz zestawu: `index.html#/zestaw`.
+- **Nowy element wspólny**: funkcja w `zestaw.js`, wygląd w `zestaw.css` (z tokenów), wpis w punkcie 8 i przykład w pokazie (`KIT_DEMO`).
 - **Usunięcie gry albo porzuconej rezerwacji**: usuń folder `gry/<id>/` i uruchom `node narzedzia/gry.mjs`.
 - **Kilka modeli naraz**: uruchom pierwszy, a następny dopiero wtedy, gdy poprzedni napisze „Zarezerwowano: …”
   (albo gdy `node narzedzia/gry.mjs lista` pokazuje jego grę z zasadami). Wtedy kolejny model widzi zajęty pomysł i wybierze inny.

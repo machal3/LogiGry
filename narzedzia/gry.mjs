@@ -13,7 +13,8 @@ const GRY = join(ROOT, "gry");
 const require = createRequire(import.meta.url);
 Object.assign(globalThis, require(join(ROOT, "lib.js")));
 const { GAMES, gameProblems } = require(join(ROOT, "games.js"));
-const LEGACY_IDS = GAMES.map((g) => g.id);
+// "zestaw" zajmuje strona pokazowa index.html#/zestaw
+const LEGACY_IDS = [...GAMES.map((g) => g.id), "zestaw"];
 
 const folders = () => readdirSync(GRY, { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith("_") && !d.name.startsWith("."))
@@ -125,14 +126,19 @@ function check(id, others) {
     }
     const taken = [...GAMES.map((g) => g.name), ...others.map((o) => idea(o)?.name || "")];
     if (taken.some((n) => n && fold(n) === fold(game.name))) bad.push(`nazwa "${game.name}" jest już zajęta przez inną grę`);
+    // spójny wygląd: plansza z jednej z czterech funkcji, napisy na płótnie czcionką strony
+    if (!/\b(gridCells|canvasGame|fitBoard|svgBoard)\(/.test(code)) warn.push("plansza nie używa gridCells, canvasGame, fitBoard ani svgBoard, więc nie dopasuje się do ekranu (AGENTS.md, punkt 9)");
+    if (/\.font\s*=\s*[`"'][^`"']*px\s+(sans-serif|serif|monospace|system-ui|Arial|Geist)/.test(code)) warn.push("płótno: napisy przez cv.text(...) albo czcionką theme.font, nie własną (\"px sans-serif\")");
   }
 
   const cssFile = join(dir, "gra.css");
   if (existsSync(cssFile)) {
     const css = stripComments(readFileSync(cssFile, "utf8"));
     const scope = `[data-gra="${id}"]`;
-    for (const [, sel] of css.matchAll(/([^{}]+)\{/g)) {
+    for (const [, sel, body] of css.matchAll(/([^{}]+)\{(?=([^{}]*))/g)) {
       const s = sel.trim();
+      // sam [data-gra] to cały obszar gry (plansza i panel): wolno na nim tylko definiować zmienne
+      if (s === scope && body.split(";").some((d) => d.trim() && !d.trim().startsWith("--"))) bad.push(`gra.css: na samym ${scope} wolno tylko definiować zmienne (--${id}-...); układ i rozmiary ustawiaj na .board albo własnych klasach, inaczej psujesz układ planszy i panelu`);
       if (s.startsWith("@media") || s.startsWith("@supports") || s.startsWith("@container")) continue;
       if (s.startsWith("@keyframes")) {
         if (!s.startsWith(`@keyframes ${id}-`)) bad.push(`gra.css: nazwa animacji musi zaczynać się od "${id}-": ${s}`);
@@ -145,10 +151,14 @@ function check(id, others) {
       }
     }
     for (const m of css.matchAll(/([\w-]+)\s*:\s*[^;{}]*(#[0-9a-f]{3,8}\b|rgba?\(|hsla?\()/gi)) {
-      if (!m[1].startsWith("--")) warn.push(`gra.css: kolor wpisany na sztywno w "${m[1]}"; użyj zmiennej motywu albo zdefiniuj --${id}-kolor i użyj var()`);
+      if (!m[1].startsWith("--")) warn.push(`gra.css: kolor wpisany na sztywno w "${m[1]}"; użyj palety (--red, --p1...) albo zdefiniuj --${id}-kolor i użyj var()`);
+    }
+    // bez warunków @media (min-width: 560px), to nie są rozmiary elementów
+    for (const m of css.replace(/@media[^{]*/g, "").matchAll(/\b((?:min-|max-)?(?:width|height))\s*:\s*(\d+)px/g)) {
+      if (+m[2] >= 24) warn.push(`gra.css: ${m[1]}: ${m[2]}px nie skaluje się z planszą; użyj calc(var(--s) * ...)`);
     }
   }
-  return { bad, warn };
+  return { bad: [...new Set(bad)], warn: [...new Set(warn)] };
 }
 
 // Odtwarza listę gier w index.html między znacznikami GRY-CSS i GRY-JS. Na stronę trafiają tylko gry, które przechodzą sprawdzenie.
@@ -183,7 +193,7 @@ if (cmd === "nowa") {
     process.exit(1);
   }
   const all = known();
-  const same = all.find((g) => g.id === arg || (g.name && fold(g.name) === fold(name)));
+  const same = arg === "zestaw" ? { id: arg, name: "Zestaw elementów", status: "zajęte przez platformę" } : all.find((g) => g.id === arg || (g.name && fold(g.name) === fold(name)));
   if (same) { console.error(`Zajęte: "${same.name}" (${same.id}, ${same.status}). Wybierz inną grę. Listę zobaczysz: node narzedzia/gry.mjs lista`); process.exit(1); }
   const close = all.filter((g) => similarity(`${name} ${desc}`, `${g.name} ${g.desc}`) >= 0.5);
   if (close.length && !force) {

@@ -1,8 +1,9 @@
 /* Style gry. Każdy selektor zaczyna się od [data-gra="<id>"], więc nie dotyka innych gier.
-   Kolory tylko ze zmiennych motywu (theme.css) i koloru gry: --text --muted --line --surface --bg --c --on.
+   Kolory tylko z tokenów (theme.css): --text --muted --line --surface --bg, kolor gry --c --on, paleta --red ... --p1 --p2.
+   Rozmiary na planszy tylko względem pola: calc(var(--s) * 0.5). Zaznaczenie, błąd, podpowiedź dają wspólne klasy is-*.
    Nie styluj przycisków, paneli ani ekranu wyniku: robi to platforma. */
-[data-gra="szablon"] .sz-grid .gb-cell.picked { background: var(--c); color: var(--on); box-shadow: none; }
 [data-gra="szablon"] .sz-grid .gb-cell.gone { visibility: hidden; }
 /* własne animacje: nazwa zaczyna się od id gry */
-[data-gra="szablon"] .sz-grid .gb-cell.picked { animation: szablon-lift 200ms ease-out; }
+[data-gra="szablon"] .sz-grid .gb-cell.is-sel { animation: szablon-lift 200ms var(--ease-pop); }
 @keyframes szablon-lift { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { [data-gra="szablon"] .sz-grid .gb-cell.is-sel { animation: none; } }
