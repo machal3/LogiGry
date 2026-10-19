@@ -1,0 +1,243 @@
+/* Zestaw wspólnych elementów gier (zestaw.js): plansze fitBoard i svgBoard, sceny, stany pól, bloki panelu,
+   karty, kości, pionki, płytki, klawiatura liter, animacje. Wszystko z tokenów theme.css, więc działa w obu motywach.
+   Rozmiar elementów planszy zawsze względem var(--s) (bok pola), więc rosną i maleją razem z planszą. */
+
+/* --- Plansze --- */
+
+/* fitBoard: cols × rows pól, jak siatka i płótno */
+.board.fit { width: calc(var(--cols) * var(--s)); height: calc(var(--rows) * var(--s)); }
+.svgb-svg { display: block; width: 100%; height: 100%; overflow: visible; touch-action: none; user-select: none; -webkit-user-select: none; }
+.svgb-svg text { font-family: var(--font); }
+
+/* --- Sceny: tło planszy (klasa w cls: fitBoard, svgBoard, gridCells albo canvasGame) ---
+   felt: stół do kart, wood: drewniana plansza, paper: kratka do łamigłówek, slate: ciemna tablica.
+   Sceny felt i slate nadpisują --text, --muted, --line i --surface, więc treść na nich zostaje czytelna. */
+.board:is(.felt, .wood, .paper, .slate):not(.cvb), .board:is(.felt, .wood, .paper, .slate) canvas {
+  border-radius: calc(var(--s) * 0.3);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent), var(--elev-3);
+}
+.board.felt {
+  --text: #f1f7f2; --muted: #b5d3bd; --line: rgba(255, 255, 255, 0.16); --surface: #fdfdfb;
+  --felt: color-mix(in srgb, var(--green) 62%, #06200f);
+}
+.board.felt:not(.cvb), .board.felt canvas {
+  background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--felt) 85%, #fff), var(--felt) 70%);
+}
+.board.wood { --wood: color-mix(in srgb, var(--brown) 55%, var(--surface)); }
+.board.wood:not(.cvb), .board.wood canvas {
+  background:
+    repeating-linear-gradient(96deg, transparent 0 calc(var(--s) * 0.4), color-mix(in srgb, var(--brown) 10%, transparent) calc(var(--s) * 0.4) calc(var(--s) * 0.42)),
+    linear-gradient(color-mix(in srgb, var(--wood) 92%, #fff), var(--wood));
+}
+.board.paper:not(.cvb), .board.paper canvas {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / var(--s) var(--s),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / var(--s) var(--s),
+    var(--surface);
+}
+.board.slate { --text: #e9eef0; --muted: #9db0b8; --line: rgba(255, 255, 255, 0.14); --surface: #2c3b42; --bg: #1d282d; }
+.board.slate:not(.cvb), .board.slate canvas { background: linear-gradient(160deg, #2a383e, #1b2529); }
+
+/* --- Stany pól: to samo znaczenie w każdej grze ---
+   is-sel zaznaczone, is-ok dobrze, is-bad błąd (paski, nie sam kolor), is-hint podpowiedź (pulsuje),
+   is-lock dane na starcie (nie do zmiany), is-dim nieaktywne, is-on włączone/zamalowane. */
+.gb-cell.is-sel { background: color-mix(in srgb, var(--c) 28%, var(--surface)); box-shadow: inset 0 0 0 3px var(--c); }
+.gb-cell.is-on { background: var(--c); color: var(--on); box-shadow: none; }
+.gb-cell.is-ok { background: color-mix(in srgb, var(--ok) 22%, var(--surface)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ok) 60%, transparent); }
+.gb-cell.is-bad, .ui-tile.is-bad, .ui-card.is-bad {
+  color: var(--bad);
+  background-image: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--bad) 20%, transparent) 0 calc(var(--s) * 0.08), transparent 0 calc(var(--s) * 0.16));
+  box-shadow: inset 0 0 0 2px var(--bad);
+}
+.gb-cell.is-lock { background: var(--bg); font-weight: 700; cursor: default; }
+.board .is-dim { opacity: 0.35; }
+.board .is-hint { animation: ui-pulse 1100ms var(--ease) 2; }
+.ui-card.is-sel, .ui-tile.is-sel, .ui-die.is-sel { transform: translateY(calc(var(--w) * -0.12)); box-shadow: 0 0 0 3px var(--c), var(--elev-2); }
+.ui-piece.is-sel { outline: 3px solid var(--text); outline-offset: calc(var(--w) * 0.06); }
+.ui-card.is-ok, .ui-tile.is-ok { box-shadow: 0 0 0 3px var(--ok), var(--elev-1); }
+
+/* --- Bloki panelu (statsBlock, pipsBlock, logBlock, legendBlock) --- */
+.ui-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: var(--sp-3); margin: 0; }
+.ui-stats dt { font-size: var(--fs-xs); color: var(--muted); }
+.ui-stats dd { margin: 2px 0 0; font-size: var(--fs-lg); font-weight: 600; font-variant-numeric: tabular-nums; transform-origin: left center; }
+
+.ui-pips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ui-pips i { width: 16px; height: 16px; border-radius: 50%; background: var(--line); transition: background-color var(--dur), transform var(--dur) var(--ease-pop); }
+.ui-pips i.on { background: var(--c); }
+.ui-pips i:not(.on) { transform: scale(0.75); }
+/* kształty przez maskę SVG, więc kolor dalej pochodzi z background */
+.ui-pips:is(.ui-pips-heart, .ui-pips-star, .ui-pips-bolt) i { width: 20px; height: 20px; border-radius: 0; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.ui-pips-heart i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3.2 4 7.1 4c2.1 0 3.6 1.1 4.9 2.8C13.3 5.1 14.8 4 16.9 4c3.9 0 6.2 4.2 4.7 7.7C19.5 16.4 12 21 12 21z'/%3E%3C/svg%3E"); }
+.ui-pips-heart i.on { background: var(--red); }
+.ui-pips-star i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z'/%3E%3C/svg%3E"); }
+.ui-pips-star i.on { background: var(--gold); }
+.ui-pips-bolt i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.5 2 4 13.5h6.5L9.5 22 20 10h-6.5z'/%3E%3C/svg%3E"); }
+
+.ui-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--fs-sm); line-height: 1.4; }
+.ui-log li { padding-left: 10px; border-left: 3px solid var(--line); color: var(--muted); }
+.ui-log li:first-child { color: var(--text); animation: ui-pop 260ms var(--ease-pop); }
+.ui-log li[data-tone="ok"] { border-color: var(--ok); }
+.ui-log li[data-tone="bad"] { border-color: var(--bad); }
+.ui-log li[data-tone="warn"] { border-color: var(--warn); }
+
+.ui-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: var(--fs-sm); color: var(--muted); }
+.ui-legend li { display: flex; align-items: center; gap: 10px; }
+.ui-sw { flex: none; width: 16px; height: 16px; background: var(--sw); }
+.ui-sw-circle { border-radius: 50%; }
+.ui-sw-square { border-radius: 4px; }
+.ui-sw-diamond { transform: rotate(45deg) scale(0.8); border-radius: 3px; }
+.ui-sw-ring { border-radius: 50%; background: none; box-shadow: inset 0 0 0 3px var(--sw); }
+.ui-sw-line { height: 4px; border-radius: 2px; }
+
+/* --- Karta do gry (playingCard). Szerokość: --card-w, domyślnie bok pola --- */
+.ui-card {
+  --w: var(--card-w, var(--s));
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--w);
+  aspect-ratio: 5 / 7;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--w) * 0.1);
+  background: var(--surface);
+  color: var(--text);
+  font: 600 calc(var(--w) * 0.26) / 1 var(--font);
+  box-shadow: inset 0 0 0 1px var(--line), var(--elev-1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.board.felt .ui-card:not(.down) { color: #15161b; }
+.board.felt .ui-card.red:not(.down) { color: #d6334a; }
+.ui-card.red { color: var(--red); }
+button.ui-card { cursor: pointer; }
+button.ui-card:hover:not(:disabled) { transform: translateY(calc(var(--w) * -0.05)); }
+button.ui-card:disabled { cursor: default; }
+.ui-card-corner { position: absolute; top: 6%; left: 9%; display: grid; justify-items: center; line-height: 0.95; }
+.ui-card-corner i { font-style: normal; font-size: 0.8em; }
+.ui-card-pip { font-size: calc(var(--w) * 0.5); }
+.ui-card.down {
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--c) 80%, var(--surface)) 0 calc(var(--w) * 0.06), color-mix(in srgb, var(--c) 55%, var(--surface)) 0 calc(var(--w) * 0.12));
+  box-shadow: inset 0 0 0 calc(var(--w) * 0.05) var(--surface), inset 0 0 0 calc(var(--w) * 0.06) var(--line), var(--elev-1);
+}
+
+/* --- Kość (die). Szerokość: --die-w --- */
+.ui-die {
+  --w: var(--die-w, var(--s));
+  display: inline-grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: calc(var(--w) * 0.05);
+  width: var(--w);
+  aspect-ratio: 1;
+  margin: 0;
+  padding: calc(var(--w) * 0.15);
+  border: 0;
+  border-radius: 22%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), inset 0 calc(var(--w) * -0.06) 0 var(--line), var(--elev-1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur);
+}
+.ui-die i { border-radius: 50%; }
+.ui-die i.on { background: var(--text); }
+button.ui-die { cursor: pointer; }
+.ui-roll { animation: ui-roll 520ms var(--ease-pop); }
+
+/* --- Pionek (piece). Szerokość: --piece-w, domyślnie 0,8 pola. Pionek gracza 2 ma pierścień, nie tylko inny kolor --- */
+.ui-piece {
+  --w: var(--piece-w, calc(var(--s) * 0.8));
+  --pc: var(--p1);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--w);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--pc) 50%, #fff) 0 10%, var(--pc) 50%, color-mix(in srgb, var(--pc) 72%, #000));
+  box-shadow: inset 0 calc(var(--w) * -0.08) 0 color-mix(in srgb, var(--pc) 60%, #000), 0 calc(var(--w) * 0.06) calc(var(--w) * 0.14) var(--shadow);
+  color: #fff;
+  font: 700 calc(var(--w) * 0.42) / 1 var(--font);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: transform var(--dur) var(--ease);
+}
+.ui-piece[data-p="1"] { --pc: var(--p1); }
+.ui-piece[data-p="2"] { --pc: var(--p2); }
+.ui-piece[data-p="2"]::after { content: ""; position: absolute; inset: 20%; border-radius: 50%; box-shadow: 0 0 0 calc(var(--w) * 0.06) rgba(255, 255, 255, 0.6); }
+.ui-drop { animation: ui-drop 360ms var(--ease-pop) both; }
+
+/* --- Płytka z literą (letterTile). Szerokość: --tile-w --- */
+.ui-tile {
+  --w: var(--tile-w, var(--s));
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--w);
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--w) * 0.16);
+  background: color-mix(in srgb, var(--yellow) 28%, var(--surface));
+  color: var(--text);
+  font: 700 calc(var(--w) * 0.5) / 1 var(--font);
+  box-shadow: inset 0 calc(var(--w) * -0.07) 0 color-mix(in srgb, var(--yellow) 45%, var(--line)), var(--elev-1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur);
+}
+.ui-tile sub { position: absolute; right: 10%; bottom: 9%; font-size: 0.36em; font-weight: 600; line-height: 1; }
+button.ui-tile { cursor: pointer; }
+
+/* --- Klawiatura liter (letterKeys) --- */
+.ui-keys { display: grid; gap: 6px; width: 100%; max-width: 520px; margin-inline: auto; }
+.ui-keys-row { display: flex; gap: 4px; justify-content: center; }
+.ui-key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 600 var(--fs) / 1 var(--font);
+  box-shadow: inset 0 0 0 1px var(--line), inset 0 -2px 0 var(--line);
+  cursor: pointer;
+  transition: background-color var(--dur), transform 80ms;
+}
+.ui-key:active { transform: translateY(1px) scale(0.96); }
+.ui-key.wide-key { flex-grow: 1.7; max-width: 84px; font-size: var(--fs-sm); }
+/* stany różnią się też kształtem: ok pełne, near obramowane przerywaną linią, miss przekreślone */
+.ui-key[data-state="ok"] { background: var(--ok); color: #fff; box-shadow: none; }
+.ui-key[data-state="near"] { background: color-mix(in srgb, var(--yellow) 30%, var(--surface)); box-shadow: inset 0 0 0 2px var(--yellow); outline: 2px dashed color-mix(in srgb, var(--yellow) 70%, var(--text)); outline-offset: -6px; }
+.ui-key[data-state="miss"] { opacity: 0.45; text-decoration: line-through; }
+
+/* --- Animacje do replay(node, "ui-..."): ui-pop, ui-flip, ui-roll, ui-drop; is-hint pulsuje --- */
+.ui-pop { animation: ui-pop 260ms var(--ease-pop); }
+.ui-flip { animation: ui-flip 360ms var(--ease); }
+@keyframes ui-pop { from { opacity: 0; transform: scale(0.6); } }
+@keyframes ui-flip { 50% { transform: perspective(600px) rotateY(90deg); } }
+@keyframes ui-roll { 0% { transform: rotate(-220deg) scale(0.55); } 70% { transform: rotate(12deg) scale(1.06); } }
+@keyframes ui-drop { from { opacity: 0; transform: translateY(calc(var(--w, 40px) * -1.2)) scale(1.1); } }
+@keyframes ui-pulse { 50% { box-shadow: inset 0 0 0 3px var(--c), 0 0 0 6px color-mix(in srgb, var(--c) 30%, transparent); transform: scale(1.04); } }
+
+/* --- Telefon: panel w dwóch kolumnach, mniejsze liczby, więcej miejsca na planszę --- */
+@media (max-width: 900px) {
+  body[data-view="game"] .arena .panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body[data-view="game"] .arena .panel > * { grid-column: 1 / -1; }
+  /* małe wartości (statBlock z small) i kropki obok siebie */
+  body[data-view="game"] .arena .panel > .panel-block:is(:has(> p.panel-stat), :has(> .ui-pips)) { grid-column: auto; }
+  body[data-view="game"] .panel-block { padding: 12px 14px; gap: 8px; }
+  body[data-view="game"] .panel-block p.panel-big { font-size: 2rem; }
+}
+
+/* pokaz zestawu (#/zestaw) */
+[data-gra="zestaw"] .ui-demo-row { display: flex; gap: calc(var(--s) * 0.18); justify-content: center; align-items: center; height: calc(var(--s) * 1.15); margin-top: calc(var(--s) * 0.3); }
+[data-gra="zestaw"] .ui-demo-row:first-child { height: calc(var(--s) * 1.4); }
+[data-gra="zestaw"] .ui-demo-grid .gb-cell { font-size: calc(var(--s) * 0.22); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-pop, .ui-flip, .ui-roll, .ui-drop, .board .is-hint, .ui-log li:first-child { animation: none !important; }
+  .ui-card, .ui-die, .ui-piece, .ui-tile, .ui-key, .ui-pips i { transition: none; }
+}

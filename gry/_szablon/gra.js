@@ -112,7 +112,7 @@
         btns.forEach((b, i) => {
           b.textContent = s.cells[i] || "";
           b.classList.toggle("gone", !s.cells[i]);
-          b.classList.toggle("picked", i === s.pick);
+          b.classList.toggle("is-sel", i === s.pick); // wspólne stany pól: is-sel, is-ok, is-bad, is-hint... (AGENTS.md, punkt 10)
           b.classList.toggle("cursor", i === s.cursor);
         });
         const left = s.cells.filter(Boolean).length;
