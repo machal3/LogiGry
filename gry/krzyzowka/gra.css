@@ -1,0 +1,89 @@
+/* Krzyżówka: diagram, wskazówki, klawiatura ekranowa */
+[data-gra="krzyzowka"] .kz-grid {
+  --s: auto;
+  gap: 6px;
+  width: min(100%, 60vh);
+  margin-inline: auto;
+  font-weight: 700;
+}
+
+/* puste pola poza diagramem */
+[data-gra="krzyzowka"] .kz-nope {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* wyraz zaznaczony */
+[data-gra="krzyzowka"] .kz-sel-word {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, var(--surface));
+}
+
+/* pole bieżące (kursor) */
+[data-gra="krzyzowka"] .kz-cur {
+  outline: 2px solid var(--c);
+  outline-offset: -2px;
+}
+
+/* numer pozycji w narożniku pola startowego */
+[data-gra="krzyzowka"] .gb-cell {
+  position: relative;
+}
+
+[data-gra="krzyzowka"] .gb-cell[data-num]::before {
+  content: attr(data-num);
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* litery hasła */
+[data-gra="krzyzowka"] .kz-gold {
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+}
+
+/* wskaźnik wybranego wyrazu wskazówki */
+[data-gra="krzyzowka"] .kz-clue.on {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, var(--surface));
+}
+
+/* rozwiązane wskazówki: przekreślone i przygaszone */
+[data-gra="krzyzowka"] .kz-clue.done {
+  color: var(--muted);
+  text-decoration: line-through;
+  border-color: transparent;
+  background: transparent;
+}
+
+/* klawiatura ekranowa */
+[data-gra="krzyzowka"] .kz-pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+
+[data-gra="krzyzowka"] .kz-pad button {
+  padding: 0;
+  min-height: 34px;
+  font: inherit;
+  font-weight: 700;
+}
+
+[data-gra="krzyzowka"] .kz-bksp {
+  grid-column: span 2;
+}
+
+[data-gra="krzyzowka"] .kz-grid button {
+  border-radius: calc(var(--radius) * 0.6);
+  font-size: 14px;
+}

@@ -1,0 +1,9 @@
+/* Kula: paleta drewna wyprowadzona z koloru gry i motywu. */
+[data-gra="kula"] {
+  --ku-wood: color-mix(in srgb, var(--c) 14%, var(--surface));
+  --ku-wood2: color-mix(in srgb, var(--c) 7%, var(--surface));
+  --ku-side: color-mix(in srgb, var(--c) 45%, var(--bg));
+  --ku-wall: color-mix(in srgb, var(--c) 38%, var(--surface));
+  --ku-wall2: color-mix(in srgb, var(--c) 58%, var(--bg));
+  --ku-on: var(--on);
+}

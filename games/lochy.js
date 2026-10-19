@@ -284,6 +284,71 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
     });
 
     cv.loop((dt) => draw(dt));
+    // Postaci rysowane wektorowo zamiast liter: łatwiej rozpoznać, kto stoi obok.
+    const blob = (x, y, rx, ry, col) => { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); };
+    const eyes = (x, y, dx, col = "#ffffff", r = 0.6) => { g.fillStyle = col; g.beginPath(); g.arc(x - dx, y, r, 0, 7); g.arc(x + dx, y, r, 0, 7); g.fill(); };
+    function creature(id, x, y, col, boss) {
+      const t = performance.now() / 1000;
+      if (id === "rat") {
+        g.strokeStyle = "#d8a7a0"; g.lineWidth = 0.5; g.beginPath(); g.moveTo(x + 2.4, y + 1.6); g.quadraticCurveTo(x + 4.6, y + 2.6, x + 4, y - 0.4); g.stroke();
+        blob(x, y + 1, 3, 2.2, col); blob(x - 2.4, y + 0.2, 1.6, 1.3, col);
+        blob(x - 2.6, y - 1.4, 0.8, 0.8, "#d8a7a0"); blob(x - 0.8, y - 1.4, 0.8, 0.8, "#d8a7a0");
+        eyes(x - 2.4, y - 0.1, 0.55, "#111", 0.35); blob(x - 3.9, y + 0.4, 0.4, 0.4, "#f783ac");
+      } else if (id === "bat") {
+        const f = Math.sin(t * 14) * 1.2;
+        g.fillStyle = col;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x - 3, y - 3 - f, x - 4.6, y - 0.6 + f); g.quadraticCurveTo(x - 2.6, y + 0.2, x, y + 1.2);
+        g.quadraticCurveTo(x + 2.6, y + 0.2, x + 4.6, y - 0.6 + f); g.quadraticCurveTo(x + 3, y - 3 - f, x, y); g.fill();
+        blob(x, y + 0.4, 1.5, 1.8, "#5f3dc4"); eyes(x, y, 0.6, "#ffd43b", 0.35);
+      } else if (id === "goblin" || id === "orc" || id === "troll") {
+        const big = id === "troll" ? 1.25 : id === "orc" ? 1.1 : 0.95;
+        g.fillStyle = col;
+        g.beginPath(); g.moveTo(x - 3 * big, y - 1); g.lineTo(x - 4.6 * big, y - 2.6 * big); g.lineTo(x - 2.2 * big, y - 2); g.fill();
+        g.beginPath(); g.moveTo(x + 3 * big, y - 1); g.lineTo(x + 4.6 * big, y - 2.6 * big); g.lineTo(x + 2.2 * big, y - 2); g.fill();
+        const hg = g.createRadialGradient(x - 1, y - 1.2, 0.3, x, y, 3.6 * big);
+        hg.addColorStop(0, "#d8f5a2"); hg.addColorStop(0.4, col); hg.addColorStop(1, "#1b4d1f");
+        g.fillStyle = hg; g.beginPath(); g.ellipse(x, y, 3 * big, 3.2 * big, 0, 0, 7); g.fill();
+        eyes(x, y - 0.6, 1.1, id === "goblin" ? "#ffd43b" : "#ff6b6b", 0.55);
+        g.fillStyle = "#1a1a1a"; g.fillRect(x - 1.2, y + 1.1, 2.4, 0.5);
+        if (id !== "goblin") { g.fillStyle = "#fff9db"; g.beginPath(); g.moveTo(x - 1.1, y + 1.2); g.lineTo(x - 0.8, y + 0.1); g.lineTo(x - 0.5, y + 1.2); g.moveTo(x + 0.5, y + 1.2); g.lineTo(x + 0.8, y + 0.1); g.lineTo(x + 1.1, y + 1.2); g.fill(); }
+        if (id === "troll") { g.fillStyle = "#e9ecef"; g.beginPath(); g.moveTo(x - 1.8, y - 3.4); g.lineTo(x - 1.2, y - 5.2); g.lineTo(x - 0.6, y - 3.6); g.moveTo(x + 0.6, y - 3.6); g.lineTo(x + 1.2, y - 5.2); g.lineTo(x + 1.8, y - 3.4); g.fill(); }
+      } else if (id === "skeleton") {
+        blob(x, y - 0.6, 3, 2.8, "#f1f3f5");
+        g.fillStyle = "#dee2e6"; g.fillRect(x - 1.8, y + 1.4, 3.6, 1.6);
+        g.fillStyle = "#212529";
+        g.beginPath(); g.arc(x - 1.1, y - 0.6, 0.85, 0, 7); g.arc(x + 1.1, y - 0.6, 0.85, 0, 7); g.fill();
+        g.beginPath(); g.moveTo(x, y + 0.2); g.lineTo(x - 0.4, y + 1); g.lineTo(x + 0.4, y + 1); g.fill();
+        for (let k = -1; k <= 1; k++) g.fillRect(x + k * 0.9 - 0.15, y + 1.6, 0.3, 1.2);
+      } else {
+        // smok: skrzydła, głowa z rogami, żar w oczach
+        const f = Math.sin(t * 3) * 0.8;
+        g.fillStyle = "#a51d1d";
+        g.beginPath(); g.moveTo(x - 1, y - 1); g.lineTo(x - 6, y - 4.6 - f); g.lineTo(x - 5, y + 0.6); g.lineTo(x - 3.4, y - 0.2); g.fill();
+        g.beginPath(); g.moveTo(x + 1, y - 1); g.lineTo(x + 6, y - 4.6 - f); g.lineTo(x + 5, y + 0.6); g.lineTo(x + 3.4, y - 0.2); g.fill();
+        const dg = g.createRadialGradient(x - 1, y - 1, 0.3, x, y, 4.6);
+        dg.addColorStop(0, "#ffa8a8"); dg.addColorStop(0.5, col); dg.addColorStop(1, "#5c0b0b");
+        g.fillStyle = dg; g.beginPath(); g.ellipse(x, y, 3.8, 3.6, 0, 0, 7); g.fill();
+        g.fillStyle = "#ffe066"; g.beginPath(); g.moveTo(x - 2, y - 2.8); g.lineTo(x - 2.8, y - 5); g.lineTo(x - 1, y - 3.2); g.moveTo(x + 2, y - 2.8); g.lineTo(x + 2.8, y - 5); g.lineTo(x + 1, y - 3.2); g.fill();
+        eyes(x, y - 0.8, 1.4, "#ffd43b", 0.7);
+        g.fillStyle = "#1a1a1a"; g.beginPath(); g.arc(x - 0.7, y + 1.6, 0.35, 0, 7); g.arc(x + 0.7, y + 1.6, 0.35, 0, 7); g.fill();
+      }
+    }
+    function hero(x, y) {
+      g.fillStyle = "rgba(0,0,0,0.35)";
+      g.beginPath(); g.ellipse(x, y + 3.6, 3.2, 1, 0, 0, Math.PI * 2); g.fill();
+      // płaszcz w kolorze gry, twarz, hełm z grzebieniem, miecz
+      const cg = g.createLinearGradient(0, y - 1, 0, y + 3.6);
+      cg.addColorStop(0, theme.c); cg.addColorStop(1, "#3b2a5c");
+      g.fillStyle = cg;
+      g.beginPath(); g.moveTo(x - 3, y + 3.4); g.lineTo(x - 2.2, y - 0.6); g.lineTo(x + 2.2, y - 0.6); g.lineTo(x + 3, y + 3.4); g.fill();
+      blob(x, y - 1.6, 2.2, 2.2, "#f1c9a5");
+      g.fillStyle = "#adb5bd"; g.beginPath(); g.arc(x, y - 2, 2.4, Math.PI, 0); g.fill();
+      g.fillStyle = "#e03131"; g.fillRect(x - 0.4, y - 5.2, 0.8, 1.6);
+      eyes(x, y - 1.3, 0.8, "#1a1a1a", 0.35);
+      g.strokeStyle = "#dee2e6"; g.lineWidth = 0.7; g.lineCap = "round";
+      g.beginPath(); g.moveTo(x + 3, y + 1.2); g.lineTo(x + 4.6, y - 2.8); g.stroke();
+      g.strokeStyle = "#ffd43b"; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x + 2.4, y + 0.6); g.lineTo(x + 3.8, y + 1.4); g.stroke();
+    }
     function draw(dt) {
       const px = s.pos % MW, py = (s.pos / MW) | 0;
       const ox = px - (VW >> 1), oy = py - (VH >> 1);
@@ -338,18 +403,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "loch
       for (const m of s.map.monsters) {
         if (m.hp <= 0 || !s.seen.has(m.i)) continue;
         const [x, y] = toV(m.i);
-        g.fillStyle = m.color;
-        g.globalAlpha = 0.22;
-        g.beginPath(); g.arc(x, y, m.boss ? 5 : 4, 0, Math.PI * 2); g.fill();
-        g.globalAlpha = 1;
-        g.fillText(m.ch, x, y + 0.4);
+        g.fillStyle = "rgba(0,0,0,0.35)";
+        g.beginPath(); g.ellipse(x, y + 3.6, m.boss ? 4.6 : 3.2, 1, 0, 0, Math.PI * 2); g.fill();
+        creature(m.id, x, y, m.color, m.boss);
         if (m.hp < m.max) { g.fillStyle = "#fa5252"; g.fillRect(x - 3.5, y - 5, 7 * (m.hp / m.max), 0.9); }
       }
       const [x, y] = toV(s.pos);
-      g.fillStyle = theme.c;
-      g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.fill();
-      g.fillStyle = "#14161c";
-      g.fillText("@", x, y + 0.4);
+      hero(x, y);
       s.fx = s.fx.filter((f) => (f.t -= dt) > 0);
       for (const f of s.fx) {
         const [fx, fy] = toV(f.i);

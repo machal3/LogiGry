@@ -144,18 +144,32 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "smug
         g.lineWidth = S * 0.7;
         g.lineCap = "round";
         g.lineJoin = "round";
-        g.shadowColor = col;
-        g.shadowBlur = 3;
-        g.beginPath();
-        b.trail.forEach(([x, y], i) => (i ? g.lineTo(x * S + S / 2, y * S + S / 2) : g.moveTo(x * S + S / 2, y * S + S / 2)));
-        g.stroke();
-        g.shadowBlur = 0;
+        // ślad świetlny: szeroka poświata, kolorowy pas i jasny rdzeń
+        const path = () => { g.beginPath(); b.trail.forEach(([x, y], i) => (i ? g.lineTo(x * S + S / 2, y * S + S / 2) : g.moveTo(x * S + S / 2, y * S + S / 2))); };
+        g.globalAlpha = (b.alive ? 1 : 0.35) * 0.22;
+        g.lineWidth = S * 2;
+        path(); g.stroke();
+        g.globalAlpha = b.alive ? 1 : 0.35;
+        g.lineWidth = S * 0.7;
+        path(); g.stroke();
+        g.strokeStyle = "rgba(255,255,255,0.7)";
+        g.lineWidth = S * 0.18;
+        path(); g.stroke();
         g.globalAlpha = 1;
         if (b.alive) {
+          // motocykl: klin skierowany w stronę jazdy
+          const ang = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[b.dir] ?? 0;
+          g.save();
+          g.translate(b.x * S + S / 2, b.y * S + S / 2);
+          g.rotate(ang);
           g.fillStyle = col;
-          g.beginPath(); g.arc(b.x * S + S / 2, b.y * S + S / 2, S * 0.95, 0, Math.PI * 2); g.fill();
-          g.fillStyle = "#fff";
-          g.beginPath(); g.arc(b.x * S + S / 2, b.y * S + S / 2, S * 0.45, 0, Math.PI * 2); g.fill();
+          g.globalAlpha = 0.3;
+          g.beginPath(); g.arc(0, 0, S * 1.6, 0, 7); g.fill();
+          g.globalAlpha = 1;
+          g.beginPath(); g.moveTo(S * 1.5, 0); g.lineTo(-S * 0.9, -S * 0.95); g.lineTo(-S * 0.5, 0); g.lineTo(-S * 0.9, S * 0.95); g.closePath(); g.fill();
+          g.fillStyle = "#ffffff";
+          g.beginPath(); g.moveTo(S * 0.9, 0); g.lineTo(-S * 0.1, -S * 0.35); g.lineTo(-S * 0.1, S * 0.35); g.closePath(); g.fill();
+          g.restore();
         } else if (b.boom > 0) {
           b.boom -= 0.03;
           g.strokeStyle = col;

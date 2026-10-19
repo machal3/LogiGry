@@ -1,0 +1,197 @@
+/* Zwrotnice: tory w rzędach i kolumnach, na przecięciach przełączane zwrotnice.
+   Kształty i kolory parują pociąg z jego stacją; jasna oś zwrotnicy to tor główny. */
+[data-gra="zwrotnice"] {
+  --zw-1: color-mix(in srgb, #2f6fed 85%, var(--text));
+  --zw-2: color-mix(in srgb, #f08c00 85%, var(--text));
+  --zw-3: color-mix(in srgb, #7048e8 85%, var(--text));
+  --zw-4: color-mix(in srgb, #c2255c 85%, var(--text));
+  --zw-good: color-mix(in srgb, #2f9e44 85%, var(--text));
+  --zw-bad: var(--danger);
+  --zw-bed: color-mix(in srgb, var(--text) 7%, transparent);
+  --zw-tie: color-mix(in srgb, var(--text) 22%, transparent);
+  --zw-rail: color-mix(in srgb, var(--text) 42%, transparent);
+  --zw-idle: color-mix(in srgb, var(--text) 16%, transparent);
+  --zw-live: color-mix(in srgb, var(--c) 72%, var(--text));
+  --zw-shine: #ffffff;
+  --zw-shade: #000000;
+}
+
+[data-gra="zwrotnice"] .zw-c1 { --tc: var(--zw-1); }
+[data-gra="zwrotnice"] .zw-c2 { --tc: var(--zw-2); }
+[data-gra="zwrotnice"] .zw-c3 { --tc: var(--zw-3); }
+[data-gra="zwrotnice"] .zw-c4 { --tc: var(--zw-4); }
+
+[data-gra="zwrotnice"] .zw {
+  position: relative;
+  border-radius: calc(var(--cr) + var(--g));
+  background:
+    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%),
+    var(--bg);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 1px 0 color-mix(in srgb, var(--zw-shine) 9%, transparent),
+    0 36px 64px -40px var(--shadow);
+}
+
+[data-gra="zwrotnice"] .zw .gb-cell { background: none; box-shadow: none; cursor: default; }
+[data-gra="zwrotnice"] .zw .gb-cell.sw { cursor: pointer; transition: background-color 160ms, box-shadow 160ms; }
+[data-gra="zwrotnice"] .zw .gb-cell.sw:hover,
+[data-gra="zwrotnice"] .zw .gb-cell.sw:focus-visible {
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c) 40%, transparent);
+}
+[data-gra="zwrotnice"] .zw .gb-cell.sw:active { background: color-mix(in srgb, var(--c) 26%, transparent); }
+[data-gra="zwrotnice"] .zw.zw-busy .gb-cell.sw { cursor: progress; }
+[data-gra="zwrotnice"] .zw.zw-busy .gb-cell.sw:hover { background: none; box-shadow: none; }
+
+[data-gra="zwrotnice"] .zw-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* podkład, podkłady i szyna (jednostki planszy: 1 = szerokość pola) */
+[data-gra="zwrotnice"] .zw-svg .zw-bed { stroke: var(--zw-bed); stroke-width: 0.28; }
+[data-gra="zwrotnice"] .zw-svg .zw-tie { stroke: var(--zw-tie); stroke-width: 0.022; }
+[data-gra="zwrotnice"] .zw-svg .zw-rail { stroke: var(--zw-rail); stroke-width: 0.038; }
+
+/* zwrotnica: obie osie, dwa łuki skrętu w prawo i jaśniejszy tor główny */
+[data-gra="zwrotnice"] .zw-svg .zw-cross { stroke: var(--zw-idle); stroke-width: 0.045; stroke-linecap: round; }
+[data-gra="zwrotnice"] .zw-svg .zw-live {
+  stroke: var(--zw-live);
+  stroke-width: 0.085;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 180ms, stroke-width 180ms;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-live.on { opacity: 1; }
+[data-gra="zwrotnice"] .zw-svg .zw-branch {
+  fill: none;
+  stroke: color-mix(in srgb, var(--text) 28%, transparent);
+  stroke-width: 0.05;
+  stroke-linecap: round;
+  stroke-dasharray: 0.09 0.09;
+  transition: stroke 180ms;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-sw.hot .zw-live.on { stroke-width: 0.11; }
+[data-gra="zwrotnice"] .zw-svg .zw-sw.hot .zw-branch { stroke: var(--zw-live); }
+[data-gra="zwrotnice"] .zw-svg .zw-num {
+  fill: var(--muted);
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 0.03;
+}
+
+/* wjazd i stacja w kształcie i kolorze pociągu */
+[data-gra="zwrotnice"] .zw-svg .zw-arrow { fill: var(--tc); opacity: 0.7; }
+[data-gra="zwrotnice"] .zw-svg .zw-shape {
+  fill: var(--tc);
+  stroke: var(--surface);
+  stroke-width: 0.045;
+  stroke-linejoin: round;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-in.sel .zw-shape { stroke: var(--text); stroke-width: 0.07; }
+[data-gra="zwrotnice"] .zw-svg .zw-out-halo { fill: var(--tc); fill-opacity: 0.1; transition: fill-opacity 220ms; }
+[data-gra="zwrotnice"] .zw-svg .zw-out-ring {
+  fill: var(--tc);
+  fill-opacity: 0.18;
+  stroke: var(--tc);
+  stroke-width: 0.05;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill-opacity 220ms, stroke-width 220ms, stroke 220ms;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-out-dot { fill: var(--tc); }
+[data-gra="zwrotnice"] .zw-svg .zw-out.sel .zw-out-halo { fill-opacity: 0.2; }
+[data-gra="zwrotnice"] .zw-svg .zw-out.sel .zw-out-ring { stroke-width: 0.07; }
+[data-gra="zwrotnice"] .zw-svg .zw-out.good .zw-out-ring {
+  stroke: var(--zw-good);
+  fill-opacity: 0.32;
+  stroke-width: 0.075;
+  animation: zwrotnice-pop 460ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+[data-gra="zwrotnice"] .zw-svg .zw-out.good .zw-out-dot { fill: var(--zw-good); }
+[data-gra="zwrotnice"] .zw-svg .zw-out.bad .zw-out-ring {
+  stroke: var(--zw-bad);
+  stroke-dasharray: 0.16 0.1;
+  animation: zwrotnice-bad 460ms ease-in-out;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-out.bad .zw-out-dot { fill: var(--zw-bad); fill-opacity: 0.4; }
+
+/* trasa podglądu, ślad przejazdu i same pociągi */
+[data-gra="zwrotnice"] .zw-svg .zw-train {
+  fill: var(--tc);
+  stroke: var(--surface);
+  stroke-width: 0.05;
+  filter: drop-shadow(0 0 4px var(--tc));
+}
+[data-gra="zwrotnice"] .zw-svg .zw-trail {
+  fill: none;
+  stroke: var(--tc);
+  stroke-width: 0.055;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-trail.loop { stroke-dasharray: 0.09 0.09; opacity: 0.5; }
+[data-gra="zwrotnice"] .zw-svg .zw-preview-line {
+  fill: none;
+  stroke: var(--tc);
+  stroke-width: 0.075;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.14 0.12;
+  opacity: 0.8;
+  animation: zwrotnice-flow 1.3s linear infinite;
+}
+[data-gra="zwrotnice"] .zw-svg .zw-preview-line.good { stroke-width: 0.095; stroke-dasharray: none; opacity: 1; }
+[data-gra="zwrotnice"] .zw-svg .zw-preview-line.loop { stroke: var(--zw-bad); stroke-dasharray: 0.08 0.11; }
+[data-gra="zwrotnice"] .zw-svg .zw-preview-dot { fill: var(--tc); stroke: var(--surface); stroke-width: 0.05; }
+[data-gra="zwrotnice"] .zw-svg .zw-preview-dot.good { fill: var(--zw-good); filter: drop-shadow(0 0 4px var(--zw-good)); }
+[data-gra="zwrotnice"] .zw-svg .zw-preview-dot.loop { fill: var(--zw-bad); }
+
+/* wybór pociągu do podglądu trasy */
+[data-gra="zwrotnice"] .zw-picks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+[data-gra="zwrotnice"] .zw-pick {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 160ms, transform 120ms, box-shadow 160ms, background-color 160ms;
+}
+[data-gra="zwrotnice"] .zw-pick svg { width: 26px; height: 26px; display: block; }
+[data-gra="zwrotnice"] .zw-pick-shape { fill: var(--tc); stroke: var(--surface); stroke-width: 0.08; stroke-linejoin: round; }
+[data-gra="zwrotnice"] .zw-pick:hover { border-color: var(--c); transform: translateY(-1px); }
+[data-gra="zwrotnice"] .zw-pick[aria-pressed="true"] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, var(--surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent);
+}
+[data-gra="zwrotnice"] .zw-pick:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+@keyframes zwrotnice-flow { to { stroke-dashoffset: -0.52; } }
+@keyframes zwrotnice-pop { from { transform: scale(0.45); } }
+@keyframes zwrotnice-bad {
+  40% { transform: scale(0.84); }
+  70% { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="zwrotnice"] .zw-svg .zw-preview-line,
+  [data-gra="zwrotnice"] .zw-svg .zw-out.good .zw-out-ring,
+  [data-gra="zwrotnice"] .zw-svg .zw-out.bad .zw-out-ring { animation: none; }
+  [data-gra="zwrotnice"] .zw-svg .zw-train { filter: none; }
+}

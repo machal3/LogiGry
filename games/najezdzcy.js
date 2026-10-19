@@ -8,7 +8,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
   levels: [
     { key: "easy", name: "Łatwy", points: 10, waves: 1, rows: 4, step: 9, fire: 0.6 },
     { key: "medium", name: "Średni", points: 25, waves: 2, rows: 5, step: 11, fire: 0.9 },
-    { key: "hard", name: "Trudny", points: 50, waves: 3, rows: 5, step: 13, fire: 1.3 },
+    { key: "hard", name: "Trudny", points: 50, waves: 4, rows: 5, step: 13, fire: 1.5 },
   ],
   rules: [
     "Strzałki albo A i D przesuwają działo, spacja strzela. Na telefonie przeciągnij palcem po planszy: działo jedzie za palcem i strzela samo.",
@@ -123,7 +123,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
             if (s.lives === 3 && ctx.level.key === "hard") ctx.achieve("as-obrony");
             render(); return ctx.win(`Punkty: ${s.score}.`); }
           s.wave++;
-          ctx.toast(`Fala ${s.wave}`);
+          s.banner = 1.6;
           Sound.line();
           makeWave();
         }
@@ -136,22 +136,47 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
       g.fillStyle = color;
       rowsArr.forEach((row, r) => [...row].forEach((ch, c) => ch === "#" && g.fillRect(x - 4 * px + c * px, y - 3 * px + r * px, px, px)));
     }
+    s.banner = 1.4;
     function draw(dt) {
-      for (const a of s.aliens) if (a.alive) sprite(SPR[(a.r % 2) * 2 + s.frame], a.x, a.y, ROWCOL[a.r]);
+      // powierzchnia planety na dole
+      const gr = g.createLinearGradient(0, PY + 5, 0, H);
+      gr.addColorStop(0, "rgba(21,170,191,0.35)"); gr.addColorStop(1, "rgba(21,170,191,0.05)");
+      g.fillStyle = gr;
+      g.fillRect(0, PY + 5, W, H - PY - 5);
+      // kosmici z poświatą w kolorze rzędu
+      for (const a of s.aliens) if (a.alive) {
+        g.globalAlpha = 0.07;
+        g.fillStyle = ROWCOL[a.r];
+        g.beginPath(); g.arc(a.x, a.y, 4.2, 0, 7); g.fill();
+        g.globalAlpha = 1;
+        sprite(SPR[(a.r % 2) * 2 + s.frame], a.x, a.y, ROWCOL[a.r]);
+      }
       for (const p of s.shields) if (p.hp > 0) { g.fillStyle = theme.c; g.globalAlpha = p.hp === 2 ? 1 : 0.5; g.fillRect(p.x - 0.8, p.y - 0.8, 1.6, 1.6); }
       g.globalAlpha = 1;
-      if (s.ufo) { g.fillStyle = "#e64980"; g.beginPath(); g.ellipse(s.ufo.x, 6, 5, 2, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = "#fff"; g.beginPath(); g.ellipse(s.ufo.x, 4.6, 2, 1.4, 0, Math.PI, 0); g.fill(); }
-      g.fillStyle = theme.text;
-      for (const b of s.bullets) g.fillRect(b.x - 0.4, b.y - 2, 0.8, 3);
+      if (s.ufo) {
+        g.fillStyle = "rgba(230,73,128,0.25)"; g.beginPath(); g.ellipse(s.ufo.x, 6, 8, 4, 0, 0, 7); g.fill();
+        g.fillStyle = "#a5d8ff"; g.beginPath(); g.ellipse(s.ufo.x, 4.6, 2.2, 1.6, 0, Math.PI, 0); g.fill();
+        const ug = g.createLinearGradient(0, 4.5, 0, 8);
+        ug.addColorStop(0, "#ff8fb5"); ug.addColorStop(1, "#a61e4d");
+        g.fillStyle = ug; g.beginPath(); g.ellipse(s.ufo.x, 6, 5, 2, 0, 0, Math.PI * 2); g.fill();
+        for (let k = -1; k <= 1; k++) { g.fillStyle = Math.floor(s.t * 8 + k) % 2 ? "#fff3bf" : "#ffd43b"; g.fillRect(s.ufo.x + k * 2.4 - 0.4, 5.8, 0.8, 0.8); }
+      }
+      for (const b of s.bullets) {
+        g.fillStyle = "rgba(255,255,255,0.25)"; g.fillRect(b.x - 1, b.y - 3, 2, 5);
+        g.fillStyle = "#ffffff"; g.fillRect(b.x - 0.4, b.y - 2, 0.8, 3);
+      }
       g.fillStyle = "#e03131";
       for (const b of s.bombs) { const w = Math.sin(b.y) > 0 ? 0.6 : -0.6; g.fillRect(b.x - 0.5 + w, b.y - 1.5, 1, 1.5); g.fillRect(b.x - 0.5 - w, b.y, 1, 1.5); }
       // działo
       if (!ctx.done || s.lives > 0) {
-        g.fillStyle = theme.c;
+        const cg = g.createLinearGradient(0, PY - 4, 0, PY + 3);
+        cg.addColorStop(0, "#c3fae8"); cg.addColorStop(0.5, theme.c); cg.addColorStop(1, "#087f5b");
+        g.fillStyle = cg;
         g.beginPath();
         g.roundRect(s.x - 5, PY - 1, 10, 4, 1.2);
         g.roundRect(s.x - 1.2, PY - 4, 2.4, 4, 0.8);
         g.fill();
+        g.fillStyle = "rgba(255,255,255,0.5)"; g.fillRect(s.x - 4, PY - 0.4, 8, 0.5);
       }
       g.fillStyle = theme.line;
       g.fillRect(0, PY + 5, W, 0.6);
@@ -162,6 +187,18 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "naje
       g.font = "600 5px Geist, system-ui, sans-serif";
       g.textAlign = "right";
       g.fillText(s.score, W - 4, 8);
+      if (s.banner > 0 && !ctx.done) {
+        s.banner -= dt;
+        g.globalAlpha = Math.min(1, s.banner);
+        g.textAlign = "center";
+        g.fillStyle = "#ffffff";
+        g.font = "700 8px Geist, system-ui, sans-serif";
+        g.fillText(`Fala ${s.wave}`, W / 2, 80);
+        g.font = "500 4px Geist, system-ui, sans-serif";
+        g.fillStyle = "rgba(238,241,255,0.7)";
+        g.fillText(s.wave === waves ? "ostatnia" : `z ${waves}`, W / 2, 86);
+        g.globalAlpha = 1;
+      }
     }
     function render() {
       const total = rows * 8, gone = total - alive().length;

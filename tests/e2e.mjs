@@ -128,10 +128,11 @@ const SOLVERS = {
     grid.forEach((v, i) => v && down(cells[i]));
   `,
   mosty: `
-    const isl = [...document.querySelectorAll(".br-island")];
+    // każde kliknięcie połączenia dokłada jeden most
     for (const [k, n] of Bridges.last.bridges) {
       const [a, b] = k.split("-").map(Number);
-      for (let t = 0; t < n; t++) { click(isl[a]); click(isl[b]); }
+      const slot = document.querySelector('.br-slot[data-a="' + a + '"][data-b="' + b + '"]') || document.querySelector('.br-slot[data-a="' + b + '"][data-b="' + a + '"]');
+      for (let t = 0; t < n; t++) slot.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     }
   `,
   wieze: `
@@ -188,7 +189,7 @@ const SOLVERS = {
     await sleep(400);
   `,
   "2048": `
-    const goal = [256, 512, 1024][LVL];
+    const goal = [256, 512, 2048][LVL];
     const s = G2048.last;
     s.tiles = [{ id: 90001, v: goal / 2, r: 0, c: 0 }, { id: 90002, v: goal / 2, r: 0, c: 1 }];
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
@@ -330,7 +331,7 @@ if (shots) {
     await sleep(300);
     if (id === "obrazki") await run(`document.querySelectorAll("#game-tools .seg button")[1].click(); const c = [...document.querySelectorAll(".ng-cell")]; Nonogram.last.grid.forEach((v, i) => i < 40 && v && (c[i].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }))));`);
     if (id === "saper") await run(`document.querySelectorAll(".ms-cell")[40].click();`);
-    if (id === "mosty") await run(`${prelude} const i = [...document.querySelectorAll(".br-island")]; const ks = [...Bridges.last.bridges.keys()]; for (const k of ks.slice(0, 3)) { const [a, b] = k.split("-"); click(i[a]); click(i[b]); } click(i[ks[4].split("-")[0]]);`);
+    if (id === "mosty") await run(`const ks = [...Bridges.last.bridges.keys()]; for (const k of ks.slice(0, 3)) { const [a, b] = k.split("-"); document.querySelector(\`.br-slot[data-a="\${a}"][data-b="\${b}"], .br-slot[data-a="\${b}"][data-b="\${a}"]\`)?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); }`);
     if (id === "sudoku") await run(`const c = [...document.querySelectorAll(".sd-cell")]; const p = [...document.querySelectorAll(".pad-digit")]; const e = c.filter((b) => !b.textContent); e[0].click(); p[3].click(); [...document.querySelectorAll(".panel .seg button")][1].click(); e[1].click(); p[0].click(); p[4].click(); p[8].click(); e[2].click();`);
     if (id === "wieze") await run(`const c = [...document.querySelectorAll(".tw-cell")]; const p = [...document.querySelectorAll(".pad-digit")]; const { n, solution } = Towers.last; c.slice(0, n + 2).forEach((b, k) => { b.click(); p[solution[(k / n) | 0][k % n] - 1].click(); });`);
     if (id === "krolowe") await run(`${prelude} const c = [...document.querySelectorAll(".qn-cell")]; const { n, solution } = Queens.last; const d = (e, b = 0) => { e.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: b })); document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); }; solution.slice(0, 3).forEach((col, r) => { d(c[r * n + col]); d(c[r * n + col]); }); [1, 2, n + 3].forEach((i) => solution[(i / n) | 0] !== i % n && d(c[i], 2));`);

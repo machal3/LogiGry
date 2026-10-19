@@ -1,0 +1,65 @@
+/* Bomby: plansza powstaje na płótnie, więc stylujemy ramę płótna i legendę oznaczeń. */
+[data-gra="bomby"] {
+  --bo-crate: #a9662f;
+  --bo-crate-edge: #6d3f18;
+  --bo-exit: #34d399;
+  --bo-foe: #b23cff;
+  --bo-item: #ffd43b;
+  --bo-shine: #ffffff;
+  --bo-shade: #000000;
+}
+
+[data-gra="bomby"] .cvb-canvas {
+  border-radius: calc(var(--s) * 0.22);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 42%, var(--line)),
+    0 0 0 1px color-mix(in srgb, var(--bo-shade) 24%, transparent),
+    0 34px 64px -38px color-mix(in srgb, var(--c) 55%, var(--shadow));
+}
+
+[data-gra="bomby"] .bo-legend {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+[data-gra="bomby"] .bo-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-gra="bomby"] .bo-sw {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border-radius: calc(var(--radius) * 0.5);
+}
+[data-gra="bomby"] .bo-sw-crate {
+  border: 1px solid var(--bo-crate-edge);
+  background-color: var(--bo-crate);
+  background-image:
+    linear-gradient(45deg, transparent 42%, var(--bo-crate-edge) 42%, var(--bo-crate-edge) 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, var(--bo-crate-edge) 42%, var(--bo-crate-edge) 58%, transparent 58%);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--bo-shine) 22%, transparent);
+}
+[data-gra="bomby"] .bo-sw-exit {
+  border: 2px solid var(--bo-exit);
+  background: color-mix(in srgb, var(--bo-exit) 25%, transparent);
+  transform: rotate(45deg) scale(0.82);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--bo-exit) 60%, transparent);
+}
+[data-gra="bomby"] .bo-sw-foe {
+  background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--bo-shine) 60%, var(--bo-foe)), var(--bo-foe));
+  border-radius: 50%;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--bo-foe) 55%, transparent);
+}
+[data-gra="bomby"] .bo-sw-item {
+  border: 3px solid color-mix(in srgb, var(--surface) 55%, transparent);
+  border-radius: 50%;
+  background: var(--bo-item);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 40%, transparent), 0 0 8px color-mix(in srgb, var(--bo-item) 60%, transparent);
+}

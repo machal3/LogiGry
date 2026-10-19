@@ -62,8 +62,8 @@ if (typeof module !== "undefined") module.exports = Golf;
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "minigolf"), {
   levels: [
     { key: "easy", name: "Łatwy", points: 10, set: "easy", maxStrokes: 9 },
-    { key: "medium", name: "Średni", points: 25, set: "medium", maxStrokes: 8 },
-    { key: "hard", name: "Trudny", points: 50, set: "hard", maxStrokes: 8 },
+    { key: "medium", name: "Średni", points: 25, set: "medium", maxStrokes: 7 },
+    { key: "hard", name: "Trudny", points: 50, set: "hard", maxStrokes: 6 },
   ],
   rules: [
     "Przeciągnij od piłki w przeciwną stronę niż chcesz uderzyć, jak procą, i puść. Im dłużej przeciągniesz, tym mocniej.",
@@ -179,38 +179,78 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mini
     });
 
     function rect([x, y, w, hh], fill, r = 2) { g.fillStyle = fill; g.beginPath(); g.roundRect(x, y, w, hh, r); g.fill(); }
+    // ogród wokół pola: krzewy w stałych miejscach
+    const bushes = Array.from({ length: 26 }, (_, k) => [k % 2 ? 0.8 : 99.2, 6 + k * 5.6 + Math.random() * 2, 1.8 + Math.random() * 1.6]);
     function draw(h) {
-      // trawa w pasy
-      for (let y = 4; y < 146; y += 12) { g.fillStyle = (y / 12) % 2 < 1 ? "#d3f9d8" : "#c3f0ca"; g.fillRect(4, y, 92, 12); }
-      for (const r of h.sand || []) rect(r, "#f3d9a4", 6);
+      g.fillStyle = "#2f7a3a";
+      g.fillRect(0, 0, W, H);
+      for (const [x, y, r] of bushes) {
+        g.fillStyle = "#3f9a4a"; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+        g.fillStyle = "#58b45f"; g.beginPath(); g.arc(x - r * 0.3, y - r * 0.3, r * 0.5, 0, 7); g.fill();
+      }
+      // trawa w pasy po koszeniu, z lekkim cieniem przy bandach
+      for (let y = 4; y < 146; y += 12) { g.fillStyle = (y / 12) % 2 < 1 ? "#8fd694" : "#7fcb86"; g.fillRect(4, y, 92, Math.min(12, 146 - y)); }
+      const sh = g.createLinearGradient(4, 0, 12, 0);
+      sh.addColorStop(0, "rgba(0,40,0,0.18)"); sh.addColorStop(1, "rgba(0,40,0,0)");
+      g.fillStyle = sh; g.fillRect(4, 4, 8, 142);
+      for (const r of h.sand || []) {
+        rect([r[0] - 0.6, r[1] - 0.6, r[2] + 1.2, r[3] + 1.2], "#d8b878", 6.5);
+        rect(r, "#f3d9a4", 6);
+        g.fillStyle = "rgba(160,120,60,0.35)";
+        // ziarnka piasku w stałych, pseudolosowych miejscach
+        const fr = (v) => v - Math.floor(v);
+        for (let k = 0; k < r[2] * r[3] / 14; k++) g.fillRect(r[0] + 2 + fr(Math.sin(k * 12.99) * 4375.5) * (r[2] - 4), r[1] + 2 + fr(Math.sin(k * 78.23) * 2375.1) * (r[3] - 4), 0.5, 0.5);
+      }
       for (const r of h.water || []) {
-        rect(r, "#4dabf7", 3);
+        rect([r[0] - 0.8, r[1] - 0.8, r[2] + 1.6, r[3] + 1.6], "#a5d8ff", 3.5);
+        const wg = g.createLinearGradient(0, r[1], 0, r[1] + r[3]);
+        wg.addColorStop(0, "#339af0"); wg.addColorStop(1, "#1c7ed6");
+        rect(r, wg, 3);
         g.strokeStyle = "rgba(255,255,255,0.6)";
-        g.lineWidth = 0.6;
+        g.lineWidth = 0.5;
         for (let x = r[0] + 3; x < r[0] + r[2] - 3; x += 7) { g.beginPath(); g.arc(x, r[1] + r[3] / 2 + Math.sin(performance.now() / 400 + x) * 1.2, 1.5, Math.PI, 0); g.stroke(); }
       }
-      for (const r of h.walls || []) { rect([r[0], r[1] + 1, r[2], r[3]], "#5c3d24", 1.5); rect(r, "#8d6e63", 1.5); }
-      for (const m of h.movers || []) { rect([m.x, m.y + 1, m.w, m.h], "#a61e4d", 1.5); rect([m.x, m.y, m.w, m.h], "#e64980", 1.5); }
-      // ramka
+      // drewniane przeszkody z jaśniejszym wierzchem
+      for (const r of h.walls || []) {
+        rect([r[0] + 0.5, r[1] + 1.4, r[2], r[3]], "rgba(0,0,0,0.25)", 1.5);
+        rect([r[0], r[1] + 0.8, r[2], r[3]], "#5c3d24", 1.5);
+        const wg = g.createLinearGradient(0, r[1], 0, r[1] + r[3]);
+        wg.addColorStop(0, "#c08a5c"); wg.addColorStop(1, "#8d6e63");
+        rect(r, wg, 1.5);
+        g.strokeStyle = "rgba(90,50,20,0.3)"; g.lineWidth = 0.25;
+        g.beginPath(); g.moveTo(r[0] + 1, r[1] + r[3] * 0.5); g.lineTo(r[0] + r[2] - 1, r[1] + r[3] * 0.5); g.stroke();
+      }
+      for (const m of h.movers || []) {
+        rect([m.x + 0.5, m.y + 1.4, m.w, m.h], "rgba(0,0,0,0.25)", 1.5);
+        rect([m.x, m.y + 0.8, m.w, m.h], "#a61e4d", 1.5);
+        const mg = g.createLinearGradient(0, m.y, 0, m.y + m.h);
+        mg.addColorStop(0, "#f783ac"); mg.addColorStop(1, "#e64980");
+        rect([m.x, m.y, m.w, m.h], mg, 1.5);
+      }
+      // drewniana rama pola
       g.strokeStyle = "#5c3d24";
-      g.lineWidth = 2;
+      g.lineWidth = 2.4;
       g.strokeRect(3, 3, 94, 144);
+      g.strokeStyle = "#a9734f";
+      g.lineWidth = 0.6;
+      g.strokeRect(2.2, 2.2, 95.6, 145.6);
       // dołek z chorągiewką
       const [cx, cy] = h.cup;
-      g.fillStyle = "#1d1f27";
-      g.beginPath();
-      g.arc(cx, cy, Golf.CUP, 0, Math.PI * 2);
-      g.fill();
-      g.strokeStyle = "#495057";
+      g.fillStyle = "rgba(255,255,255,0.5)";
+      g.beginPath(); g.arc(cx, cy, Golf.CUP + 0.7, 0, Math.PI * 2); g.fill();
+      const cg = g.createRadialGradient(cx, cy - 1, 0.5, cx, cy, Golf.CUP);
+      cg.addColorStop(0, "#000"); cg.addColorStop(1, "#343a40");
+      g.fillStyle = cg;
+      g.beginPath(); g.arc(cx, cy, Golf.CUP, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#dee2e6";
       g.lineWidth = 0.6;
-      g.beginPath();
-      g.moveTo(cx, cy); g.lineTo(cx, cy - 14);
-      g.stroke();
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy - 14); g.stroke();
+      const wave = Math.sin(performance.now() / 300) * 0.8;
       g.fillStyle = "#e03131";
       g.beginPath();
-      g.moveTo(cx, cy - 14); g.lineTo(cx + 7, cy - 11.5); g.lineTo(cx, cy - 9);
+      g.moveTo(cx, cy - 14); g.quadraticCurveTo(cx + 4, cy - 13.5 + wave, cx + 7, cy - 11.5); g.quadraticCurveTo(cx + 4, cy - 10 + wave, cx, cy - 9);
       g.fill();
-      // celowanie: przerywana linia w kierunku strzału
+      // celowanie: kropki w kierunku strzału, kolor zależny od siły
       const b = s.ball;
       if (b && still()) {
         let dx = 0, dy = 0;
@@ -219,25 +259,27 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "mini
         const len = Math.min(42, Math.hypot(dx, dy));
         if (len > 2) {
           const ux = dx / Math.hypot(dx, dy), uy = dy / Math.hypot(dx, dy);
-          g.strokeStyle = len > 34 ? "#e03131" : "#1d1f27";
-          g.lineWidth = 0.8;
-          g.setLineDash([1.6, 1.6]);
-          g.beginPath();
-          g.moveTo(b.x, b.y);
-          g.lineTo(b.x + ux * len * 1.4, b.y + uy * len * 1.4);
-          g.stroke();
-          g.setLineDash([]);
+          const k = len / 42;
+          for (let d = 4; d < len * 1.4; d += 3) {
+            g.fillStyle = `rgba(${Math.round(255 * k)},${Math.round(255 * (1 - k * 0.7))},${Math.round(255 * (1 - k))},${1 - d / (len * 1.6)})`;
+            g.beginPath(); g.arc(b.x + ux * d, b.y + uy * d, 0.7, 0, 7); g.fill();
+          }
+          g.fillStyle = "rgba(0,0,0,0.35)"; g.beginPath(); g.roundRect(b.x - 6, b.y + 4, 12, 1.4, 0.7); g.fill();
+          g.fillStyle = k > 0.8 ? "#ff6b6b" : "#ffd43b"; g.beginPath(); g.roundRect(b.x - 6, b.y + 4, 12 * k, 1.4, 0.7); g.fill();
         }
       }
       if (b) {
         const sc = s.sinking ? s.sinking : 1;
-        g.fillStyle = "rgba(0,0,0,0.2)";
+        g.fillStyle = "rgba(0,0,0,0.25)";
         g.beginPath();
         g.arc(b.x + 0.6, b.y + 0.8, Golf.R * sc, 0, Math.PI * 2);
         g.fill();
-        g.fillStyle = "#fff";
+        const bx = s.sinking ? cx + (b.x - cx) * sc : b.x, by = s.sinking ? cy + (b.y - cy) * sc : b.y;
+        const bg = g.createRadialGradient(bx - 0.6, by - 0.7, 0.2, bx, by, Golf.R * sc);
+        bg.addColorStop(0, "#ffffff"); bg.addColorStop(1, "#ced4da");
+        g.fillStyle = bg;
         g.beginPath();
-        g.arc(s.sinking ? cx + (b.x - cx) * sc : b.x, s.sinking ? cy + (b.y - cy) * sc : b.y, Golf.R * sc, 0, Math.PI * 2);
+        g.arc(bx, by, Golf.R * sc, 0, Math.PI * 2);
         g.fill();
       }
     }

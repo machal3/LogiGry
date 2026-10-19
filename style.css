@@ -216,10 +216,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 /* wyszukiwarka, sortowanie, kategorie */
 .games-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 12px;
   margin-bottom: 20px;
 }
+.sort select { max-width: 22ch; text-overflow: ellipsis; }
+.view-switch { display: flex; gap: 4px; align-items: center; }
+.view-switch .cat-chip { height: 48px; }
+
+/* widok listy: gęste wiersze, wygodne przy wielu grach */
+.game-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+.game-rows .card { flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; padding: 12px 16px; }
+.game-rows .card .glyph { width: 36px; flex: none; }
+.game-rows .card-body { gap: 2px; min-width: 0; }
+.game-rows .card-name { font-size: 1.125rem; letter-spacing: -0.01em; }
+.game-rows .card-desc { display: none; }
+.game-rows .card-author { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-rows .pill { position: static; margin-left: auto; flex: none; }
 .search, .sort {
   display: flex;
   align-items: center;
@@ -447,6 +467,8 @@ footer {
   .bento li:nth-child(even):last-child { grid-column: span 2; }
   .search kbd { display: none; }
   .sort span { display: none; }
+  .games-tools { grid-template-columns: 1fr 1fr auto; }
+  .search { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
   .pf-games > li { grid-template-columns: 48px 1fr auto; }
@@ -460,6 +482,36 @@ footer {
 }
 @media (max-width: 560px) {
   .games-tools { grid-template-columns: 1fr; }
+  .search { grid-column: auto; }
+  .view-switch .cat-chip { flex: 1; justify-content: center; }
   .sort { justify-content: space-between; }
   .sort span { display: inline; }
 }
+
+/* ulubione: gwiazdka w rogu karty (obok linku, bo przycisk nie może być w <a>) */
+.bento li, .game-rows li { position: relative; }
+.fav {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--on) 14%, transparent);
+  color: var(--on);
+  cursor: pointer;
+  transition: transform 120ms;
+}
+.fav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.fav[aria-pressed="true"] svg { fill: currentColor; }
+.fav:hover { background: color-mix(in srgb, var(--on) 24%, transparent); }
+.fav:active { transform: scale(0.92); }
+.fav:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
+.game-rows .fav { top: 50%; bottom: auto; right: 10px; width: 36px; height: 36px; margin-top: -18px; }
+.game-rows .card { padding-right: 56px; }
+@media (prefers-reduced-motion: reduce) { .fav { transition: none; } }
+.bento .card-body { margin-right: 36px; }

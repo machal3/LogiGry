@@ -1,0 +1,29 @@
+/* Piramida: rysunek powstaje na płótnie, więc stylujemy ramę płótna i notkę w panelu. */
+[data-gra="piramida"] {
+  --pi-shine: #ffffff;
+  --pi-shade: #000000;
+}
+
+[data-gra="piramida"] .cvb-canvas {
+  border-radius: calc(var(--s) * 0.22);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, var(--line)),
+    0 0 0 1px color-mix(in srgb, var(--pi-shade) 26%, transparent),
+    0 34px 64px -38px color-mix(in srgb, var(--c) 60%, var(--shadow));
+}
+
+[data-gra="piramida"] .pi-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+[data-gra="piramida"] .pi-note::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border: 2px solid color-mix(in srgb, var(--text) 60%, transparent);
+  border-radius: 3px;
+  vertical-align: -1px;
+}

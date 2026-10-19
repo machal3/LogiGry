@@ -9,7 +9,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
   levels: [
     { key: "easy", name: "Łatwy", points: 10, target: 15, speed: 26, size: 34 },
     { key: "medium", name: "Średni", points: 25, target: 22, speed: 34, size: 30 },
-    { key: "hard", name: "Trudny", points: 50, target: 30, speed: 42, size: 28 },
+    { key: "hard", name: "Trudny", points: 50, target: 32, speed: 44, size: 26 },
   ],
   rules: [
     "Płyta przesuwa się nad wieżą. Kliknij, dotknij albo naciśnij spację, żeby ją zatrzymać.",
@@ -27,7 +27,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
     const cv = canvasGame(board, ctx, W, H, { max: 86 });
     const { g } = cv;
     const base = { x: 0, z: 0, w: size, d: size };
-    const s = { tower: [{ ...base }], moving: null, axis: "x", dir: 1, perfect: 0, debris: [], cam: 0, over: false };
+    const s = { tower: [{ ...base }], moving: null, axis: "x", dir: 1, perfect: 0, debris: [], rings: [], banner: null, cam: 0, over: false };
     Stack.last = s;
     // kolor piętra k; dl przyciemnia ściany boczne
     const hue = (k, dl = 0) => `hsl(${(28 + k * 9) % 360} 78% ${58 - (k % 2) * 4 - dl}%)`;
@@ -61,6 +61,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
         if (s.perfect === 6) ctx.achieve("szesc-idealnych");
         placed = { ...top };
         if (s.perfect >= 3) { placed[len] = Math.min(size, placed[len] + 2); }
+        s.rings.push({ ...placed, y: s.tower.length, t: 0 });
+        s.banner = { text: s.perfect >= 3 ? `Idealnie ×${s.perfect}` : "Idealnie", t: 0 };
         Sound.line();
       } else {
         s.perfect = 0;
@@ -92,6 +94,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
       poly([P(x0, y, z1), P(x1, y, z1), P(x1, y + h, z1), P(x0, y + h, z1)], hue(k, 22));
       poly([P(x1, y, z0), P(x1, y, z1), P(x1, y + h, z1), P(x1, y + h, z0)], hue(k, 11));
       poly(top, hue(k));
+      // połysk na wierzchu i jasna krawędź
+      const sh = g.createLinearGradient(top[0][0], top[0][1], top[2][0], top[2][1]);
+      sh.addColorStop(0, "rgba(255,255,255,0.28)"); sh.addColorStop(1, "rgba(255,255,255,0)");
+      poly(top, sh);
+      g.strokeStyle = "rgba(255,255,255,0.35)"; g.lineWidth = 0.25;
+      g.beginPath(); top.forEach(([a, c], k) => (k ? g.lineTo(a, c) : g.moveTo(a, c))); g.closePath(); g.stroke();
       g.globalAlpha = 1;
     }
     let t0 = 0;
@@ -122,6 +130,32 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "stos
         p.y += p.vy * dt;
         box(p, p.y, p.k, Math.max(0, Math.min(1, (p.y - (level - 30)) / 10)));
       }
+      // idealne trafienie: rozchodząca się obwódka wokół płyty
+      for (const r of s.rings) {
+        r.t += dt;
+        const k = 1 + r.t * 0.6, a = Math.max(0, 1 - r.t * 2);
+        const { x, z, w, d } = r, y = r.y + 1;
+        const pts = [P(x - (w / 2) * k, y, z - (d / 2) * k), P(x + (w / 2) * k, y, z - (d / 2) * k), P(x + (w / 2) * k, y, z + (d / 2) * k), P(x - (w / 2) * k, y, z + (d / 2) * k)];
+        g.strokeStyle = `rgba(255,255,255,${a})`; g.lineWidth = 0.7;
+        g.beginPath(); pts.forEach(([a1, c], j) => (j ? g.lineTo(a1, c) : g.moveTo(a1, c))); g.closePath(); g.stroke();
+      }
+      s.rings = s.rings.filter((r) => r.t < 0.5);
+      if (s.banner) {
+        s.banner.t += dt;
+        g.globalAlpha = Math.max(0, 1 - s.banner.t);
+        g.fillStyle = hue(level, 15);
+        g.font = "700 6px Geist, system-ui, sans-serif";
+        g.textAlign = "center";
+        g.fillText(s.banner.text, W / 2, 30 - s.banner.t * 6);
+        g.globalAlpha = 1;
+        if (s.banner.t > 1) s.banner = null;
+      }
+      g.fillStyle = hue(level, 20);
+      g.font = "700 14px Geist, system-ui, sans-serif";
+      g.textAlign = "center";
+      g.globalAlpha = 0.85;
+      g.fillText(level - 1, W / 2, 14);
+      g.globalAlpha = 1;
     });
 
     function render() {

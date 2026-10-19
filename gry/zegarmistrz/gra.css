@@ -1,0 +1,51 @@
+[data-gra="zegarmistrz"] {
+  --zg-brass: #c58b45; --zg-dark: #26333a; --zg-face-light: #f7e4bd;
+  --zg-face-mid: #c99555; --zg-face-dark: #754727; --zg-ink: #3e281a;
+  --zg-rim: #e1b66d; --zg-shadow: color-mix(in srgb, var(--text) 25%, transparent);
+  --zg-face-size: clamp(6.5rem, 18vw, 9rem);
+  box-sizing: border-box; width: min(100%, 760px); padding: .5rem;
+  display: grid; grid-template-columns: 1fr; gap: .8rem;
+}
+[data-gra="zegarmistrz"] .zg-clock-card {
+  position: relative; display: grid; justify-items: center; gap: .45rem;
+  min-width: 0; box-sizing: border-box;
+  padding: .75rem .55rem .8rem; border: 1px solid var(--line);
+  border-radius: var(--radius); background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--c) 8%, var(--surface)));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--text) 10%, transparent);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+[data-gra="zegarmistrz"] .zg-clock-card.zg-selected { border-color: var(--c); transform: translateY(-3px); }
+[data-gra="zegarmistrz"] .zg-clock-card.zg-correct { border-color: var(--zg-brass); }
+[data-gra="zegarmistrz"] .zg-clock-title { margin: 0; font-size: .95rem; color: var(--text); }
+[data-gra="zegarmistrz"] .zg-target { color: var(--muted); font-size: .78rem; }
+[data-gra="zegarmistrz"] .zg-face {
+  position: relative; width: var(--zg-face-size); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--zg-face-light), var(--zg-face-mid) 70%, var(--zg-face-dark));
+  border: .45rem solid var(--zg-dark); box-shadow: inset 0 0 0 .15rem var(--zg-rim), 0 4px 8px var(--zg-shadow);
+}
+[data-gra="zegarmistrz"] .zg-face::after { content: ""; position: absolute; inset: 8%; border: 1px solid #fff8; border-radius: 50%; }
+[data-gra="zegarmistrz"] .zg-mark {
+  position: absolute; left: 50%; top: 50%; font: 700 .72rem var(--font);
+  color: var(--zg-ink); transform: rotate(var(--zg-angle)) translateY(calc(var(--zg-face-size) * -.35)) rotate(calc(var(--zg-angle) * -1));
+  transform-origin: 0 0;
+}
+[data-gra="zegarmistrz"] .zg-hand {
+  position: absolute; left: 50%; bottom: 50%; width: .22rem; border-radius: .2rem;
+  transform-origin: 50% 100%; background: var(--zg-dark); z-index: 2;
+}
+[data-gra="zegarmistrz"] .zg-hour { height: 27%; margin-left: -.11rem; }
+[data-gra="zegarmistrz"] .zg-minute { height: 37%; width: .13rem; margin-left: -.065rem; background: var(--c); }
+[data-gra="zegarmistrz"] .zg-pin { position: absolute; width: .65rem; height: .65rem; left: calc(50% - .325rem); top: calc(50% - .325rem); border-radius: 50%; background: var(--zg-brass); z-index: 3; }
+[data-gra="zegarmistrz"] .zg-controls { display: flex; gap: .45rem; }
+[data-gra="zegarmistrz"] .zg-turn { min-width: 2.4rem; padding: .25rem .5rem; font-size: 1.1rem; }
+[data-gra="zegarmistrz"] .zg-clock-card.zg-correct .zg-face { box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--zg-brass) 65%, transparent), inset 0 0 0 .15rem var(--zg-rim); }
+[data-gra="zegarmistrz"] > .zg-clock-card { width: 100%; }
+@media (min-width: 560px) {
+  [data-gra="zegarmistrz"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+@media (min-width: 820px) {
+  [data-gra="zegarmistrz"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="zegarmistrz"] .zg-clock-card { transition: none; }
+}

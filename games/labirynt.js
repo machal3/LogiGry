@@ -216,45 +216,58 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "labi
         g.restore();
       }
       // ściany
-      g.strokeStyle = theme.text;
-      g.lineWidth = 1.1;
+      // ściany jak żywopłot: cień, gruby pas w kolorze gry i jasna krawędź
+      const walls = (dx, dy) => {
+        g.beginPath();
+        for (let i = 0; i < n * n; i++) {
+          const x = (i % n) * S + dx, y = ((i / n) | 0) * S + dy;
+          if (!(open[i] & 1)) { g.moveTo(x, y); g.lineTo(x + S, y); }
+          if (!(open[i] & 8)) { g.moveTo(x, y); g.lineTo(x, y + S); }
+          if (i % n === n - 1 && !(open[i] & 2)) { g.moveTo(x + S, y); g.lineTo(x + S, y + S); }
+          if (i >= n * (n - 1) && !(open[i] & 4)) { g.moveTo(x, y + S); g.lineTo(x + S, y + S); }
+        }
+      };
       g.lineCap = "round";
-      g.beginPath();
-      for (let i = 0; i < n * n; i++) {
-        const x = (i % n) * S, y = ((i / n) | 0) * S;
-        if (!(open[i] & 1)) { g.moveTo(x, y); g.lineTo(x + S, y); }
-        if (!(open[i] & 8)) { g.moveTo(x, y); g.lineTo(x, y + S); }
-        if (i % n === n - 1 && !(open[i] & 2)) { g.moveTo(x + S, y); g.lineTo(x + S, y + S); }
-        if (i >= n * (n - 1) && !(open[i] & 4)) { g.moveTo(x, y + S); g.lineTo(x + S, y + S); }
-      }
-      g.stroke();
+      g.lineJoin = "round";
+      g.strokeStyle = "rgba(20,30,80,0.16)";
+      g.lineWidth = S * 0.24;
+      walls(S * 0.05, S * 0.09); g.stroke();
+      g.strokeStyle = theme.c;
+      g.lineWidth = S * 0.2;
+      walls(0, 0); g.stroke();
+      g.strokeStyle = "rgba(255,255,255,0.35)";
+      g.lineWidth = S * 0.05;
+      walls(-S * 0.03, -S * 0.04); g.stroke();
       // kulka
-      g.fillStyle = theme.c;
+      g.fillStyle = "rgba(20,30,80,0.2)";
+      g.beginPath(); g.ellipse(px + S * 0.06, py + S * 0.12, S * 0.3, S * 0.22, 0, 0, Math.PI * 2); g.fill();
+      const bg = g.createRadialGradient(px - S * 0.1, py - S * 0.12, S * 0.03, px, py, S * 0.32);
+      bg.addColorStop(0, "#ffffff"); bg.addColorStop(0.35, "#ffd43b"); bg.addColorStop(1, "#e67700");
+      g.fillStyle = bg;
       g.beginPath();
       g.arc(px, py, S * 0.3, 0, Math.PI * 2);
       g.fill();
-      g.fillStyle = "rgba(255,255,255,0.45)";
-      g.beginPath();
-      g.arc(px - 1, py - 1, S * 0.1, 0, Math.PI * 2);
-      g.fill();
       // mgła: ciemno wszędzie poza kręgiem wokół kulki
       if (fog) {
-        const r = fog * S;
+        // mgła w kolorze nocnego granatu (w obu motywach), widoczna na tle strony
+        const r = fog * S, FOG = "#141a36";
         const grd = g.createRadialGradient(px, py, r * 0.55, px, py, r);
-        grd.addColorStop(0, "rgba(0,0,0,0)");
-        grd.addColorStop(1, theme.bg);
+        grd.addColorStop(0, "rgba(20,26,54,0)");
+        grd.addColorStop(1, FOG);
         g.fillStyle = grd;
         g.beginPath();
         g.rect(0, 0, W, W);
         g.arc(px, py, r * 0.55, 0, Math.PI * 2, true);
         g.fill("evenodd");
-        g.fillStyle = theme.bg;
+        g.fillStyle = FOG;
         g.beginPath();
         g.rect(0, 0, W, W);
         g.arc(px, py, r, 0, Math.PI * 2, true);
         g.fill("evenodd");
         // zapamiętane: ściany odwiedzonych pól widać słabo
-        g.globalAlpha = 0.28;
+        g.globalAlpha = 0.45;
+        g.strokeStyle = "#91a7ff";
+        g.lineWidth = S * 0.08;
         g.beginPath();
         for (let i = 0; i < n * n; i++) {
           if (!seen[i]) continue;
@@ -265,7 +278,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "labi
           if (!(open[i] & 2)) { g.moveTo(x + S, y); g.lineTo(x + S, y + S); }
         }
         g.stroke();
+        // latarnia wyjścia przebija mgłę: wiadomo, dokąd iść
+        const ex = (exit % n) * S + S / 2, ey = ((exit / n) | 0) * S + S / 2;
+        const glow = g.createRadialGradient(ex, ey, 0, ex, ey, S * 1.4);
+        glow.addColorStop(0, `rgba(255,212,59,${0.55 + 0.2 * Math.sin(t / 300)})`); glow.addColorStop(1, "rgba(255,212,59,0)");
         g.globalAlpha = 1;
+        g.fillStyle = glow;
+        g.beginPath(); g.arc(ex, ey, S * 1.4, 0, Math.PI * 2); g.fill();
       }
     }
 

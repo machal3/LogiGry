@@ -226,7 +226,7 @@ export default {
     mole().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
   `,
   stos: `
-    const s = Stack.last, target = [15, 22, 30][LVL];
+    const s = Stack.last, target = [15, 22, 32][LVL];
     while (s.tower.length < target) s.tower.push({ ...s.tower[0] });
     await until(() => s.moving && Math.abs(s.moving[s.axis] - s.tower[s.tower.length - 1][s.axis]) < 0.8, 6000);
     hit(" "); hit(" ", "keyup");
@@ -237,7 +237,7 @@ export default {
     hit(" "); hit(" ", "keyup");
     // autopilot: rury mają szczelinę na wysokości lotu, a ptak machnie, gdy opadnie
     for (let t = 0; t < 400 && !document.querySelector(".board-area.won, .board-area.lost"); t++) {
-      s.pipes.forEach((p) => (p.gy = 52 - [44, 38, 33][LVL] / 2));
+      s.pipes.forEach((p) => { p.amp = 0; p.gy = 52 - [44, 38, 34][LVL] / 2; });
       if (s.y > 56 && s.vy > 0) { hit(" "); hit(" ", "keyup"); }
       await sleep(16);
     }
@@ -249,7 +249,7 @@ export default {
     await until(() => document.querySelector(".board-area.won"));
   `,
   wspinacz: `
-    Climber.last.best = [1500, 2500, 3500][LVL];
+    Climber.last.best = [1500, 2500, 4000][LVL];
     await until(() => document.querySelector(".board-area.won"));
   `,
   klawisze: `
@@ -279,13 +279,13 @@ export default {
   `,
   najezdzcy: `
     const s = Invaders.last;
-    s.wave = [1, 2, 3][LVL];
+    s.wave = [1, 2, 4][LVL];
     s.aliens.forEach((a) => (a.alive = false));
     await until(() => document.querySelector(".board-area.won"));
   `,
   asteroidy: `
     const s = Asteroids.last;
-    s.wave = [2, 3, 4][LVL];
+    s.wave = [2, 3, 5][LVL];
     s.rocks = [];
     await until(() => document.querySelector(".board-area.won"));
   `,
@@ -318,7 +318,7 @@ export default {
     const s = LightCycles.last;
     s.score[0] = [2, 2, 3][LVL] - 1;
     s.bikes.slice(1).forEach((b) => (b.alive = false));
-    await until(() => document.querySelector(".board-area.won"), 4000);
+    await until(() => document.querySelector(".board-area.won"), 8000);
   `,
   obrona: `
     const s = Defense.last;

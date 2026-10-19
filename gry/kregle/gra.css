@@ -1,0 +1,10 @@
+/* Kręgle: dopisek do planszy */
+[data-gra="kregle"] .kr-leg {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+[data-gra="kregle"] canvas {
+  touch-action: none;
+}

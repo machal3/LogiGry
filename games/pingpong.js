@@ -8,7 +8,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
   levels: [
     { key: "easy", name: "Łatwy", points: 10, to: 5, ai: 38, err: 9, ball: 62 },
     { key: "medium", name: "Średni", points: 25, to: 7, ai: 52, err: 6, ball: 72 },
-    { key: "hard", name: "Trudny", points: 50, to: 7, ai: 66, err: 3.5, ball: 82 },
+    { key: "hard", name: "Trudny", points: 50, to: 7, ai: 72, err: 3, ball: 84 },
   ],
   rules: [
     "Steruj dolną paletką myszą, palcem albo strzałkami. Odbijaj piłkę na stronę komputera.",
@@ -25,7 +25,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
     const W = 100, H = 140, PW = 18, PH = 2.6, R = 1.8;
     const cv = canvasGame(board, ctx, W, H, { max: 80, cls: "court" });
     const { g, theme } = cv;
-    const s = { me: W / 2, cpu: W / 2, b: null, score: [0, 0], serve: 1, wait: 1, aimErr: 0, hits: 0, trail: [] };
+    const s = { me: W / 2, cpu: W / 2, b: null, score: [0, 0], serve: 1, wait: 1, aimErr: 0, hits: 0, trail: [], sparks: [] };
     Pong.last = s;
     const scoreEl = statBlock(ctx, "Wynik", { meter: true });
     const keys = heldKeys(ctx);
@@ -90,6 +90,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
               s.hits++;
               if (dir === 1) s.aimErr = (Math.random() - 0.5) * err * 2;
               Sound.place(dir === -1 ? 5 : 3);
+              s.sparks.push({ x: b.x, y: py, t: 0.3 });
             }
             if (b.y > H + 4) point(1);
             else if (b.y < -4) point(0);
@@ -99,24 +100,51 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "ping
       }
       draw();
     });
+    // paletka jak rakietka: okładzina w kolorze, rączka z drewna
+    function paddle(x, y, rubber, up) {
+      g.fillStyle = "rgba(0,0,0,0.25)";
+      g.beginPath(); g.roundRect(x - PW / 2 + 0.6, y - PH / 2 + 1, PW, PH, PH / 2); g.fill();
+      g.fillStyle = "#c08a5c";
+      g.beginPath(); g.roundRect(x - 1.4, up ? y - PH / 2 - 3 : y + PH / 2 - 0.4, 2.8, 3.4, 0.8); g.fill();
+      const pg = g.createLinearGradient(0, y - PH / 2, 0, y + PH / 2);
+      pg.addColorStop(0, "#ffffff"); pg.addColorStop(0.3, rubber); pg.addColorStop(1, rubber);
+      g.fillStyle = pg;
+      g.beginPath(); g.roundRect(x - PW / 2, y - PH / 2, PW, PH, PH / 2); g.fill();
+      g.strokeStyle = "#f1e3c2"; g.lineWidth = 0.35; g.stroke();
+    }
     function draw() {
-      g.strokeStyle = theme.line;
+      // siatka przez środek stołu
+      g.fillStyle = "rgba(0,0,0,0.25)";
+      g.fillRect(0, H / 2 + 0.6, W, 1.2);
+      g.strokeStyle = "rgba(255,255,255,0.85)";
       g.lineWidth = 0.6;
-      g.setLineDash([2, 2]);
       g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
-      g.setLineDash([]);
-      g.fillStyle = theme.line;
+      g.strokeStyle = "rgba(255,255,255,0.25)"; g.lineWidth = 0.2;
+      for (let x = 1; x < W; x += 1.5) { g.beginPath(); g.moveTo(x, H / 2 - 0.8); g.lineTo(x, H / 2 + 0.8); g.stroke(); }
+      g.fillStyle = "rgba(255,255,255,0.22)";
       g.font = "700 18px Geist, system-ui, sans-serif";
       g.textAlign = "center";
-      g.fillText(s.score[1], W / 2, H / 2 - 8);
-      g.fillText(s.score[0], W / 2, H / 2 + 22);
-      g.fillStyle = theme.text;
-      g.beginPath(); g.roundRect(s.cpu - PW / 2, 8 - PH / 2, PW, PH, PH / 2); g.fill();
-      g.fillStyle = theme.c;
-      g.beginPath(); g.roundRect(s.me - PW / 2, H - 8 - PH / 2, PW, PH, PH / 2); g.fill();
-      s.trail.forEach(([x, y], k) => { g.globalAlpha = (k / s.trail.length) * 0.35; g.fillStyle = theme.c; g.beginPath(); g.arc(x, y, R * 0.8, 0, Math.PI * 2); g.fill(); });
+      g.fillText(s.score[1], W / 2, H / 2 - 10);
+      g.fillText(s.score[0], W / 2, H / 2 + 24);
+      g.font = "600 3.4px Geist, system-ui, sans-serif";
+      g.fillText("komputer", W / 2, H / 2 - 32);
+      g.fillText("ty", W / 2, H / 2 + 30);
+      paddle(s.cpu, 8, "#343a40", true);
+      paddle(s.me, H - 8, "#e03131", false);
+      s.trail.forEach(([x, y], k) => { g.globalAlpha = (k / s.trail.length) * 0.3; g.fillStyle = "#ffe8cc"; g.beginPath(); g.arc(x, y, R * 0.8, 0, Math.PI * 2); g.fill(); });
       g.globalAlpha = 1;
-      if (s.b) { g.fillStyle = theme.text; g.beginPath(); g.arc(s.b.x, s.b.y, R, 0, Math.PI * 2); g.fill(); }
+      for (const p of s.sparks) {
+        p.t -= 1 / 60;
+        g.strokeStyle = `rgba(255,255,255,${Math.max(0, p.t * 3)})`; g.lineWidth = 0.4;
+        g.beginPath(); g.arc(p.x, p.y, 2 + (0.3 - p.t) * 20, 0, 7); g.stroke();
+      }
+      s.sparks = s.sparks.filter((p) => p.t > 0);
+      if (s.b) {
+        g.fillStyle = "rgba(0,0,0,0.25)"; g.beginPath(); g.ellipse(s.b.x + 1, s.b.y + 1.6, R, R * 0.7, 0, 0, 7); g.fill();
+        const bg = g.createRadialGradient(s.b.x - 0.6, s.b.y - 0.6, 0.2, s.b.x, s.b.y, R);
+        bg.addColorStop(0, "#ffffff"); bg.addColorStop(1, "#ffa94d");
+        g.fillStyle = bg; g.beginPath(); g.arc(s.b.x, s.b.y, R, 0, Math.PI * 2); g.fill();
+      }
     }
     function render() {
       scoreEl.set(`${s.score[0]} : ${s.score[1]}`, s.score[0] / to, `Gra do ${to} punktów`);

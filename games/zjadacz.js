@@ -70,7 +70,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
     const total = dots.size + power.size;
     const GC = ["#e03131", "#f783ac", "#22b8cf", "#fd7e14"];
     const mk = (x, y, dir, sp) => ({ x, y, dir, t: 0, sp, sx: x, sy: y });
-    const s = { pac: mk(...pStart, "left", 6.2), want: "left", ghosts: [], dots, power, lives: 3, fright: 0, score: 0, mouth: 0, eaten: 0, dying: 0, ready: 1.8 };
+    const s = { pac: mk(...pStart, "left", 6.2), want: "left", ghosts: [], dots, power, lives: 3, fright: 0, score: 0, mouth: 0, eaten: 0, dying: 0, ready: 1.8, fruit: null, pops: [] };
     PacMan.last = s;
     const spawnGhosts = () => {
       // pierwszy duch wychodzi po sekundzie, kolejne co kilka sekund
@@ -119,7 +119,13 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
     }
     function eat(x, y) {
       const i = y * W + x;
-      if (s.dots.delete(i)) { s.score += 10; s.eaten++; if (s.eaten % 2) Sound.tap(); }
+      if (s.dots.delete(i)) {
+        s.score += 10; s.eaten++;
+        if (s.eaten % 2) Sound.tap();
+        // owoc-premia pojawia się dwa razy w partii
+        if (s.eaten === 50 || s.eaten === 110) s.fruit = { t: 9 };
+      }
+      if (s.fruit && x === pStart[0] && y === pStart[1] + 0 && s.fruit.t > 0) { s.score += 300; s.fruit = null; s.pops.push({ x, y, t: 1, text: "300" }); Sound.line(); }
       if (s.power.delete(i)) { s.score += 50; s.fright = fright; s.combo = 0; s.ghosts.forEach((gh) => { if (!gh.eaten) gh.dir = BACK[gh.dir]; }); Sound.line(); }
       render();
       if (!s.dots.size && !s.power.size && s.lives === 3 && ctx.level.key === "hard") ctx.achieve("nietykalny");
@@ -140,13 +146,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
         if (!p.stuck) advance(p, dt, pacChoose);
         s.mouth += dt * 14;
         s.fright = Math.max(0, s.fright - dt);
+        if (s.fruit && (s.fruit.t -= dt) <= 0) s.fruit = null;
         for (const e of s.ghosts) {
           if (e.wait > 0) { e.wait -= dt; if (e.wait <= 0) { e.leaving = true; } continue; }
           e.sp = e.eaten ? 11 : s.fright ? 3.6 : gspeed * (1 + 0.15 * (1 - s.dots.size / total));
           advance(e, dt, ghostChoose);
           const [ax, ay] = pos(e), [bx, by] = pos(p);
           if (!e.eaten && Math.hypot(ax - bx, ay - by) < S * 0.75) {
-            if (s.fright) { e.eaten = true; s.combo = (s.combo || 0) + 1; ctx.achieve("lowca-duchow"); if (s.combo >= 3) ctx.achieve("trzy-duchy"); s.score += 200 * s.combo; Sound.place(9); }
+            if (s.fright) { e.eaten = true; s.combo = (s.combo || 0) + 1; ctx.achieve("lowca-duchow"); if (s.combo >= 3) ctx.achieve("trzy-duchy"); s.score += 200 * s.combo; s.pops.push({ x: ax / S - 0.5, y: ay / S - 0.5, t: 1, text: 200 * s.combo }); Sound.place(9); }
             else { s.dying = 1.2; s.lives--; Sound.lose(); render(); }
           }
         }
@@ -161,28 +168,51 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
       draw();
     });
 
-    function draw() {
-      // ściany: połączone zaokrąglone bloki
-      g.fillStyle = "#3b5bdb";
+    // ściany: połączone zaokrąglone bloki; wąska obwódka jak neon (ten sam kształt dwa razy, mniejszy na ciemno)
+    function walls(inset, color) {
+      g.fillStyle = color;
       MAP.forEach((row, y) => [...row].forEach((c, x) => {
         if (c !== "#") return;
         g.beginPath();
-        g.roundRect(x * S + 0.6, y * S + 0.6, S - 1.2, S - 1.2, 1.6);
+        g.roundRect(x * S + inset, y * S + inset, S - inset * 2, S - inset * 2, 2.2 - inset * 0.6);
         g.fill();
-        if (at(x + 1, y) === "#" && x < W - 1) g.fillRect(x * S + S / 2, y * S + 0.6, S, S - 1.2);
-        if (y < H - 1 && at(x, y + 1) === "#") g.fillRect(x * S + 0.6, y * S + S / 2, S - 1.2, S);
+        if (at(x + 1, y) === "#" && x < W - 1) g.fillRect(x * S + S / 2, y * S + inset, S, S - inset * 2);
+        if (y < H - 1 && at(x, y + 1) === "#") g.fillRect(x * S + inset, y * S + S / 2, S - inset * 2, S);
       }));
+    }
+    function draw() {
+      walls(0.4, "rgba(92,124,250,0.35)");
+      walls(0.9, "#5c7cfa");
+      walls(1.6, "#141a3d");
       g.fillStyle = "#f783ac";
       g.fillRect(9 * S, 8 * S + S / 2 - 0.5, S, 1);
       g.fillStyle = theme.text;
-      for (const i of s.dots) { g.beginPath(); g.arc((i % W) * S + S / 2, ((i / W) | 0) * S + S / 2, 0.75, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = "#ffe8cc";
+      for (const i of s.dots) { g.beginPath(); g.arc((i % W) * S + S / 2, ((i / W) | 0) * S + S / 2, 0.7, 0, Math.PI * 2); g.fill(); }
       const pulse = 1.6 + Math.sin(performance.now() / 150) * 0.4;
-      for (const i of s.power) { g.beginPath(); g.arc((i % W) * S + S / 2, ((i / W) | 0) * S + S / 2, pulse, 0, Math.PI * 2); g.fill(); }
+      for (const i of s.power) {
+        const x = (i % W) * S + S / 2, y = ((i / W) | 0) * S + S / 2;
+        g.fillStyle = "rgba(255,232,204,0.25)"; g.beginPath(); g.arc(x, y, pulse * 1.8, 0, 7); g.fill();
+        g.fillStyle = "#fff4e6"; g.beginPath(); g.arc(x, y, pulse, 0, Math.PI * 2); g.fill();
+      }
+      if (s.fruit) {
+        // wiśnie w miejscu startu
+        const x = pStart[0] * S + S / 2, y = pStart[1] * S + S / 2, bl = s.fruit.t < 2 && Math.floor(s.fruit.t * 6) % 2;
+        if (!bl) {
+          g.strokeStyle = "#51cf66"; g.lineWidth = 0.4;
+          g.beginPath(); g.moveTo(x - 1.2, y + 0.4); g.quadraticCurveTo(x, y - 2.6, x + 1.4, y - 2.4); g.moveTo(x + 1.1, y + 0.6); g.lineTo(x + 1.4, y - 2.4); g.stroke();
+          g.fillStyle = "#f03e3e"; g.beginPath(); g.arc(x - 1.2, y + 0.9, 1.2, 0, 7); g.arc(x + 1.1, y + 1.1, 1.2, 0, 7); g.fill();
+          g.fillStyle = "rgba(255,255,255,0.6)"; g.beginPath(); g.arc(x - 1.6, y + 0.5, 0.35, 0, 7); g.fill();
+        }
+      }
       for (const e of s.ghosts) {
         const [x, y] = pos(e);
         const blink = s.fright < 1.5 && Math.floor(s.fright * 6) % 2;
         if (!e.eaten) {
-          g.fillStyle = s.fright ? (blink ? "#fff" : "#364fc7") : GC[e.k];
+          const col = s.fright ? (blink ? "#ffffff" : "#364fc7") : GC[e.k];
+          const gg = g.createLinearGradient(0, y - 3, 0, y + 2.4);
+          gg.addColorStop(0, "#ffffff"); gg.addColorStop(0.25, col); gg.addColorStop(1, col);
+          g.fillStyle = gg;
           g.beginPath();
           g.arc(x, y - 0.4, 2.6, Math.PI, 0);
           g.lineTo(x + 2.6, y + 2.4);
@@ -206,12 +236,22 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "zjad
       const [px, py] = pos(s.pac);
       const ang = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[s.pac.dir];
       const m = s.dying ? Math.min(Math.PI, (1.2 - s.dying) * 3) : Math.abs(Math.sin(s.mouth)) * 0.7;
-      g.fillStyle = theme.c;
+      const pg = g.createRadialGradient(px - 0.9, py - 1, 0.3, px, py, 2.8);
+      pg.addColorStop(0, "#fff9db"); pg.addColorStop(0.5, theme.c); pg.addColorStop(1, "#f59f00");
+      g.fillStyle = pg;
       g.beginPath();
       g.moveTo(px, py);
       g.arc(px, py, 2.7, ang + m, ang + Math.PI * 2 - m);
       g.closePath();
       g.fill();
+      g.font = "700 3.6px Geist, system-ui, sans-serif";
+      g.textAlign = "center";
+      for (const q of s.pops) {
+        q.t -= 1 / 60;
+        g.fillStyle = `rgba(165,216,255,${Math.max(0, q.t)})`;
+        g.fillText(q.text, q.x * S + S / 2, q.y * S + S / 2 - (1 - q.t) * 4);
+      }
+      s.pops = s.pops.filter((q) => q.t > 0);
     }
     function render() {
       const left = s.dots.size + s.power.size;

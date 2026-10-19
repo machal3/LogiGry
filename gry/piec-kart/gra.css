@@ -1,0 +1,111 @@
+/* Pięć kart: karty, pot i oznaczenia */
+[data-gra="piec-kart"] .pk-hands {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 540px);
+  margin-inline: auto;
+}
+
+[data-gra="piec-kart"] .pk-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 74px;
+}
+
+[data-gra="piec-kart"] .pk-potrow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 26px;
+}
+
+[data-gra="piec-kart"] .pk-pot {
+  font-weight: 700;
+  color: var(--gold);
+}
+
+[data-gra="piec-kart"] .pk-card {
+  position: relative;
+  width: 46px;
+  height: 66px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  padding: 5px 7px;
+  font: var(--font);
+  color: var(--text);
+  cursor: pointer;
+}
+
+[data-gra="piec-kart"] .pk-rank {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+[data-gra="piec-kart"] .pk-suit {
+  font-size: 13px;
+  line-height: 1;
+}
+
+[data-gra="piec-kart"] {
+  --pk-czerwony: #b3362b;
+}
+
+[data-gra="piec-kart"] .pk-red { color: var(--pk-czerwony); }
+
+/* rewers karty komputera */
+[data-gra="piec-kart"] .pk-back {
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--c) 55%, transparent) 0 4px, transparent 4px 8px),
+    color-mix(in srgb, var(--c) 30%, var(--surface));
+}
+
+/* zaznaczona do wymiany */
+[data-gra="piec-kart"] .pk-hold {
+  outline: 2px solid var(--danger);
+  outline-offset: -2px;
+  transform: translateY(6px);
+}
+
+/* kategoria układu ręki gracza */
+[data-gra="piec-kart"] .pk-cat {
+  margin-left: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: calc(var(--radius) * 0.6);
+  background: color-mix(in srgb, var(--c) 24%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+}
+
+/* odkrywanie kart komputera: obrót z opóźnieniem co do koli */
+[data-gra="piec-kart"] .pk-comp .pk-flip {
+  animation: piec-kart-flip 0.45s both;
+}
+
+@keyframes piec-kart-flip {
+  from { transform: rotateY(90deg) scale(0.9); opacity: 0.2; }
+  to { transform: none; opacity: 1; }
+}
+
+/* rozdawanie: karty wpadają z góry po kolei */
+[data-gra="piec-kart"] .pk-dealin {
+  animation: piec-kart-deal 0.4s both;
+}
+
+@keyframes piec-kart-deal {
+  from { transform: translateY(-16px) rotate(-4deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="piec-kart"] .pk-comp .pk-flip,
+  [data-gra="piec-kart"] .pk-dealin { animation: none; }
+}

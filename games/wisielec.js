@@ -49,6 +49,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "wisi
       ["path", { d: "M82 8V22" }], ["circle", { cx: 82, cy: 31, r: 9 }], ["path", { d: "M82 40V68" }],
       ["path", { d: "M82 48L70 60" }], ["path", { d: "M82 48L94 60" }], ["path", { d: "M82 68L72 86M82 68L92 86" }],
     ].map(([tag, attrs]) => {
+      // blady zarys całego rysunku: widać od początku, ile zostało pomyłek
+      const ghost = document.createElementNS(NS, tag);
+      for (const k in attrs) ghost.setAttribute(k, attrs[k]);
+      ghost.setAttribute("class", "hm-ghost");
+      svg.append(ghost);
       const e = document.createElementNS(NS, tag);
       for (const k in attrs) e.setAttribute(k, attrs[k]);
       e.setAttribute("pathLength", 1);

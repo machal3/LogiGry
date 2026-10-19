@@ -1,0 +1,8 @@
+/* Style gry. Każdy selektor zaczyna się od [data-gra="<id>"], więc nie dotyka innych gier.
+   Kolory tylko ze zmiennych motywu (theme.css) i koloru gry: --text --muted --line --surface --bg --c --on.
+   Nie styluj przycisków, paneli ani ekranu wyniku: robi to platforma. */
+[data-gra="flipery"] .sz-grid .gb-cell.picked { background: var(--c); color: var(--on); box-shadow: none; }
+[data-gra="flipery"] .sz-grid .gb-cell.gone { visibility: hidden; }
+/* własne animacje: nazwa zaczyna się od id gry */
+[data-gra="flipery"] .sz-grid .gb-cell.picked { animation: flipery-lift 200ms ease-out; }
+@keyframes flipery-lift { 50% { transform: scale(1.08); } }

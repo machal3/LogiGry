@@ -1,0 +1,9 @@
+/* Wędkarstwo: dopisek do planszy */
+[data-gra="wedka"] canvas {
+  touch-action: none;
+}
+
+[data-gra="wedka"] .wd-hold.on {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 20%, var(--surface));
+}

@@ -1,0 +1,36 @@
+/* Rytm: plansza powstaje na płótnie, więc stylujemy ramę płótna i podpisy klawiszy. */
+[data-gra="rytm"] {
+  --ry-shine: #ffffff;
+  --ry-shade: #000000;
+}
+
+[data-gra="rytm"] .cvb-canvas {
+  border-radius: calc(var(--s) * 0.22);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, var(--line)),
+    0 0 0 1px color-mix(in srgb, var(--ry-shade) 26%, transparent),
+    0 34px 64px -38px color-mix(in srgb, var(--c) 60%, var(--shadow));
+}
+
+[data-gra="rytm"] .ry-keys {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+[data-gra="rytm"] .ry-key {
+  min-width: 34px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  border-radius: calc(var(--radius) * 0.6);
+  background: color-mix(in srgb, var(--c) 20%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ry-shine) 26%, transparent);
+  color: var(--text);
+  font-weight: 600;
+  text-align: center;
+}
+[data-gra="rytm"] .ry-plus {
+  color: var(--muted);
+  font-size: 0.85rem;
+}

@@ -60,7 +60,7 @@ const Reversi = (() => {
     for (const i of my) {
       const nb = b.slice();
       play(nb, i, 2);
-      const v = search(nb, level === 1 ? 1 : 3, -Infinity, Infinity, 1) + Math.random();
+      const v = search(nb, level === 1 ? 2 : 4, -Infinity, Infinity, 1) + Math.random();
       if (v > bv) { bv = v; best = i; }
     }
     return best;

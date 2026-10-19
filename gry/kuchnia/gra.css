@@ -1,0 +1,7 @@
+/* Kuchnia: przyciski w panelu */
+[data-gra="kuchnia"] .ks-pans,
+[data-gra="kuchnia"] .ks-ing {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}

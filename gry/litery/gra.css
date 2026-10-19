@@ -1,0 +1,101 @@
+/* Litery: plansza, kafelki i premie */
+[data-gra="litery"] .lt-grid {
+  gap: 4px;
+  width: min(100%, 62vh);
+  margin-inline: auto;
+  font-weight: 700;
+  font-size: 15px;
+  filter: drop-shadow(0 4px 14px color-mix(in srgb, var(--c) 25%, transparent));
+}
+
+[data-gra="litery"] .lt-sq {
+  border-radius: calc(var(--radius) * 0.5);
+  aspect-ratio: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+/* pola z premiami na pustej planszy */
+[data-gra="litery"] .lt-sq:not(.lt-filled):not(.lt-placed)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+[data-gra="litery"] .lt-l2 { background: color-mix(in srgb, var(--c) 22%, var(--surface)); }
+[data-gra="litery"] .lt-l3 { background: color-mix(in srgb, var(--gold) 26%, var(--surface)); }
+[data-gra="litery"] .lt-w2 { background: color-mix(in srgb, var(--danger) 20%, var(--surface)); }
+[data-gra="litery"] .lt-start { outline: 2px dashed var(--muted); }
+
+/* oznaczenie premii literą na pustym polu */
+[data-gra="litery"] .lt-l2:not(.lt-filled):not(.lt-placed)::after { content: "2"; color: color-mix(in srgb, var(--c) 55%, var(--text)); }
+[data-gra="litery"] .lt-l3:not(.lt-filled):not(.lt-placed)::after { content: "3"; color: color-mix(in srgb, var(--gold) 70%, var(--text)); }
+[data-gra="litery"] .lt-w2:not(.lt-filled):not(.lt-placed)::after { content: "×2"; color: color-mix(in srgb, var(--danger) 70%, var(--text)); }
+[data-gra="litery"] .lt-l2::after,
+[data-gra="litery"] .lt-l3::after,
+[data-gra="litery"] .lt-w2::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* nowo położony kafelek gracza — podświetlony na kolor gry */
+[data-gra="litery"] .lt-placed {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 30%, var(--surface));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+[data-gra="litery"] .lt-filled {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+/* kafelki gracza: litera + mała wartość punktowa */
+[data-gra="litery"] .lt-rack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+}
+
+[data-gra="litery"] .lt-tile {
+  position: relative;
+  font-weight: 700;
+  min-width: 38px;
+  min-height: 34px;
+}
+
+[data-gra="litery"] .lt-tile::after {
+  content: attr(data-val);
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+[data-gra="litery"] .lt-tile.on {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--surface));
+  transform: translateY(-2px);
+}
+
+/* legenda premii */
+[data-gra="litery"] .lt-leg {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="litery"] .lt-tile,
+  [data-gra="litery"] .lt-sq { transition: none; transform: none; }
+}

@@ -1,0 +1,125 @@
+/* Kalaha: drewniana deska, wydrążone dołki i szklane kamienie, które płyną między dołkami. */
+[data-gra="kalaha"] {
+  --kalaha-wood-1: #c98a52;
+  --kalaha-wood-2: #8e5527;
+  --kalaha-wood-edge: #5e3415;
+  --kalaha-pit: #6b3c1a;
+  --kalaha-pit-in: #3f200b;
+  --kalaha-num: #fff4e6;
+  --kalaha-g1: #e8590c;
+  --kalaha-g2: #1c7ed6;
+  --kalaha-g3: #37b24d;
+  --kalaha-g4: #f8f0e3;
+  --kalaha-g5: #ae3ec9;
+  --kalaha-g6: #f59f00;
+  --kalaha-ink: #000000;
+  --kalaha-shine: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  [data-gra="kalaha"] {
+    --kalaha-wood-1: #7a4a26;
+    --kalaha-wood-2: #4a2a12;
+    --kalaha-wood-edge: #2b1607;
+    --kalaha-pit: #3a1f0b;
+    --kalaha-pit-in: #1d0e04;
+  }
+}
+[data-gra="kalaha"] .kl-board { width: calc(var(--cols) * var(--s)); height: calc(var(--rows) * var(--s)); }
+[data-gra="kalaha"] .kl-wood {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--s) * 0.9);
+  background:
+    repeating-linear-gradient(92deg, transparent 0 calc(var(--s) * 0.18), color-mix(in srgb, var(--kalaha-wood-edge) 12%, transparent) calc(var(--s) * 0.19) calc(var(--s) * 0.2)),
+    radial-gradient(ellipse 30% 60% at 30% 40%, color-mix(in srgb, var(--kalaha-wood-edge) 18%, transparent), transparent 70%),
+    radial-gradient(ellipse 25% 50% at 75% 70%, color-mix(in srgb, var(--kalaha-wood-edge) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--kalaha-wood-1), var(--kalaha-wood-2));
+  box-shadow:
+    inset 0 calc(var(--s) * 0.04) 0 color-mix(in srgb, var(--kalaha-num) 35%, transparent),
+    inset 0 calc(var(--s) * -0.08) 0 var(--kalaha-wood-edge),
+    0 calc(var(--s) * 0.25) calc(var(--s) * 0.5) calc(var(--s) * -0.2) var(--shadow);
+}
+[data-gra="kalaha"] .kl-pit,
+[data-gra="kalaha"] .kl-store {
+  position: absolute;
+  left: calc(var(--x) * var(--s));
+  top: calc(var(--y) * var(--s));
+  width: calc(var(--s) * 0.86);
+  height: calc(var(--s) * 0.86);
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: radial-gradient(circle at 50% 62%, var(--kalaha-pit-in), var(--kalaha-pit) 70%);
+  box-shadow:
+    inset 0 calc(var(--s) * 0.08) calc(var(--s) * 0.14) color-mix(in srgb, var(--kalaha-ink) 55%, transparent),
+    0 calc(var(--s) * 0.025) 0 color-mix(in srgb, var(--kalaha-num) 30%, transparent);
+  transition: box-shadow 200ms, transform 200ms;
+}
+[data-gra="kalaha"] .kl-store { width: calc(var(--s) * 0.95); height: calc(var(--s) * 2.7); border-radius: calc(var(--s) * 0.48); }
+[data-gra="kalaha"] .kl-pit.mine { cursor: pointer; }
+[data-gra="kalaha"] .kl-pit.mine:not(:disabled):hover,
+[data-gra="kalaha"] .kl-pit.mine.cursor:not(:disabled) {
+  box-shadow:
+    inset 0 calc(var(--s) * 0.08) calc(var(--s) * 0.14) color-mix(in srgb, var(--kalaha-ink) 55%, transparent),
+    0 0 0 calc(var(--s) * 0.05) var(--kalaha-num),
+    0 0 calc(var(--s) * 0.3) color-mix(in srgb, var(--kalaha-g6) 80%, transparent);
+}
+[data-gra="kalaha"] .kl-pit.mine:disabled { cursor: default; }
+[data-gra="kalaha"] .kl-pit.mine:focus-visible { outline: none; }
+[data-gra="kalaha"] .kl-pit.lift { transform: translate(-50%, -50%) scale(1.06); }
+[data-gra="kalaha"] .kl-pit.hit { animation: kalaha-hit 420ms ease-out; }
+[data-gra="kalaha"] .kl-pit.hint { animation: kalaha-hint 900ms ease-in-out 3; }
+@keyframes kalaha-hit { 40% { box-shadow: inset 0 0 calc(var(--s) * 0.3) var(--danger), 0 0 calc(var(--s) * 0.4) var(--danger); } }
+@keyframes kalaha-hint { 50% { box-shadow: inset 0 0 calc(var(--s) * 0.2) var(--kalaha-g6), 0 0 0 calc(var(--s) * 0.07) var(--kalaha-g6); } }
+
+[data-gra="kalaha"] .kl-stone {
+  --d: calc(var(--s) * 0.2);
+  position: absolute;
+  left: calc(var(--x) * var(--s));
+  top: calc(var(--y) * var(--s));
+  width: var(--d);
+  height: var(--d);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--kalaha-shine) 90%, transparent) 0 12%, transparent 30%),
+    radial-gradient(circle at 60% 70%, var(--kc), color-mix(in srgb, var(--kc) 55%, var(--kalaha-ink)) 95%);
+  box-shadow: 0 calc(var(--s) * 0.025) calc(var(--s) * 0.03) color-mix(in srgb, var(--kalaha-ink) 60%, transparent);
+  transition: left 300ms cubic-bezier(0.3, 0.7, 0.3, 1), top 300ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+[data-gra="kalaha"] .kl-count {
+  position: absolute;
+  left: calc(var(--x) * var(--s));
+  top: calc(var(--y) * var(--s));
+  transform: translate(-50%, -50%);
+  color: var(--kalaha-num);
+  font: 600 calc(var(--s) * 0.22) / 1 var(--font);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--kalaha-ink) 50%, transparent);
+  pointer-events: none;
+}
+[data-gra="kalaha"] .kl-count.big { font-size: calc(var(--s) * 0.3); font-weight: 700; }
+[data-gra="kalaha"] .kl-target {
+  position: absolute;
+  left: calc(var(--x) * var(--s));
+  top: calc(var(--y) * var(--s));
+  width: calc(var(--s) * 0.98);
+  height: calc(var(--s) * 0.98);
+  transform: translate(-50%, -50%);
+  border: calc(var(--s) * 0.04) dashed var(--kalaha-num);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  transition: opacity 150ms, left 150ms, top 150ms;
+}
+[data-gra="kalaha"] .kl-target.on { opacity: 0.9; }
+[data-gra="kalaha"] .kl-target.store { height: calc(var(--s) * 2.8); border-radius: calc(var(--s) * 0.5); border-color: var(--kalaha-g6); }
+[data-gra="kalaha"] .kl-target.cap { border-color: var(--kalaha-g1); border-style: solid; }
+[data-gra="kalaha"] .kl-board.ai-turn .kl-pit:not(.mine) { box-shadow: inset 0 calc(var(--s) * 0.08) calc(var(--s) * 0.14) color-mix(in srgb, var(--kalaha-ink) 55%, transparent), 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--kalaha-num) 40%, transparent); }
+[data-gra="kalaha"] .kl-turn { margin: 0; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="kalaha"] .kl-stone { transition-duration: 60ms; }
+}

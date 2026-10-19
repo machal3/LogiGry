@@ -71,7 +71,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "2048
   levels: [
     { key: "easy", name: "256", points: 10, goal: 256 },
     { key: "medium", name: "512", points: 25, goal: 512 },
-    { key: "hard", name: "1024", points: 50, goal: 1024 },
+    { key: "hard", name: "2048", points: 50, goal: 2048 },
   ],
   rules: [
     "Przesuwaj wszystkie kafle naraz. Dwa kafle z tą samą liczbą łączą się w jeden o podwójnej wartości.",
@@ -81,7 +81,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "2048
   achievements: [
     { id: "kafel-128", name: "Pierwsze 128", desc: "Połącz kafle w 128.", points: 10 },
     { id: "szybkie-512", name: "Szybkie 512", desc: "Zdobądź kafel 512 w mniej niż 5 minut.", points: 25 },
-    { id: "szybkie-1024", name: "Błyskawiczne 1024", desc: "Zdobądź kafel 1024 w mniej niż 10 minut.", points: 50 },
+    { id: "kafel-1024", name: "Tysiąc dwadzieścia cztery", desc: "Połącz kafle w 1024.", points: 25 },
+    { id: "szybkie-2048", name: "Błyskawiczne 2048", desc: "Zdobądź kafel 2048 w mniej niż 15 minut.", points: 50 },
   ],
   mount(board, ctx) {
     const n = 4, goal = ctx.level.goal;
@@ -147,9 +148,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "2048
         if (res.merged.length) Sound.place(Math.min(9, lvl(Math.max(...res.merged.map((t) => t.v)))));
         else Sound.tap();
         if (top >= 128 && !s.got128) { s.got128 = true; ctx.achieve("kafel-128"); }
+        if (top >= 1024 && !s.got1024) { s.got1024 = true; ctx.achieve("kafel-1024"); }
         if (top >= goal) {
           if (goal === 512 && ctx.time < 300) ctx.achieve("szybkie-512");
-          if (goal === 1024 && ctx.time < 600) ctx.achieve("szybkie-1024");
+          if (goal === 2048 && ctx.time < 900) ctx.achieve("szybkie-2048");
           return ctx.win();
         }
         if (!G2048.canMove(s.tiles, n)) ctx.lose("Brak ruchów", "Plansza się zapełniła.");

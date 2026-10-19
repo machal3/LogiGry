@@ -1,0 +1,119 @@
+/* Fabryka: hala z taśmami, źródłem, celami i ścianami. Podłoga ma kratkę, taśmy kierunek,
+   a surowiec świeci, gdy jedzie. Kolory tylko ze zmiennych motywu. */
+[data-gra="fabryka"] {
+  --fb-shine: #ffffff;
+  --fb-shade: #000000;
+}
+
+[data-gra="fabryka"] .fb {
+  position: relative;
+  border-radius: calc(var(--cr) + var(--g));
+  background:
+    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 16%, transparent), transparent 62%),
+    var(--bg);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 1px 0 color-mix(in srgb, var(--fb-shine) 8%, transparent),
+    0 36px 64px -40px var(--shadow);
+}
+
+[data-gra="fabryka"] .fb .gb-cell {
+  position: relative;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 4%, transparent), transparent 40%),
+    var(--surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--line) 80%, var(--fb-shade)),
+    inset 0 calc(var(--s) * -0.04) calc(var(--s) * 0.06) color-mix(in srgb, var(--fb-shade) 7%, transparent);
+  font-size: calc(var(--s) * 0.42);
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 180ms, box-shadow 180ms;
+}
+[data-gra="fabryka"] .fb .gb-cell::before,
+[data-gra="fabryka"] .fb .gb-cell::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+}
+[data-gra="fabryka"] .fb .gb-cell:not(.wall):not(.src):not(.cel):hover { background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+
+[data-gra="fabryka"] .fb .gb-cell.wall {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--fb-shine) 10%, transparent), transparent 46%),
+    color-mix(in srgb, var(--text) 22%, var(--bg));
+  box-shadow:
+    inset 0 calc(var(--s) * 0.05) 0 color-mix(in srgb, var(--fb-shine) 12%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 26%, transparent);
+  cursor: default;
+}
+[data-gra="fabryka"] .fb .gb-cell.tape {
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--fb-shine) 10%, transparent) 0 8%, transparent 8% 16%),
+    color-mix(in srgb, var(--c) 22%, var(--surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 34%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--fb-shine) 18%, transparent);
+  color: color-mix(in srgb, var(--c) 55%, var(--text));
+}
+[data-gra="fabryka"] .fb .gb-cell.src {
+  background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--fb-shine) 30%, var(--c)), var(--c) 74%);
+  color: var(--on);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--fb-shade) 20%, transparent),
+    0 0 calc(var(--s) * 0.4) color-mix(in srgb, var(--c) 45%, transparent);
+  cursor: default;
+}
+[data-gra="fabryka"] .fb .gb-cell.cel {
+  background: color-mix(in srgb, var(--gold) 16%, var(--surface));
+  color: color-mix(in srgb, var(--gold) 62%, var(--text));
+  cursor: default;
+}
+[data-gra="fabryka"] .fb .gb-cell.cel::after {
+  width: 78%;
+  height: 78%;
+  border-radius: 50%;
+  border: calc(var(--s) * 0.05) dashed color-mix(in srgb, var(--gold) 70%, transparent);
+}
+[data-gra="fabryka"] .fb .gb-cell.cursor { outline: 3px solid var(--text); outline-offset: -3px; z-index: 3; }
+
+/* przejazd surowca */
+[data-gra="fabryka"] .fb .gb-cell.flow {
+  background: color-mix(in srgb, var(--gold) 26%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+[data-gra="fabryka"] .fb .gb-cell.tape.flow {
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--fb-shine) 16%, transparent) 0 8%, transparent 8% 16%),
+    color-mix(in srgb, var(--gold) 30%, var(--surface));
+  animation: fabryka-belt 700ms linear infinite;
+  background-size: 200% 100%;
+}
+[data-gra="fabryka"] .fb .gb-cell.cargo::before {
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, var(--fb-shine), color-mix(in srgb, var(--gold) 70%, var(--c)));
+  box-shadow: 0 0 calc(var(--s) * 0.36) color-mix(in srgb, var(--gold) 88%, transparent);
+  z-index: 2;
+  animation: fabryka-cargo 620ms ease-in-out infinite;
+}
+[data-gra="fabryka"] .fb .gb-cell.bad {
+  background: color-mix(in srgb, var(--danger) 30%, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--danger);
+}
+[data-gra="fabryka"] .fb .gb-cell.done { animation: fabryka-done 560ms cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+
+@keyframes fabryka-belt { to { background-position: 200% 0; } }
+@keyframes fabryka-cargo { 50% { transform: translate(-50%, -50%) scale(1.18); } }
+@keyframes fabryka-done { 40% { transform: scale(1.1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="fabryka"] .fb .gb-cell.tape.flow,
+  [data-gra="fabryka"] .fb .gb-cell.cargo::before,
+  [data-gra="fabryka"] .fb .gb-cell.done { animation: none; }
+}

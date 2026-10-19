@@ -1,0 +1,81 @@
+/* Futoshiki: jasne pola z cyframi i znakami nierówności w odstępach między polami.
+   Ramka, puste pola i stany są spójne z resztą gier; kolory tylko ze zmiennych motywu. */
+[data-gra="futoshiki"] {
+  --fs-shine: #ffffff;
+  --fs-shade: #000000;
+}
+
+[data-gra="futoshiki"] .fs {
+  position: relative;
+  border-radius: calc(var(--cr) + var(--g));
+  background:
+    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%),
+    var(--bg);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 1px 0 color-mix(in srgb, var(--fs-shine) 9%, transparent),
+    0 36px 64px -40px var(--shadow);
+}
+
+[data-gra="futoshiki"] .fs .gb-cell {
+  position: relative;
+  background: color-mix(in srgb, var(--surface) 94%, var(--c));
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 calc(var(--s) * -0.04) calc(var(--s) * 0.06) color-mix(in srgb, var(--fs-shade) 6%, transparent);
+  transition: background-color 180ms, box-shadow 180ms, transform 120ms;
+}
+[data-gra="futoshiki"] .fs .gb-cell:hover:not(.given) {
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+}
+[data-gra="futoshiki"] .fs .gb-cell .val {
+  font-size: calc(var(--s) * 0.5);
+  font-weight: 700;
+  color: color-mix(in srgb, var(--text) 88%, var(--c));
+}
+
+/* pola wypełnione przez zagadkę są wygaszone i nieklikalne */
+[data-gra="futoshiki"] .fs .gb-cell.given {
+  background: color-mix(in srgb, var(--c) 16%, var(--surface));
+  color: color-mix(in srgb, var(--c) 66%, var(--text));
+  font-weight: 700;
+  cursor: default;
+}
+[data-gra="futoshiki"] .fs .gb-cell.given .val { color: inherit; }
+
+[data-gra="futoshiki"] .fs .gb-cell.sel {
+  background: color-mix(in srgb, var(--c) 10%, var(--surface));
+  box-shadow: inset 0 0 0 3px var(--c);
+}
+[data-gra="futoshiki"] .fs .gb-cell.cursor { box-shadow: inset 0 0 0 3px var(--text); }
+
+/* wpisany, błędny (albo łamiący nierówność) */
+[data-gra="futoshiki"] .fs .gb-cell.bad {
+  background: color-mix(in srgb, var(--danger) 18%, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--danger);
+  animation: shake-x 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+[data-gra="futoshiki"] .fs .gb-cell.bad .val { color: var(--danger); }
+
+/* znaki nierówności leżą w odstępach, ponad polami */
+[data-gra="futoshiki"] .fs-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-gra="futoshiki"] .fs-svg polyline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--text) 48%, transparent);
+  stroke-width: 0.05;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 180ms, stroke-width 180ms;
+}
+[data-gra="futoshiki"] .fs-svg polyline.bad { stroke: var(--danger); stroke-width: 0.065; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="futoshiki"] .fs .gb-cell.bad { animation: none; }
+}

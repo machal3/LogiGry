@@ -1,0 +1,98 @@
+/* Trzy widoki: bryła powstaje na płótnie, więc stylujemy ramę płótna i trzy rysunki rzutów. */
+[data-gra="widoki"] {
+  --wd-size: 13px;
+  --wd-gap: 3px;
+  --wd-shine: #ffffff;
+  --wd-shade: #000000;
+}
+
+[data-gra="widoki"] .cvb-canvas {
+  border-radius: calc(var(--s) * 0.22);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 42%, var(--line)),
+    0 0 0 1px color-mix(in srgb, var(--wd-shade) 26%, transparent),
+    0 34px 64px -38px color-mix(in srgb, var(--c) 55%, var(--shadow));
+}
+
+/* --- trzy rysunki rzutów --- */
+[data-gra="widoki"] .wd-views {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+[data-gra="widoki"] .wd-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-gra="widoki"] .wd-cap {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+[data-gra="widoki"] .wd-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--wd-size));
+  grid-auto-rows: var(--wd-size);
+  gap: var(--wd-gap);
+  padding: 5px;
+  border-radius: calc(var(--radius) * 0.42);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+[data-gra="widoki"] .wd-cell {
+  box-sizing: border-box;
+  border-radius: calc(var(--wd-size) * 0.24);
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* pole rysunku pokryte klockiem */
+[data-gra="widoki"] .wd-cell.on {
+  background: var(--c);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--wd-shine) 24%, transparent),
+    inset 0 calc(var(--wd-size) * -0.3) 0 color-mix(in srgb, var(--wd-shade) 22%, transparent);
+  animation: widoki-cell 220ms ease-out;
+}
+
+/* pole rysunku, na które klocek jeszcze czeka */
+[data-gra="widoki"] .wd-cell.miss {
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 58%, transparent);
+}
+
+/* pole nadmiarowe: klocek stoi tam, gdzie rysunek jest pusty */
+[data-gra="widoki"] .wd-cell.extra {
+  background: var(--danger);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wd-shine) 28%, transparent);
+  animation: widoki-cell 220ms ease-out;
+}
+
+[data-gra="widoki"] .wd-note {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+@keyframes widoki-cell {
+  from { transform: scale(0.68); }
+  to { transform: scale(1); }
+}
+
+@media (max-width: 430px) {
+  [data-gra="widoki"] { --wd-size: 11px; --wd-gap: 2px; }
+  [data-gra="widoki"] .wd-views { gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="widoki"] .wd-cell { animation: none; }
+}

@@ -1,0 +1,115 @@
+/* Lodowisko: śliskie pole z połyskiem, ściany, kryształy i wyjście. Sanki ślizgają się
+   od ściany do ściany, więc plansza jest czytelna także bez podpisów. */
+[data-gra="lodowisko"] {
+  --ld-ice: color-mix(in srgb, #6cc6f0 16%, var(--surface));
+  --ld-ice-hi: #cfefff;
+  --ld-wall: color-mix(in srgb, var(--text) 26%, var(--bg));
+  --ld-gem-a: #c8f7ff;
+  --ld-gem-b: #0e93b4;
+  --ld-gem-glow: #4dd0e1;
+  --ld-shine: #ffffff;
+  --ld-shade: #000000;
+}
+
+[data-gra="lodowisko"] .ld {
+  position: relative;
+  border-radius: calc(var(--cr) + var(--g));
+  background:
+    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%),
+    var(--bg);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 1px 0 color-mix(in srgb, var(--ld-shine) 9%, transparent),
+    0 36px 64px -40px var(--shadow);
+}
+
+[data-gra="lodowisko"] .ld .gb-cell {
+  position: relative;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--ld-ice-hi) 32%, transparent), transparent 46%),
+    var(--ld-ice);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
+  cursor: default;
+  transition: background-color 200ms, box-shadow 200ms;
+}
+[data-gra="lodowisko"] .ld .gb-cell::before,
+[data-gra="lodowisko"] .ld .gb-cell::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+}
+
+/* ściana: sanki się o nią zatrzymują */
+[data-gra="lodowisko"] .ld .gb-cell.wall {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ld-shine) 12%, transparent), transparent 40%),
+    var(--ld-wall);
+  box-shadow:
+    inset 0 calc(var(--s) * 0.07) 0 color-mix(in srgb, var(--ld-shine) 16%, transparent),
+    inset 0 calc(var(--s) * -0.05) 0 color-mix(in srgb, var(--ld-shade) 22%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 20%, transparent);
+}
+/* ślad przejazdu */
+[data-gra="lodowisko"] .ld .gb-cell.trail {
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--ld-ice-hi) 26%, transparent), transparent 50%),
+    color-mix(in srgb, var(--gold) 16%, var(--ld-ice));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent);
+}
+
+/* kryształ: obracany kwadrat z połyskiem i poświatą */
+[data-gra="lodowisko"] .ld .gb-cell.gem::after {
+  width: 46%;
+  height: 46%;
+  border-radius: 22%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background:
+    linear-gradient(140deg, var(--ld-shine) 4%, var(--ld-gem-a) 34%, var(--ld-gem-b) 84%);
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 55%, transparent),
+    0 0 calc(var(--s) * 0.34) color-mix(in srgb, var(--ld-gem-glow) 78%, transparent);
+  animation: lodowisko-gem 1900ms ease-in-out infinite;
+}
+
+/* wyjście: świecący portal */
+[data-gra="lodowisko"] .ld .gb-cell.exit {
+  background: color-mix(in srgb, var(--text) 10%, var(--ld-ice));
+}
+[data-gra="lodowisko"] .ld .gb-cell.exit::after {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  border: calc(var(--s) * 0.055) solid color-mix(in srgb, var(--text) 48%, transparent);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--gold) 24%, transparent), transparent 68%),
+    color-mix(in srgb, var(--text) 7%, transparent);
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.028) color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+/* sanki */
+[data-gra="lodowisko"] .ld .gb-cell.sled::before {
+  width: 56%;
+  height: 56%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, var(--ld-shine), var(--gold) 42%, color-mix(in srgb, var(--gold) 55%, var(--ld-shade)));
+  box-shadow:
+    0 0 0 calc(var(--s) * 0.04) color-mix(in srgb, var(--ld-shine) 76%, transparent),
+    0 0 calc(var(--s) * 0.24) color-mix(in srgb, var(--gold) 45%, transparent),
+    0 calc(var(--s) * 0.06) calc(var(--s) * 0.2) color-mix(in srgb, var(--ld-shade) 32%, transparent);
+  z-index: 2;
+}
+
+[data-gra="lodowisko"] .ld .gb-cell.hint { animation: lodowisko-hint 620ms ease-out; }
+
+@keyframes lodowisko-gem { 50% { box-shadow: inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 55%, transparent), 0 0 calc(var(--s) * 0.5) color-mix(in srgb, var(--ld-gem-glow) 90%, transparent); } }
+@keyframes lodowisko-hint { 0% { background: color-mix(in srgb, var(--gold) 72%, var(--ld-ice)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="lodowisko"] .ld .gb-cell.hint,
+  [data-gra="lodowisko"] .ld .gb-cell.gem::after { animation: none; }
+}

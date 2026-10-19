@@ -1,0 +1,5 @@
+[data-gra="nurek"] .board-canvas,
+[data-gra="nurek"] .cvb-canvas {
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent);
+}

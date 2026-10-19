@@ -1,0 +1,14 @@
+/* Owocowa wieża: kolejka owoców w panelu. */
+[data-gra="owoce"] .ow-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+[data-gra="owoce"] .ow-dot {
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--f1), var(--f2));
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  transition: opacity 300ms, filter 300ms, transform 300ms;
+}
+[data-gra="owoce"] .ow-dot.on { opacity: 1; filter: none; }
+[data-gra="owoce"] .ow-dot.goal { outline: 2px dashed var(--text); outline-offset: 3px; }
+[data-gra="owoce"] .ow-dot.on.goal { outline-style: solid; outline-color: var(--c); transform: scale(1.1); }

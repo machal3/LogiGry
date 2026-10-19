@@ -1,0 +1,11 @@
+[data-gra="alchemia"] .al-ings {
+  display: grid;
+  gap: 6px;
+}
+
+[data-gra="alchemia"] .al-ing-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 0.85rem;
+}

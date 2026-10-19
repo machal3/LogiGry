@@ -743,8 +743,13 @@ function buildStage() {
 }
 
 // Wybór na liście gier zostaje po powrocie z gry.
-const listView = { q: "", cat: "", sort: "" };
+const listView = { q: "", cat: "", sort: "", author: "", view: "" };
+try { listView.view = localStorage.getItem("logigra.view") || ""; } catch {}
+let favs = [];
+try { favs = JSON.parse(localStorage.getItem("logigra.ulubione")) || []; } catch {}
 const catName = Object.fromEntries(CATEGORIES);
+// "Claude Opus 5.5, GPT-5": gra poprawiana przez kilka modeli należy do każdego z nich
+const authorsOf = (g) => g.author.split(",").map((a) => a.trim()).filter(Boolean);
 // porównanie bez polskich znaków i wielkości liter: "zaba" znajduje „Żabę”
 const fold = (s) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
@@ -752,24 +757,42 @@ function buildList() {
   const p = Profile.load();
   const list = document.getElementById("game-list");
   const q = fold(listView.q.trim());
-  const inCat = (g) => !listView.cat || (listView.cat === "big" ? g.big : g.cat === listView.cat);
-  let shown = GAMES.filter((g) => inCat(g) && (!q || fold(`${g.name} ${g.desc} ${catName[g.cat]} ${g.author}`).includes(q)));
+  const inCat = (g) => !listView.cat || (listView.cat === "fav" ? favs.includes(g.id) : listView.cat === "big" ? g.big : g.cat === listView.cat);
+  const byAuthor = (g) => !listView.author || authorsOf(g).includes(listView.author);
+  let shown = GAMES.filter((g) => inCat(g) && byAuthor(g) && (!q || fold(`${g.name} ${g.desc} ${catName[g.cat]} ${g.author}`).includes(q)));
   const pts = (g) => p.games[g.id]?.points || 0;
+  // ulubione na początku polecanych
+  if (!listView.sort) shown = shown.slice().sort((a, b) => favs.includes(b.id) - favs.includes(a.id));
   if (listView.sort === "az") shown = shown.slice().sort((a, b) => a.name.localeCompare(b.name, "pl"));
   if (listView.sort === "pts") shown = shown.slice().sort((a, b) => pts(b) - pts(a));
   if (listView.sort === "new") shown = shown.slice().sort((a, b) => !!p.games[a.id] - !!p.games[b.id]);
   list.replaceChildren();
   // duży pierwszy kafel tylko w pełnym, domyślnym widoku
+  // lista to osobna klasa, bo układ bento opiera się na pozycji kafla (nth-child)
+  list.className = listView.view === "rows" ? "game-rows" : "bento";
   list.classList.toggle("flat", shown.length !== GAMES.length || !!listView.sort);
   shown.forEach((game) => {
     const a = el("a", "card");
     a.href = `#/gra/${game.id}`;
+    a.title = game.desc;
     paint(a, game);
     const body = el("span", "card-body");
     body.append(el("span", "card-cat", game.big ? `${catName[game.cat]} · rozbudowana` : catName[game.cat]), el("span", "card-name", game.name), el("span", "card-desc", game.desc), el("span", "card-author", `Stworzył: ${game.author}`));
     a.append(glyph(game.glyph), body, el("span", "pill", !game.mount ? "Wkrótce" : pts(game) ? `${pts(game)} pkt` : "Graj"));
+    const on = favs.includes(game.id);
+    const star = button("", "fav", () => {
+      favs = on ? favs.filter((id) => id !== game.id) : [...favs, game.id];
+      try { localStorage.setItem("logigra.ulubione", JSON.stringify(favs)); } catch {}
+      buildList();
+      document.querySelector(`.fav[data-id="${game.id}"]`)?.focus();
+    });
+    star.dataset.id = game.id;
+    star.setAttribute("aria-pressed", String(on));
+    star.setAttribute("aria-label", `${game.name}: ulubiona`);
+    star.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
+    paint(star, game);
     const li = el("li");
-    li.append(a);
+    li.append(a, star);
     list.append(li);
   });
   document.getElementById("games-empty").hidden = shown.length > 0;
@@ -777,24 +800,46 @@ function buildList() {
   document.getElementById("games-count").textContent = shown.length === n
     ? `${n} ${plural(n, "gra", "gry", "gier")}, każda w trzech poziomach trudności`
     : `${shown.length} z ${n}`;
+  document.querySelector('#game-cats [data-cat="fav"] span').textContent = GAMES.filter((g) => favs.includes(g.id)).length;
   document.querySelectorAll("#game-cats button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cat === listView.cat)));
+  document.querySelectorAll("#game-view button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === listView.view)));
 }
 
 function buildFilters() {
   const cats = document.getElementById("game-cats");
-  for (const [key, label] of [["", "Wszystkie"], ["big", "Rozbudowane"], ...CATEGORIES]) {
+  for (const [key, label] of [["", "Wszystkie"], ["fav", "Ulubione"], ["big", "Rozbudowane"], ...CATEGORIES]) {
     const b = button("", "cat-chip", () => { listView.cat = key; buildList(); });
     b.dataset.cat = key;
     b.append(label, el("span", "", key ? GAMES.filter((g) => (key === "big" ? g.big : g.cat === key)).length : GAMES.length));
     cats.append(b);
   }
+  const views = document.getElementById("game-view");
+  for (const [key, label] of [["", "Kafle"], ["rows", "Lista"]]) {
+    const b = button(label, "cat-chip", () => {
+      listView.view = key;
+      try { localStorage.setItem("logigra.view", key); } catch {}
+      buildList();
+    });
+    b.dataset.view = key;
+    views.append(b);
+  }
   const search = document.getElementById("game-search");
   const sort = document.getElementById("game-sort");
+  const author = document.getElementById("game-author");
+  const count = {};
+  GAMES.forEach((g) => authorsOf(g).forEach((a) => (count[a] = (count[a] || 0) + 1)));
+  Object.keys(count).sort((a, b) => a.localeCompare(b, "pl")).forEach((a) => {
+    const o = el("option", "", `${a} (${count[a]})`);
+    o.value = a;
+    author.append(o);
+  });
   search.addEventListener("input", () => { listView.q = search.value; buildList(); });
   sort.addEventListener("change", () => { listView.sort = sort.value; buildList(); });
+  author.addEventListener("change", () => { listView.author = author.value; buildList(); });
   document.getElementById("games-reset").onclick = () => {
-    Object.assign(listView, { q: "", cat: "" });
+    Object.assign(listView, { q: "", cat: "", author: "" });
     search.value = "";
+    author.value = "";
     buildList();
   };
   // "/" przenosi do wyszukiwarki

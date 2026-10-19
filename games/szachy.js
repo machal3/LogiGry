@@ -184,8 +184,8 @@ if (typeof module !== "undefined") module.exports = Chess;
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "szachy"), {
   levels: [
     { key: "easy", name: "Łatwy", points: 20, depth: 1, noise: 120 },
-    { key: "medium", name: "Średni", points: 50, depth: 2, noise: 15 },
-    { key: "hard", name: "Trudny", points: 100, depth: 3, noise: 0 },
+    { key: "medium", name: "Średni", points: 50, depth: 3, noise: 25 },
+    { key: "hard", name: "Trudny", points: 100, depth: 4, noise: 0 },
   ],
   rules: [
     "Grasz białymi, komputer czarnymi. Kliknij figurę, a potem jedno z podświetlonych pól. Obowiązują pełne zasady szachów.",

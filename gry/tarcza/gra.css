@@ -1,0 +1,10 @@
+/* Tarcza: dopisek do planszy */
+[data-gra="tarcza"] .tac-leg {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+[data-gra="tarcza"] canvas {
+  margin-inline: auto;
+}

@@ -1,0 +1,97 @@
+/* Młynek: drewniany blat z torami i pionkami obu stron. Kolory tylko ze zmiennych motywu. */
+[data-gra="mlynek"] {
+  --ml-shine: #ffffff;
+  --ml-shade: #000000;
+}
+
+[data-gra="mlynek"] .ml {
+  padding: 0;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(130% 120% at 50% -10%, color-mix(in srgb, var(--c) 26%, transparent), transparent 64%),
+    repeating-linear-gradient(92deg, color-mix(in srgb, var(--ml-shade) 5%, transparent) 0 1px, transparent 1px 9px),
+    color-mix(in srgb, var(--c) 12%, var(--surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, var(--line)),
+    inset 0 1px 0 color-mix(in srgb, var(--ml-shine) 12%, transparent),
+    inset 0 calc(var(--s) * -0.08) calc(var(--s) * 0.16) color-mix(in srgb, var(--c) 20%, transparent),
+    0 34px 60px -40px var(--shadow);
+}
+
+/* tory planszy leżą pod pionkami */
+[data-gra="mlynek"] .ml-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+[data-gra="mlynek"] .ml-svg line {
+  stroke: color-mix(in srgb, var(--text) 26%, transparent);
+  stroke-width: 0.05;
+  stroke-linecap: round;
+  transition: stroke 260ms, stroke-width 260ms;
+}
+[data-gra="mlynek"] .ml-svg line.on { stroke: color-mix(in srgb, var(--c) 62%, var(--text)); stroke-width: 0.07; }
+
+[data-gra="mlynek"] .ml .gb-cell { background: none; box-shadow: none; border-radius: 50%; z-index: 1; }
+[data-gra="mlynek"] .ml .gb-cell.blank { visibility: hidden; pointer-events: none; }
+
+/* punkt na skrzyżowaniu torów */
+[data-gra="mlynek"] .ml .gb-cell::before {
+  content: "";
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 42%, transparent);
+  transition: width 180ms cubic-bezier(0.3, 0.9, 0.3, 1.3), height 180ms, background-color 180ms, box-shadow 180ms, transform 180ms;
+}
+
+/* pionki obu stron */
+[data-gra="mlynek"] .ml .gb-cell[data-p="1"]::before,
+[data-gra="mlynek"] .ml .gb-cell[data-p="2"]::before {
+  width: 74%;
+  height: 74%;
+  box-shadow:
+    0 calc(var(--s) * 0.06) calc(var(--s) * 0.1) color-mix(in srgb, var(--ml-shade) 34%, transparent),
+    inset 0 calc(var(--s) * 0.06) calc(var(--s) * 0.05) color-mix(in srgb, var(--ml-shine) 42%, transparent);
+}
+[data-gra="mlynek"] .ml .gb-cell[data-p="1"]::before { background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--ml-shine) 34%, var(--c)), var(--c) 72%); }
+[data-gra="mlynek"] .ml .gb-cell[data-p="2"]::before { background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--ml-shine) 30%, var(--text)), color-mix(in srgb, var(--text) 88%, var(--c)) 74%); }
+[data-gra="mlynek"] .ml .gb-cell[data-p="1"].mill::before {
+  box-shadow:
+    0 0 0 calc(var(--s) * 0.07) var(--gold),
+    0 calc(var(--s) * 0.06) calc(var(--s) * 0.1) color-mix(in srgb, var(--ml-shade) 34%, transparent);
+}
+[data-gra="mlynek"] .ml .gb-cell[data-p="2"].foe::before { box-shadow: 0 0 0 calc(var(--s) * 0.07) color-mix(in srgb, var(--gold) 60%, transparent); }
+[data-gra="mlynek"] .ml .gb-cell.sel::before { width: 86%; height: 86%; transform: translateY(calc(var(--s) * -0.05)); }
+[data-gra="mlynek"] .ml .gb-cell.sel { animation: mlynek-breathe 1200ms ease-in-out infinite; }
+[data-gra="mlynek"] .ml .gb-cell.cur { box-shadow: inset 0 0 0 calc(var(--s) * 0.05) color-mix(in srgb, var(--text) 55%, transparent); }
+
+[data-gra="mlynek"] .ml .gb-cell.reach::after {
+  content: "";
+  position: absolute;
+  width: 54%;
+  height: 54%;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.05) color-mix(in srgb, var(--c) 65%, transparent);
+  animation: mlynek-pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+[data-gra="mlynek"] .ml .gb-cell.target::after {
+  content: "";
+  position: absolute;
+  width: 92%;
+  height: 92%;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.06) var(--danger);
+  animation: mlynek-blink 900ms ease-in-out infinite;
+}
+[data-gra="mlynek"] .ml .gb-cell.target::before { transform: scale(0.94); }
+[data-gra="mlynek"] .ml .gb-cell.ghost::before { box-shadow: 0 0 0 calc(var(--s) * 0.08) color-mix(in srgb, var(--c) 55%, transparent); }
+[data-gra="mlynek"] .ml .gb-cell.zap::before { animation: mlynek-zap 300ms ease-in both; }
+
+@keyframes mlynek-breathe { 50% { transform: scale(1.06); } }
+@keyframes mlynek-pop { from { transform: scale(0.4); opacity: 0; } }
+@keyframes mlynek-blink { 50% { box-shadow: inset 0 0 0 calc(var(--s) * 0.06) color-mix(in srgb, var(--danger) 40%, transparent); } }
+@keyframes mlynek-zap { 40% { transform: scale(1.25); opacity: 0.5; } to { transform: scale(0); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="mlynek"] .ml .gb-cell.sel,
+  [data-gra="mlynek"] .ml .gb-cell.target,
+  [data-gra="mlynek"] .ml .gb-cell.zap::before { animation: none; }
+}
