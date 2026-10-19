@@ -6,7 +6,7 @@
 - kategoria: symulacje
 
 ## Zasady
-1. Dodawaj zioła, minerały i grzyby do kotła: każdy składnik przesuwa esencję na mapie żywiołów w określonym kierunku i kształcie.
-2. Mieszaj wywar łyżką, aby przesuwać esencję po ścieżce, oraz podgrzewaj miechem, aby utrwalić eliksir dokładnie w punkcie receptury.
-3. Sprzedawaj uwarzone mikstury klientom za złoto, kupuj rzadkie składniki i unikaj wirów niestabilności, które psują wywar.
-4. Poziomy różnią się docelową kwotą złota, liczbą dni na realizację zamówień oraz gęstością wirów na mapie alchemicznej.
+1. Wybieraj składniki (lub klawisze 1–5), aby wrzucać je do kotła i wytyczać ścieżkę esencji na kole żywiołów.
+2. Mieszaj wywar przyciskiem „Mieszaj w kotle” (Spacja) lub klikając w kocioł na planszy. Rozcieńcz wodą (Backspace), aby cofnąć esencję ku środkowi.
+3. Gdy esencja wejdzie w krąg receptury, kliknij „Uwarz i sprzedaj” (Enter) lub kartę klienta. Środek kręgu daje najwyższą jakość (III).
+4. Unikaj wirów niestabilności i zgromadź wymaganą kwotę złota przed obsłużeniem wszystkich klientów.

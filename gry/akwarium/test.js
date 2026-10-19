@@ -16,7 +16,7 @@ test("Akwarium: narybek rośnie po zjedzeniu pokarmu", () => {
 });
 
 test("Akwarium: filtr biologiczny utrzymuje natlenienie wody", () => {
-  // Bez filtra woda traci tlen
+  // Bez filtra woda traci tlen przy dużej ławicy
   const hNoFilter = calculateAquariumHealth(10, 0, 100);
   assert.ok(hNoFilter.oxygen < 100);
 
@@ -25,8 +25,10 @@ test("Akwarium: filtr biologiczny utrzymuje natlenienie wody", () => {
   assert.ok(hWithFilter.oxygen > 50);
 });
 
-test("Akwarium: gatunki ryb mają określone koszty i tempo generowania monet", () => {
-  for (const [k, v] of Object.entries(FISH_TYPES)) {
+test("Akwarium: wszystkie 4 gatunki okazów mają określone koszty i tempo generowania monet", () => {
+  const keys = Object.keys(FISH_TYPES);
+  assert.deepEqual(keys, ["blazenek", "pokolec", "skalar", "zolw"]);
+  for (const v of Object.values(FISH_TYPES)) {
     assert.ok(v.cost > 0);
     assert.ok(v.coinVal > 0);
     assert.ok(v.color);

@@ -1,5 +1,5 @@
-/* Style dla gry Wykopaliska */
-[data-gra="wykopaliska"] .wk-upgrades {
+[data-gra="wykopaliska"] .wykopaliska-shop {
   display: grid;
-  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-1);
 }

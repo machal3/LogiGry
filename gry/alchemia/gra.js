@@ -5,72 +5,72 @@
     {
       id: "ognik",
       name: "Ognisty korzeń",
-      cost: 8,
+      cost: 7,
       color: "#ff595e",
-      // Ścieżka w górę i lekko w prawo (w stronę Ognia)
-      path: [[0, -14], [4, -28], [2, -44]],
+      // Ścieżka w górę (w stronę Ognia)
+      path: [[0, -14], [3, -28], [0, -42]],
     },
     {
       id: "kropelka",
       name: "Wodny kwiat",
-      cost: 8,
+      cost: 7,
       color: "#1982c4",
-      // Ścieżka w dół i falisto (w stronę Wody)
-      path: [[-4, 14], [4, 28], [0, 44]],
+      // Ścieżka w dół (w stronę Wody)
+      path: [[-3, 14], [3, 28], [0, 42]],
     },
     {
       id: "glaz",
       name: "Kamienny grzyb",
-      cost: 9,
+      cost: 8,
       color: "#8ac926",
       // Ścieżka w lewo (w stronę Ziemi)
-      path: [[-15, 3], [-30, -3], [-45, 0]],
+      path: [[-14, 2], [-28, -2], [-42, 0]],
     },
     {
       id: "pioro",
       name: "Wietrzne ziele",
-      cost: 9,
+      cost: 8,
       color: "#ffca3a",
       // Ścieżka w prawo (w stronę Powietrza)
-      path: [[15, -3], [30, 3], [45, 0]],
+      path: [[14, -2], [28, 2], [42, 0]],
     },
     {
       id: "krysztal",
       name: "Gwiezdny pył",
-      cost: 16,
+      cost: 14,
       color: "#c77dff",
-      // Diagonalny skok (teleportuje przez wiry na odcinku pośrednim)
-      path: [[18, -18], [36, -36]],
+      // Diagonalny skok ku północnemu wschodowi
+      path: [[16, -16], [34, -34]],
     },
   ];
 
-  // Węzły eliksirów na mapie alchemicznej (środek mapy to (0, 0), promień mapy ~95)
+  // Węzły eliksirów na mapie alchemicznej (środek mapy to (0, 0), promień koła 72)
   const POTIONS = [
-    { id: "zar", name: "Eliksir Żaru", x: 6, y: -56, r: 12, basePrice: 36, color: "#ff4d6d", tier: 1 },
-    { id: "mroz", name: "Kropla Mrozu", x: -4, y: 58, r: 12, basePrice: 36, color: "#00b4d8", tier: 1 },
-    { id: "skala", name: "Kamienna Skóra", x: -58, y: 4, r: 12, basePrice: 38, color: "#70e000", tier: 1 },
-    { id: "wiatr", name: "Oddech Zefiru", x: 58, y: -4, r: 12, basePrice: 38, color: "#ffd166", tier: 1 },
-    { id: "zycie", name: "Nektar Życia", x: -46, y: -44, r: 11, basePrice: 58, color: "#ff758f", tier: 2 },
-    { id: "mana", name: "Rosa Eteru", x: 46, y: 44, r: 11, basePrice: 58, color: "#4ea8de", tier: 2 },
-    { id: "grom", name: "Wywar Gromu", x: 54, y: -52, r: 11, basePrice: 64, color: "#f9c74f", tier: 2 },
-    { id: "kamien", name: "Kamień Filozoficzny", x: -52, y: 52, r: 10, basePrice: 88, color: "#e0aaff", tier: 3 },
+    { id: "zar", name: "Eliksir Żaru", short: "Żar", x: 0, y: -50, lx: 0, ly: -62, r: 10.5, basePrice: 42, color: "#ff4d6d", tier: 1 },
+    { id: "mroz", name: "Kropla Mrozu", short: "Mróz", x: 0, y: 50, lx: 0, ly: 62, r: 10.5, basePrice: 42, color: "#00b4d8", tier: 1 },
+    { id: "skala", name: "Kamienna Skóra", short: "Skała", x: -50, y: 0, lx: -50, ly: 13, r: 10.5, basePrice: 44, color: "#70e000", tier: 1 },
+    { id: "wiatr", name: "Oddech Zefiru", short: "Zefir", x: 50, y: 0, lx: 50, ly: 13, r: 10.5, basePrice: 44, color: "#ffd166", tier: 1 },
+    { id: "zycie", name: "Nektar Życia", short: "Życie", x: -37, y: -37, lx: -37, ly: -49, r: 10, basePrice: 64, color: "#ff758f", tier: 2 },
+    { id: "mana", name: "Rosa Eteru", short: "Eter", x: 37, y: 37, lx: 37, ly: 49, r: 10, basePrice: 64, color: "#4ea8de", tier: 2 },
+    { id: "grom", name: "Wywar Gromu", short: "Grom", x: 37, y: -37, lx: 37, ly: -49, r: 10, basePrice: 68, color: "#f9c74f", tier: 2 },
+    { id: "kamien", name: "Kamień Filozoficzny", short: "Kamień", x: -37, y: 37, lx: -37, ly: 49, r: 9.5, basePrice: 95, color: "#e0aaff", tier: 3 },
   ];
 
   function createVortices(levelKey) {
     const base = [
-      { x: -24, y: -26, r: 9 },
-      { x: 26, y: 24, r: 9 },
-      { x: -28, y: 26, r: 8.5 },
-      { x: 26, y: -24, r: 8.5 },
+      { x: -20, y: -21, r: 7.5 },
+      { x: 21, y: 20, r: 7.5 },
+      { x: -21, y: 20, r: 7.0 },
+      { x: 20, y: -21, r: 7.0 },
     ];
     if (levelKey === "easy") return base.slice(0, 2);
     if (levelKey === "medium") return base;
     return [
       ...base,
-      { x: 0, y: -32, r: 7.5 },
-      { x: 0, y: 32, r: 7.5 },
-      { x: -34, y: 0, r: 7.5 },
-      { x: 34, y: 0, r: 7.5 },
+      { x: 0, y: -27, r: 6.2 },
+      { x: 0, y: 27, r: 6.2 },
+      { x: -27, y: 0, r: 6.2 },
+      { x: 27, y: 0, r: 6.2 },
     ];
   }
 
@@ -86,8 +86,7 @@
       }
     }
     if (!best) return null;
-    // Jakość: 3 gwiazdki w samym środku (d <= 4.2), 2 gwiazdki (d <= 8), 1 gwiazdka (d <= r)
-    const stars = bestDist <= 4.2 ? 3 : bestDist <= 8.2 ? 2 : 1;
+    const stars = bestDist <= 3.8 ? 3 : bestDist <= 7.4 ? 2 : 1;
     const mult = stars === 3 ? 1.5 : stars === 2 ? 1.15 : 0.85;
     return {
       potion: best,
@@ -116,18 +115,16 @@
         cy += (dy / d) * rem;
         rem = 0;
       }
-      // Sprawdź wejście w wir
       for (const v of vortices) {
         if (Math.hypot(cx - v.x, cy - v.y) < v.r) {
           return { x: cx, y: cy, queue: [], hitVortex: true };
         }
       }
     }
-    // Ograniczenie do koła mapy
     const r = Math.hypot(cx, cy);
-    if (r > 88) {
-      cx = (cx / r) * 88;
-      cy = (cy / r) * 88;
+    if (r > 68) {
+      cx = (cx / r) * 68;
+      cy = (cy / r) * 68;
     }
     return { x: cx, y: cy, queue: nextQ, hitVortex: false };
   }
@@ -147,15 +144,15 @@
     ink: "#ffffff",
     glyph: [".###.", "..#..", ".###.", "#####", ".###."],
     levels: [
-      { key: "easy", name: "Łatwy", points: 20, goalGold: 220, maxOrders: 6, startGold: 65 },
-      { key: "medium", name: "Średni", points: 50, goalGold: 380, maxOrders: 8, startGold: 55 },
-      { key: "hard", name: "Trudny", points: 100, goalGold: 560, maxOrders: 10, startGold: 50 },
+      { key: "easy", name: "Łatwy", points: 20, goalGold: 210, maxOrders: 7, startGold: 70 },
+      { key: "medium", name: "Średni", points: 50, goalGold: 360, maxOrders: 9, startGold: 65 },
+      { key: "hard", name: "Trudny", points: 100, goalGold: 520, maxOrders: 11, startGold: 60 },
     ],
     rules: [
-      "Klikaj składniki (albo klawisze 1–5), aby wrzucać je do kotła. Każdy składnik wydłuża zaplanowaną ścieżkę esencji na mapie alchemicznej.",
-      "Mieszaj wywar przyciskiem „Mieszaj w kotle” (Spacja) lub przeciągając po mapie, aby przesuwać esencję wzdłuż ścieżki. Dolej wody (W), aby cofnąć esencję ku środkowi.",
-      "Gdy esencja znajdzie się wewnątrz kręgu poszukiwanego eliksiru, kliknij „Uwarz i sprzedaj” (Enter). Im bliżej środka kręgu, tym wyższa jakość (I–III) i cena.",
-      "Unikaj fioletowych wirów niestabilności, które niszczą wywar, i zgromadź wymaganą liczbę sztuk złota przed końcem zamówień.",
+      "Wybieraj składniki (lub klawisze 1–5), aby wrzucać je do kotła i wytyczać ścieżkę esencji na kole żywiołów.",
+      "Mieszaj wywar przyciskiem „Mieszaj w kotle” (Spacja) lub klikając w kocioł na planszy. Rozcieńcz wodą (Backspace), aby cofnąć esencję ku środkowi.",
+      "Gdy esencja wejdzie w krąg receptury, kliknij „Uwarz i sprzedaj” (Enter) lub kartę klienta. Środek kręgu daje najwyższą jakość (III).",
+      "Unikaj wirów niestabilności i zgromadź wymaganą kwotę złota przed obsłużeniem wszystkich klientów.",
     ],
     achievements: [
       { id: "pierwszy-eliksir", name: "Czeladnik", desc: "Uwarz i sprzedaj swój pierwszy eliksir.", points: 10 },
@@ -167,8 +164,9 @@
     mount(board, ctx) {
       const { key, goalGold, maxOrders, startGold } = ctx.level;
       const W = 280, H = 195;
+      const MAP_CX = 92, MAP_CY = 98, MAP_R = 72;
       const cv = canvasGame(board, ctx, W, H, { max: 100, cls: "space" });
-      const { g } = cv;
+      const { g, theme } = cv;
 
       const vortices = createVortices(key);
       const s = {
@@ -178,7 +176,7 @@
         y: 0,
         trail: [[0, 0]],
         queue: [],
-        stock: [3, 3, 3, 3, 1],
+        stock: [4, 4, 4, 4, 2],
         discovered: new Set(),
         ruined: 0,
         customer: null,
@@ -218,16 +216,16 @@
       });
       ctx.panel.append(panelBlock("Składniki (1–5)", ingBox));
 
-      const stirBtn = button("Mieszaj w kotle (Spacja)", "btn wide", () => stirCauldron(18));
-      const waterBtn = button("Dolej wody źródlanej (W)", "btn-ghost wide", () => addWater());
-      const brewBtn = button("Uwarz i sprzedaj (Enter)", "btn-ghost wide", () => finishBrew());
-      ctx.panel.append(panelBlock("Pracownia", stirBtn, waterBtn, brewBtn));
+      const brewBtn = button("Uwarz i sprzedaj (Enter)", "btn wide", () => finishBrew());
+      const stirBtn = button("Mieszaj w kotle (Spacja)", "btn-ghost wide", () => stirCauldron(15));
+      const dumpBtn = button("Rozcieńcz wodą (Backspace)", "btn-ghost wide", () => addWater());
+      ctx.panel.append(panelBlock("Pracownia", brewBtn, stirBtn, dumpBtn));
 
       function updateUI() {
         goldEl.set(
           `${s.gold} / ${goalGold} zł`,
           s.gold / goalGold,
-          `Klient ${s.ordersDone + 1} z ${maxOrders} · Odkryte: ${s.discovered.size}/${POTIONS.length}`
+          `Klient ${Math.min(maxOrders, s.ordersDone + 1)} z ${maxOrders} · Odkryte: ${s.discovered.size}/${POTIONS.length}`
         );
         const brew = evaluateBrew(s.x, s.y);
         if (s.customer) {
@@ -237,8 +235,8 @@
             `${w.name}`,
             null,
             match
-              ? `Gotowe w kotle (jakość ${"I".repeat(brew.stars)}, cena ${Math.round(brew.value * 1.35)} zł)`
-              : `${s.customer.who} płaci premię +35% za ten wywar`
+              ? `Gotowe w kotle (jakość ${"I".repeat(brew.stars)}, cena ${Math.round(brew.value * 1.4)} zł)`
+              : `${s.customer.who} płaci premię +40% za ten wywar`
           );
         }
         INGREDIENTS.forEach((ing, i) => {
@@ -255,8 +253,9 @@
           ctx.win(`Zebrałeś ${s.gold} sztuk złota i odkryłeś ${s.discovered.size} receptur.`);
           return;
         }
-        // Sprawdź czy gracz ma cokolwiek w zapasie lub złoto na najtańszy składnik i pusty kocioł
-        const canAffordAny = s.stock.some((c) => c > 0) || s.gold >= 8 || s.queue.length > 0 || evaluateBrew(s.x, s.y);
+        const canBrewNow = Boolean(evaluateBrew(s.x, s.y));
+        const canPullToRecipe = Math.hypot(s.x, s.y) > 10;
+        const canAffordAny = s.stock.some((c) => c > 0) || s.gold >= 7 || s.queue.length > 0 || canBrewNow || canPullToRecipe;
         if (s.ordersDone >= maxOrders || !canAffordAny) {
           ctx.lose("Pracownia zamknięta", `Zebrano ${s.gold} z wymaganych ${goalGold} sztuk złota.`);
         }
@@ -265,6 +264,7 @@
       function useIngredient(idx) {
         if (ctx.done) return;
         const ing = INGREDIENTS[idx];
+        if (!ing) return;
         if (s.stock[idx] <= 0) {
           if (s.gold < ing.cost) {
             Sound.error();
@@ -275,17 +275,16 @@
           s.stock[idx]++;
         }
         s.stock[idx]--;
-        // Dokładamy punkty ścieżki względem ostatniego punktu kolejki (lub bieżącej pozycji esencji)
         const [bx, by] = s.queue.length ? s.queue[s.queue.length - 1] : [s.x, s.y];
         for (const [dx, dy] of ing.path) {
           s.queue.push([bx + dx, by + dy]);
         }
         for (let k = 0; k < 8; k++) {
           s.bubbles.push({
-            x: 228 + (Math.random() - 0.5) * 26,
+            x: 226 + (Math.random() - 0.5) * 26,
             y: 138 + Math.random() * 8,
-            r: 2 + Math.random() * 3,
-            vy: -(16 + Math.random() * 20),
+            r: 2 + Math.random() * 2.8,
+            vy: -(16 + Math.random() * 18),
             c: ing.color,
             life: 1,
           });
@@ -294,14 +293,14 @@
         updateUI();
       }
 
-      function stirCauldron(dist = 16) {
+      function stirCauldron(dist = 15) {
         if (ctx.done) return;
         if (!s.queue.length) {
           Sound.error();
           ctx.toast("Dodaj najpierw składnik do kotła");
           return;
         }
-        s.stirAnim = 0.4;
+        s.stirAnim = 0.45;
         const res = stepAlongQueue(s.x, s.y, s.queue, dist, vortices);
         s.x = res.x;
         s.y = res.y;
@@ -315,7 +314,7 @@
           s.trail = [[0, 0]];
           s.queue = [];
           Sound.error();
-          ctx.toast("Wir niestabilności pochłonął esencję! Wywar wraca do środka.");
+          ctx.toast("Wir niestabilności pochłonął esencję, wywar wraca do środka");
         } else {
           Sound.tap();
         }
@@ -326,12 +325,19 @@
       function addWater() {
         if (ctx.done) return;
         const d = Math.hypot(s.x, s.y);
-        if (d < 1) return;
-        const move = Math.min(d, 16);
-        s.x -= (s.x / d) * move;
-        s.y -= (s.y / d) * move;
-        s.trail.push([s.x, s.y]);
-        if (s.trail.length > 50) s.trail.shift();
+        if (d < 1 && s.queue.length === 0) {
+          ctx.toast("Esencja jest już w samym środku koła");
+          return;
+        }
+        if (d >= 1) {
+          const move = Math.min(d, 15);
+          s.x -= (s.x / d) * move;
+          s.y -= (s.y / d) * move;
+          s.trail.push([s.x, s.y]);
+          if (s.trail.length > 50) s.trail.shift();
+        } else {
+          s.queue = [];
+        }
         Sound.erase();
         updateUI();
       }
@@ -344,21 +350,20 @@
           ctx.toast("Esencja nie znajduje się w żadnym kręgu receptury");
           return;
         }
-        s.cauldronHeat = 0.7;
+        s.cauldronHeat = 0.75;
         s.discovered.add(res.potion.id);
         ctx.achieve("pierwszy-eliksir");
         if (res.stars === 3) ctx.achieve("trzy-gwiazdki");
         if (s.discovered.size >= 5) ctx.achieve("ksiega-receptur");
 
-        // Wybuch alchemicznych iskier nad kotłem
-        for (let k = 0; k < 22; k++) {
+        for (let k = 0; k < 20; k++) {
           const a = Math.random() * Math.PI * 2;
-          const spd = 20 + Math.random() * 45;
+          const spd = 18 + Math.random() * 42;
           s.sparkles.push({
-            x: 232,
-            y: 145,
+            x: 226,
+            y: 140,
             vx: Math.cos(a) * spd,
-            vy: Math.sin(a) * spd - 25,
+            vy: Math.sin(a) * spd - 24,
             c: res.potion.color,
             r: 1.5 + Math.random() * 2,
             life: 1.0,
@@ -366,9 +371,13 @@
         }
 
         const isWanted = s.customer && s.customer.wanted.id === res.potion.id;
-        const earned = isWanted ? Math.round(res.value * 1.35) : res.value;
+        const earned = isWanted ? Math.round(res.value * 1.4) : res.value;
         s.gold += earned;
         s.ordersDone++;
+
+        // Dostawa świeżych ziół z ogrodu po każdym zrealizowanym zamówieniu
+        s.stock[s.ordersDone % 4]++;
+
         s.x = 0;
         s.y = 0;
         s.trail = [[0, 0]];
@@ -389,8 +398,8 @@
           useIngredient(+e.key - 1);
         } else if (e.key === " ") {
           e.preventDefault();
-          stirCauldron(16);
-        } else if (e.key.toLowerCase() === "w") {
+          stirCauldron(15);
+        } else if (e.key.toLowerCase() === "w" || e.key === "Backspace") {
           e.preventDefault();
           addWater();
         } else if (e.key === "Enter") {
@@ -399,15 +408,37 @@
         }
       });
 
-      // Kliknięcie na mapie alchemicznej lub na kotle również miesza wywar
+      // Kliknięcie na kole alchemicznym, w kartę klienta lub bezpośrednio w kocioł
       ctx.on(cv.cv, "pointerdown", (e) => {
         if (ctx.done) return;
         const [mx, my] = cv.at(e);
-        if (Math.hypot(mx - 98, my - 98) < 88) {
-          if (s.queue.length > 0) stirCauldron(14);
-        } else if (mx > 195 && my > 95) {
-          if (evaluateBrew(s.x, s.y)) finishBrew();
-          else if (s.queue.length > 0) stirCauldron(14);
+        // Karta zamówienia klienta (prawa góra)
+        if (mx >= 178 && mx <= 274 && my >= 10 && my <= 82) {
+          if (evaluateBrew(s.x, s.y)) {
+            finishBrew();
+          } else {
+            ctx.toast(`Zamówienie: ${s.customer ? s.customer.wanted.name : "brak"}`);
+          }
+          return;
+        }
+        // Kocioł alchemiczny (prawy dół)
+        if (mx >= 182 && my >= 95) {
+          if (s.queue.length > 0) {
+            stirCauldron(15);
+          } else if (evaluateBrew(s.x, s.y)) {
+            finishBrew();
+          } else {
+            addWater();
+          }
+          return;
+        }
+        // Koło alchemiczne po lewej
+        if (Math.hypot(mx - MAP_CX, my - MAP_CY) <= MAP_R + 8) {
+          if (s.queue.length > 0) {
+            stirCauldron(15);
+          } else if (evaluateBrew(s.x, s.y)) {
+            finishBrew();
+          }
         }
       });
 
@@ -421,43 +452,39 @@
         g.fillStyle = "#120d1d";
         g.fillRect(0, 0, W, H);
 
-        // --- LEWA CZĘŚĆ: Pergaminowa mapa żywiołów (środek w (98, 98), promień 86) ---
-        const mx = 98, my = 98, mr = 86;
+        // --- LEWA CZĘŚĆ: Koło żywiołów (środek MAP_CX = 92, MAP_CY = 98, promień MAP_R = 72) ---
+        g.save();
+        g.translate(MAP_CX, MAP_CY);
 
         // Zewnętrzna obręcz astrolabium
-        g.save();
-        g.translate(mx, my);
         g.fillStyle = "#1b1429";
         g.strokeStyle = "#5a3e85";
         g.lineWidth = 2;
         g.beginPath();
-        g.arc(0, 0, mr, 0, Math.PI * 2);
+        g.arc(0, 0, MAP_R, 0, Math.PI * 2);
         g.fill();
         g.stroke();
 
         // Kręgi pomocnicze i osie żywiołów
-        g.strokeStyle = "rgba(157, 78, 221, 0.18)";
+        g.strokeStyle = "rgba(157, 78, 221, 0.2)";
         g.lineWidth = 0.8;
-        for (const r of [30, 58, 82]) {
+        for (const r of [25, 50, 68]) {
           g.beginPath();
           g.arc(0, 0, r, 0, Math.PI * 2);
           g.stroke();
         }
         g.beginPath();
-        g.moveTo(-mr, 0);
-        g.lineTo(mr, 0);
-        g.moveTo(0, -mr);
-        g.lineTo(0, mr);
+        g.moveTo(-MAP_R, 0);
+        g.lineTo(MAP_R, 0);
+        g.moveTo(0, -MAP_R);
+        g.lineTo(0, MAP_R);
         g.stroke();
 
-        // Podpisy czterech żywiołów
-        g.fillStyle = "rgba(224, 170, 255, 0.55)";
-        g.font = "bold 7px sans-serif";
-        g.textAlign = "center";
-        g.fillText("OGIEŃ", 0, -mr + 9);
-        g.fillText("WODA", 0, mr - 4);
-        g.fillText("ZIEMIA", -mr + 16, 3);
-        g.fillText("POWIETRZE", mr - 22, 3);
+        // Podpisy czterech żywiołów poza obrębem węzłów, żeby nic na siebie nie nachodziło
+        cv.text("OGIEŃ", 0, -MAP_R - 7, { size: 5.2, weight: 700, color: "orange" });
+        cv.text("WODA", 0, MAP_R + 8, { size: 5.2, weight: 700, color: "blue" });
+        cv.text("ZIEMIA", -MAP_R + 18, -MAP_R - 6, { size: 4.8, weight: 700, color: "green" });
+        cv.text("POWIETRZE", MAP_R - 22, -MAP_R - 6, { size: 4.8, weight: 700, color: "gold" });
 
         // Wiry niestabilności
         for (const v of vortices) {
@@ -468,7 +495,7 @@
           g.beginPath();
           g.arc(0, 0, v.r, 0, Math.PI * 2);
           g.fill();
-          g.strokeStyle = "#f72585";
+          g.strokeStyle = theme.pink;
           g.lineWidth = 1.2;
           for (let a = 0; a < 3; a++) {
             const ang = (a * Math.PI * 2) / 3;
@@ -483,11 +510,11 @@
         for (const p of POTIONS) {
           const isWanted = s.customer && s.customer.wanted.id === p.id;
           const isKnown = s.discovered.has(p.id);
-          const pulse = isWanted ? 1 + 0.12 * Math.sin(now * 0.006) : 1;
+          const pulse = isWanted ? 1 + 0.1 * Math.sin(now * 0.006) : 1;
 
           g.save();
           g.translate(p.x, p.y);
-          g.fillStyle = isWanted ? "rgba(255, 209, 102, 0.22)" : "rgba(255, 255, 255, 0.06)";
+          g.fillStyle = isWanted ? "rgba(255, 209, 102, 0.24)" : "rgba(255, 255, 255, 0.06)";
           g.strokeStyle = p.color;
           g.lineWidth = isWanted ? 2.0 : 1.2;
           g.beginPath();
@@ -498,20 +525,27 @@
           // Środek idealnej jakości (III)
           g.fillStyle = p.color;
           g.beginPath();
-          g.arc(0, 0, 3.2, 0, Math.PI * 2);
+          g.arc(0, 0, 2.8, 0, Math.PI * 2);
+          g.fill();
+          g.restore();
+
+          // Czytelna etykieta z podkładem odsunięta od środka i wirów
+          const labelW = p.short.length * 3.1 + 7;
+          g.fillStyle = "rgba(18, 13, 29, 0.86)";
+          g.beginPath();
+          g.roundRect(p.lx - labelW / 2, p.ly - 4, labelW, 8, 2.5);
           g.fill();
 
-          // Etykieta eliksiru
-          g.fillStyle = isWanted ? "#ffd166" : isKnown ? "#e2e8f0" : "rgba(226, 232, 240, 0.65)";
-          g.font = `${isWanted ? "bold " : ""}5.8px sans-serif`;
-          g.textAlign = "center";
-          g.fillText(p.name, 0, p.r + 7);
-          g.restore();
+          cv.text(p.short, p.lx, p.ly, {
+            size: 4.8,
+            weight: isWanted ? 700 : 600,
+            color: isWanted ? "gold" : isKnown ? "on" : "muted",
+          });
         }
 
-        // Przebyty ślad esencji na pergaminie (złota nić)
+        // Przebyty ślad esencji na pergaminie
         if (s.trail && s.trail.length > 1) {
-          g.strokeStyle = "rgba(250, 204, 21, 0.4)";
+          g.strokeStyle = "rgba(250, 204, 21, 0.42)";
           g.lineWidth = 1.2;
           g.beginPath();
           g.moveTo(s.trail[0][0], s.trail[0][1]);
@@ -519,18 +553,12 @@
             g.lineTo(s.trail[t][0], s.trail[t][1]);
           }
           g.stroke();
-          g.fillStyle = "rgba(250, 204, 21, 0.55)";
-          for (let t = 1; t < s.trail.length; t += 3) {
-            g.beginPath();
-            g.arc(s.trail[t][0], s.trail[t][1], 1.2, 0, Math.PI * 2);
-            g.fill();
-          }
         }
 
         // Zaplanowana ścieżka w kolejce
         if (s.queue.length > 0) {
           g.strokeStyle = "#e0aaff";
-          g.lineWidth = 1.6;
+          g.lineWidth = 1.5;
           g.setLineDash([3, 2.5]);
           g.beginPath();
           g.moveTo(s.x, s.y);
@@ -541,79 +569,110 @@
           const [lx, ly] = s.queue[s.queue.length - 1];
           g.fillStyle = "#e0aaff";
           g.beginPath();
-          g.arc(lx, ly, 2.5, 0, Math.PI * 2);
+          g.arc(lx, ly, 2.4, 0, Math.PI * 2);
           g.fill();
         }
 
-        //Aktualny znacznik esencji (buteleczka w kotle)
+        // Aktualny znacznik esencji
         const curBrew = evaluateBrew(s.x, s.y);
         g.fillStyle = curBrew ? curBrew.potion.color : "#ffffff";
         g.strokeStyle = "#120d1d";
         g.lineWidth = 1.5;
         g.beginPath();
-        g.arc(s.x, s.y, 4.8, 0, Math.PI * 2);
+        g.arc(s.x, s.y, 4.6, 0, Math.PI * 2);
         g.fill();
         g.stroke();
 
         g.restore();
 
-        // --- PRAWA CZĘŚĆ: Kocioł alchemiczny, klient i półka ---
-        // Karta klienta na górze po prawej
+        // --- PRAWA CZĘŚĆ: Karta zamówienia klienta i kocioł alchemiczny ---
         if (s.customer) {
+          const w = s.customer.wanted;
+          const isReady = curBrew && curBrew.potion.id === w.id;
           g.fillStyle = "#221933";
-          g.strokeStyle = s.customer.wanted.color;
-          g.lineWidth = 1.3;
+          g.strokeStyle = isReady ? theme.gold : w.color;
+          g.lineWidth = isReady ? 2.0 : 1.3;
           g.beginPath();
-          g.roundRect(192, 14, 80, 58, 6);
+          g.roundRect(180, 12, 92, 66, 6);
           g.fill();
           g.stroke();
 
-          g.fillStyle = "#cbd5e1";
-          g.font = "6px sans-serif";
-          g.fillText(s.customer.who, 198, 25);
+          cv.text(`Klient ${Math.min(maxOrders, s.ordersDone + 1)}/${maxOrders}`, 186, 21, {
+            size: 4.5,
+            weight: 600,
+            color: "muted",
+            align: "left",
+          });
+          cv.text(s.customer.who, 186, 30, {
+            size: 5.0,
+            weight: 700,
+            color: "on",
+            align: "left",
+          });
+          cv.text(w.name, 186, 42, {
+            size: 5.2,
+            weight: 700,
+            color: w.color,
+            align: "left",
+          });
+          cv.text(`Premia: ~${Math.round(w.basePrice * 1.4)} zł`, 186, 53, {
+            size: 4.8,
+            weight: 600,
+            color: "gold",
+            align: "left",
+          });
+          cv.text(
+            curBrew ? "Kliknij: sprzedaj wywar" : "Doprowadź esencję do kręgu",
+            186,
+            66,
+            {
+              size: 4.3,
+              weight: 600,
+              color: curBrew ? "ok" : "muted",
+              align: "left",
+            }
+          );
 
-          g.fillStyle = "#ffffff";
-          g.font = "bold 6.8px sans-serif";
-          g.fillText("Szuka:", 198, 37);
-          g.fillStyle = s.customer.wanted.color;
-          g.fillText(s.customer.wanted.name, 198, 47);
-
-          // Rysunek fiolki zamówienia
-          g.fillStyle = s.customer.wanted.color;
+          // Fiolka eliksiru na karcie zamówienia
+          const vx = 258, vy = 38;
+          g.fillStyle = "rgba(255, 255, 255, 0.14)";
           g.beginPath();
-          g.arc(258, 56, 7, 0, Math.PI * 2);
+          g.roundRect(vx - 3, vy - 12, 6, 5, 1);
           g.fill();
-          g.fillRect(256, 46, 4, 5);
-          g.fillStyle = "#ffd166";
-          g.font = "bold 6.5px sans-serif";
-          g.fillText(`~${Math.round(s.customer.wanted.basePrice * 1.35)} zł`, 198, 62);
+          g.fillStyle = w.color;
+          g.strokeStyle = "#ffffff";
+          g.lineWidth = 1;
+          g.beginPath();
+          g.arc(vx, vy - 1, 7.5, 0, Math.PI * 2);
+          g.fill();
+          g.stroke();
         }
 
-        // Kocioł na dole po prawej (środek x=232, y=148)
-        const cx = 232, cy = 148;
+        // Kocioł na dole po prawej (środek cx = 226, cy = 140)
+        const cx = 226, cy = 140;
 
-        // Ogień pod kotłem
-        const fire = 1 + s.cauldronHeat * 0.6 + 0.12 * Math.sin(now * 0.015);
-        g.fillStyle = "#ff595e";
+        // Płomień pod kotłem
+        const fire = 1 + s.cauldronHeat * 0.55 + 0.12 * Math.sin(now * 0.015);
+        g.fillStyle = theme.red;
         g.beginPath();
-        g.ellipse(cx, cy + 26, 22 * fire, 6 * fire, 0, 0, Math.PI * 2);
+        g.ellipse(cx, cy + 25, 22 * fire, 5.5 * fire, 0, 0, Math.PI * 2);
         g.fill();
-        g.fillStyle = "#ffca3a";
+        g.fillStyle = theme.gold;
         g.beginPath();
-        g.ellipse(cx, cy + 26, 13 * fire, 3.5 * fire, 0, 0, Math.PI * 2);
+        g.ellipse(cx, cy + 25, 13 * fire, 3.2 * fire, 0, 0, Math.PI * 2);
         g.fill();
 
-        // Łyżka mieszająca
-        const spoonX = cx + Math.sin(now * 0.008) * (s.stirAnim > 0 ? 12 : 4);
+        // Drewniana łyżka mieszająca
+        const spoonX = cx + Math.sin(now * 0.009) * (s.stirAnim > 0 ? 12 : 4);
         g.strokeStyle = "#b08968";
         g.lineWidth = 3.2;
         g.lineCap = "round";
         g.beginPath();
-        g.moveTo(spoonX, cy - 10);
-        g.lineTo(spoonX + 10, cy - 36);
+        g.moveTo(spoonX, cy - 8);
+        g.lineTo(spoonX + 10, cy - 34);
         g.stroke();
 
-        // Czasza kotła
+        // Żeliwna czasza kotła
         g.fillStyle = "#2b2d42";
         g.strokeStyle = "#8d99ae";
         g.lineWidth = 1.8;
@@ -623,11 +682,11 @@
         g.fill();
         g.stroke();
 
-        // Powierzchnia bulgoczącego wywaru
+        // Powierzchnia bulgoczącej cieczy
         const liquidCol = curBrew ? curBrew.potion.color : "#9d4edd";
         g.fillStyle = liquidCol;
         g.beginPath();
-        g.ellipse(cx, cy - 4, 24, 6.5, 0, 0, Math.PI * 2);
+        g.ellipse(cx, cy - 4, 24, 6.2, 0, 0, Math.PI * 2);
         g.fill();
 
         // Bąbelki nad kotłem
@@ -650,14 +709,14 @@
           s.bubbles.push({
             x: cx + (Math.random() - 0.5) * 32,
             y: cy - 5,
-            r: 1.5 + Math.random() * 2.2,
+            r: 1.4 + Math.random() * 2.1,
             vy: -(10 + Math.random() * 14),
             c: liquidCol,
             life: 0.9,
           });
         }
 
-        // Alchemiczne iskry po udanym uwarzeniu eliksiru
+        // Iskry po uwarzeniu eliksiru
         for (let i = s.sparkles.length - 1; i >= 0; i--) {
           const sp = s.sparkles[i];
           sp.x += sp.vx * dt;
@@ -677,13 +736,15 @@
         }
 
         // Podpis stanu kotła
-        g.fillStyle = "#e2e8f0";
-        g.font = "bold 6.5px sans-serif";
-        g.textAlign = "center";
-        g.fillText(
-          curBrew ? `${curBrew.potion.name} (${"I".repeat(curBrew.stars)})` : "Szukaj receptury...",
+        cv.text(
+          curBrew
+            ? `${curBrew.potion.name} (${"I".repeat(curBrew.stars)})`
+            : s.queue.length > 0
+              ? "Kliknij kocioł: mieszaj"
+              : "Dodaj składniki (1–5)",
           cx,
-          cy + 39
+          cy + 40,
+          { size: 5.0, weight: 700, color: curBrew ? "gold" : "on" }
         );
       });
     },

@@ -1,11 +1,16 @@
 [data-gra="alchemia"] .al-ings {
   display: grid;
-  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-1);
 }
 
 [data-gra="alchemia"] .al-ing-btn {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
+}
+
+[data-gra="alchemia"] .al-ing-btn:last-child {
+  grid-column: 1 / -1;
 }

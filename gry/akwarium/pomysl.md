@@ -6,7 +6,7 @@
 - kategoria: symulacje
 
 ## Zasady
-1. Wpuszczasz młode rybki do trójwymiarowego akwarium i klikasz w toń wodną, aby sypać pokarm dla głodnych okazów.
-2. Dorosłe ryby oraz ślimaki i małże wytwarzają perły i monety, za które kupujesz rzadkie gatunki, filtry tlenowe i koralowce.
-3. Musisz utrzymywać natlenienie wody i odganiać kliknięciami drapieżne mureny, zanim pożrą ławicę.
-4. Wygrywasz, gdy skompletujesz wszystkie rzadkie okazy rafy; poziomy różnią się tempem spadku czystości wody i częstością ataków.
+1. Klikaj w toń wodną (albo Spacja), aby sypać pokarm dla głodnych rybek. Rosnące okazy wytwarzają muszelki, dukaty i perły.
+2. Klikaj skarby oraz otwierającego się na dnie perłopława, aby zbierać złoto na nowe gatunki (klawisze 1–4).
+3. Rozbudowuj filtr z automatycznym karmnikiem i perłopławem (klawisz 5), aby utrzymać czystą wodę.
+4. Gdy wpłynie drapieżna murena, klikaj w nią kilkukrotnie, aby ją odpędzić. Kup Koronę Rafy, by wygrać.
