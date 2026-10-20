@@ -1,0 +1,31 @@
+/* Termometry: rurka i bańka z pseudoelementów pola. ::before to bańka albo ramię do poprzedniego pola, ::after ramię do następnego.
+   Ramię sięga od środka pola do połowy odstępu, więc ramiona sąsiadów łączą się w jedną rurkę. */
+[data-gra="termometry"] .tm { --r: calc(var(--s) * 0.17); --in: calc(var(--s) * 0.33); --out: calc(var(--g) * -0.5 - 1px); }
+[data-gra="termometry"] .tm .gb-cell { position: relative; }
+[data-gra="termometry"] .tm .gb-cell.clue,
+[data-gra="termometry"] .tm .gb-cell.corner { background: none; box-shadow: none; cursor: default; font-size: calc(var(--s) * 0.42); color: var(--text); }
+[data-gra="termometry"] .tm .gb-cell.clue.ok { color: var(--muted); opacity: 0.55; }
+[data-gra="termometry"] .tm .gb-cell.clue.over { color: var(--bad); text-decoration: underline; }
+
+[data-gra="termometry"] .tm .gb-cell[data-t]::before,
+[data-gra="termometry"] .tm .gb-cell[class*="x-"]::after {
+  content: "";
+  position: absolute;
+  background: color-mix(in srgb, var(--muted) 30%, var(--surface));
+  transition: background-color var(--dur) var(--ease);
+}
+[data-gra="termometry"] .tm .gb-cell.full::before,
+[data-gra="termometry"] .tm .gb-cell.full::after { background: var(--c); }
+/* ramię do następnego pola jest pełne tylko, gdy następne pole też jest pełne */
+[data-gra="termometry"] .tm .gb-cell.full.cut::after { background: color-mix(in srgb, var(--muted) 30%, var(--surface)); }
+
+[data-gra="termometry"] .tm .p-n::before, [data-gra="termometry"] .tm .x-n::after { left: var(--in); right: var(--in); top: var(--out); bottom: var(--in); border-radius: 0 0 var(--r) var(--r); }
+[data-gra="termometry"] .tm .p-s::before, [data-gra="termometry"] .tm .x-s::after { left: var(--in); right: var(--in); bottom: var(--out); top: var(--in); border-radius: var(--r) var(--r) 0 0; }
+[data-gra="termometry"] .tm .p-e::before, [data-gra="termometry"] .tm .x-e::after { top: var(--in); bottom: var(--in); right: var(--out); left: var(--in); border-radius: var(--r) 0 0 var(--r); }
+[data-gra="termometry"] .tm .p-w::before, [data-gra="termometry"] .tm .x-w::after { top: var(--in); bottom: var(--in); left: var(--out); right: var(--in); border-radius: 0 var(--r) var(--r) 0; }
+/* bańka: większe koło, nad ramieniem */
+[data-gra="termometry"] .tm .gb-cell.bulb::before { inset: calc(var(--s) * 0.17); border-radius: 50%; z-index: 1; }
+
+[data-gra="termometry"] .tm .gb-cell.full::before { animation: termometry-fill 260ms var(--ease-pop); }
+@keyframes termometry-fill { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { [data-gra="termometry"] .tm .gb-cell.full::before { animation: none; } }
