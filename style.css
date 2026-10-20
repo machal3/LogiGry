@@ -317,12 +317,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .cat-chip[aria-pressed="true"] { background: var(--text); color: var(--bg); box-shadow: none; }
 .cat-chip[aria-pressed="true"] span { color: color-mix(in srgb, var(--bg) 65%, transparent); }
 .games-empty { margin: 32px 0; font-size: 1.125rem; color: var(--muted); }
-.card-cat {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  opacity: 0.72;
-}
 
 .card {
   position: relative;

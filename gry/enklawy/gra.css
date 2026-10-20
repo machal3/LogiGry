@@ -1,0 +1,85 @@
+/* Enklawy: siatka z kolorowymi regionami (enklawami), wyraźnymi granicami i etykietami rozmiaru. */
+[data-gra="enklawy"] .en-grid {
+  --max: 84px;
+  padding: 0;
+  border-radius: calc(var(--s) * 0.24);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--text), var(--elev-3);
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell {
+  border-radius: 0;
+  border: solid color-mix(in srgb, var(--text) 14%, transparent);
+  border-width: 0 1px 1px 0;
+  background: color-mix(in srgb, var(--en-c, var(--c)) 15%, var(--surface));
+  box-shadow: none;
+  font-size: calc(var(--s) * 0.46);
+  font-weight: 500;
+  color: color-mix(in srgb, var(--c) 88%, var(--text));
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* Granice pomiędzy różnymi enklawami (pojedyncze: prawa i dolna krawędź pola) */
+[data-gra="enklawy"] .en-grid .gb-cell.edge-r { border-right-width: 0; }
+[data-gra="enklawy"] .en-grid .gb-cell.edge-b { border-bottom-width: 0; }
+[data-gra="enklawy"] .en-grid .gb-cell.cb-r { border-right: 2.5px solid var(--text); }
+[data-gra="enklawy"] .en-grid .gb-cell.cb-b { border-bottom: 2.5px solid var(--text); }
+
+/* Wskazówka rozmiaru enklawy w jej pierwszym polu */
+[data-gra="enklawy"] .en-lab {
+  position: absolute;
+  top: calc(var(--s) * 0.05);
+  left: calc(var(--s) * 0.07);
+  padding: calc(var(--s) * 0.015) calc(var(--s) * 0.05);
+  border-radius: calc(var(--s) * 0.07);
+  background: color-mix(in srgb, var(--en-c, var(--c)) 28%, var(--surface));
+  color: var(--text);
+  font-size: calc(var(--s) * 0.19);
+  font-weight: 700;
+  line-height: 1.1;
+  pointer-events: none;
+  transition: opacity var(--dur), background-color var(--dur), color var(--dur);
+}
+
+[data-gra="enklawy"] .en-lab.ok {
+  background: color-mix(in srgb, var(--ok) 25%, var(--surface));
+  color: var(--ok);
+}
+
+/* Cyfry startowe zachowują barwę swojej enklawy, różnią się grubszym krojem i kolorem tekstu */
+[data-gra="enklawy"] .en-grid .gb-cell.is-lock {
+  background: color-mix(in srgb, var(--en-c, var(--c)) 15%, var(--surface));
+  color: var(--text);
+  font-weight: 700;
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell.en-reg {
+  background: color-mix(in srgb, var(--en-c, var(--c)) 24%, var(--surface));
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell.en-same {
+  background: color-mix(in srgb, var(--c) 28%, var(--surface));
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell.is-sel {
+  background: color-mix(in srgb, var(--c) 30%, var(--surface));
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell.is-bad {
+  color: var(--bad);
+  background-color: color-mix(in srgb, var(--bad) 16%, var(--surface));
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell .val {
+  transform: translateY(calc(var(--s) * 0.03));
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell .notes {
+  inset: 25% 6% 6%;
+}
+
+[data-gra="enklawy"] .en-grid .gb-cell.cursor {
+  outline: 2px solid var(--c);
+  outline-offset: -3px;
+}

@@ -1,0 +1,216 @@
+/* Domino — style planszy i wykazu kostek (zgodne z tokenami theme.css i zestaw.css) */
+
+[data-gra="domino"] .dm-grid {
+  --s-max: 76px;
+  border: 2px solid var(--text);
+  border-radius: calc(var(--s) * 0.22);
+  background: var(--surface);
+  box-shadow: var(--elev-3);
+  overflow: hidden;
+}
+
+[data-gra="domino"] .dm-grid .gb-cell {
+  position: relative;
+  border-radius: 0;
+  border: 0;
+  border-right: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--line);
+  background: var(--surface);
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.edge-r {
+  border-right: 0;
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.edge-b {
+  border-bottom: 0;
+}
+
+/* Wewnętrzna płytka pola — po sparowaniu dwóch sąsiednich pól zlewa się w jedną kostkę domina */
+[data-gra="domino"] .dm-tile {
+  position: absolute;
+  inset: calc(var(--s) * 0.08);
+  border-radius: calc(var(--s) * 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid transparent;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    inset var(--dur) var(--ease);
+  pointer-events: none;
+}
+
+[data-gra="domino"] .dm-num {
+  font-size: calc(var(--s) * 0.44);
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Podświetlenie kandydujących pól o tej samej parze cyfr */
+[data-gra="domino"] .dm-grid .gb-cell.dm-same-pair .dm-tile {
+  background: color-mix(in srgb, var(--c) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--c) 35%, var(--line));
+}
+
+/* Zaznaczone pole i jego druga połówka w kostce */
+[data-gra="domino"] .dm-grid .gb-cell.is-sel {
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.dm-partner {
+  background: color-mix(in srgb, var(--c) 7%, var(--surface));
+}
+
+/* Ułożona kostka domina — złączona z sąsiednim polem w jedną zaokrągloną kapsułę */
+[data-gra="domino"] .dm-grid .gb-cell.dm-paired .dm-tile {
+  background: color-mix(in srgb, var(--c) 16%, var(--surface));
+  border-color: var(--c);
+  box-shadow: var(--elev-1);
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.dm-paired .dm-num {
+  color: var(--c);
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.dm-paired.is-lock .dm-num {
+  color: var(--text);
+}
+
+/* Połączenie w prawo (lewa połówka poziomej kostki) */
+[data-gra="domino"] .dm-grid .gb-cell.dm-r {
+  border-right-color: transparent;
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.dm-r .dm-tile {
+  inset-inline-end: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  border-right: 1px solid color-mix(in srgb, var(--c) 45%, var(--line));
+}
+
+/* Połączenie w lewo (prawa połówka poziomej kostki) */
+[data-gra="domino"] .dm-grid .gb-cell.dm-l .dm-tile {
+  inset-inline-start: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-left: 0;
+}
+
+/* Połączenie w dół (górna połówka pionowej kostki) */
+[data-gra="domino"] .dm-grid .gb-cell.dm-b {
+  border-bottom-color: transparent;
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.dm-b .dm-tile {
+  inset-block-end: 0;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 45%, var(--line));
+}
+
+/* Połączenie w górę (dolna połówka pionowej kostki) */
+[data-gra="domino"] .dm-grid .gb-cell.dm-t .dm-tile {
+  inset-block-start: 0;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  border-top: 0;
+}
+
+/* Stan błędu (zduplikowana para kostek) */
+[data-gra="domino"] .dm-grid .gb-cell.is-bad .dm-tile {
+  border-color: var(--bad);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--bad) 18%, var(--surface)) 0 5px,
+      color-mix(in srgb, var(--bad) 8%, var(--surface)) 5px 10px
+    );
+}
+
+[data-gra="domino"] .dm-grid .gb-cell.is-bad .dm-num {
+  color: var(--bad);
+}
+
+/* Znacznik ścianki × na granicy między dwoma polami */
+[data-gra="domino"] .dm-wall {
+  position: absolute;
+  z-index: 4;
+  width: calc(var(--s) * 0.28);
+  height: calc(var(--s) * 0.28);
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: calc(var(--s) * 0.22);
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+[data-gra="domino"] .dm-wall-r {
+  top: 50%;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+[data-gra="domino"] .dm-wall-b {
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+/* Wykaz wszystkich par kostek w panelu bocznym */
+[data-gra="domino"] .dm-tray {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--sp-4) * 2.1), 1fr));
+  gap: var(--sp-1);
+}
+
+[data-gra="domino"] .dm-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+[data-gra="domino"] .dm-chip.is-sel {
+  border-color: var(--c);
+  color: var(--text);
+}
+
+[data-gra="domino"] .dm-chip.is-ok {
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+  color: var(--ok);
+}
+
+[data-gra="domino"] .dm-chip.is-bad {
+  background: color-mix(in srgb, var(--bad) 16%, var(--surface));
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+[data-gra="domino"] .dm-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}

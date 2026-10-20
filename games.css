@@ -81,18 +81,20 @@ button { font: inherit; color: inherit; }
 body[data-view="game"] footer { display: none; }
 #game { padding-block: 4px 32px; }
 .game-top {
+  --btn-h: 48px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 14px;
-  padding-bottom: 20px;
+  gap: 12px 16px;
+  padding-bottom: 24px;
 }
+.game-top .seg button { min-height: 40px; }
 .back {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line);
   flex: none;
@@ -109,16 +111,16 @@ body[data-view="game"] footer { display: none; }
 .game-icon {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   background: var(--c);
   flex: none;
 }
 .game-icon .glyph { width: 56%; }
 #game h1 {
   margin: 0;
-  font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+  font-size: clamp(1.5rem, 2.8vw, 2.125rem);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.035em;
@@ -1062,8 +1064,10 @@ body[data-view="game"] footer { display: none; }
   .board-area { container-type: inline-size; height: auto; }
   .board { --s: min(calc(100cqw / var(--cols)), calc((100svh - 230px) / var(--rows)), var(--max, 88px)); }
   /* nagłówek w dwóch rzędach: tytuł z zegarem, potem poziom i przyciski */
-  .game-top { display: grid; grid-template-columns: 42px 42px minmax(0, 1fr) auto auto auto; gap: 12px 8px; }
+  .game-top { display: grid; --btn-h: 44px; grid-template-columns: 44px 44px minmax(0, 1fr) auto auto auto; gap: 12px 8px; }
+  .back, .game-icon { width: 44px; height: 44px; border-radius: 14px; }
   .game-tools { display: contents; }
+  #game h1 { min-width: 0; font-size: 1.375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 2px; }
   .game-tools .clock { grid-row: 1; grid-column: 4 / 7; }
   .game-tools .seg { grid-row: 2; grid-column: 1 / 4; }
   .game-tools .t-sound { grid-row: 2; grid-column: 4; }
@@ -1076,7 +1080,7 @@ body[data-view="game"] footer { display: none; }
   /* przełącznik poziomów mieści się obok przycisków nawet przy długich nazwach („Średni”, „15 × 15”) */
   .game-tools .seg { min-width: 0; }
   .game-tools .seg button { min-width: 0; padding: 0 7px; font-size: 0.875rem; white-space: nowrap; }
-  .game-tools .has-icon { width: 42px; padding: 0; }
+  .game-tools .has-icon { width: var(--btn-h); padding: 0; }
   .game-tools .has-icon .lbl { display: none; }
   /* cyfry w jednym rzędzie, żeby klawiatura nie spychała planszy */
   .pad { grid-template-columns: repeat(var(--pad-n), minmax(0, 1fr)); gap: 5px; }
@@ -1097,11 +1101,11 @@ body[data-view="game"] #game {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  padding-block: 12px;
+  padding-block: 20px 16px;
 }
-body[data-view="game"] .game-top { flex: none; padding-bottom: 12px; }
+body[data-view="game"] .game-top { flex: none; padding-bottom: 16px; }
 body[data-view="game"] #game-root { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-body[data-view="game"] .game-progress { flex: none; margin: 0 0 12px; }
+body[data-view="game"] .game-progress { flex: none; margin: 0 0 20px; }
 body[data-view="game"] .arena { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
 /* przewija się tylko plansza gry, która nie umie się zmniejszyć */
 body[data-view="game"] .board-area { container-type: size; height: auto; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -1125,7 +1129,7 @@ body[data-view="game"] .toast.show { transform: translate(-50%, 0); }
 /* okno wyniku mieści się w planszy, nawet gdy jest mała */
 body[data-view="game"] .result { inset: 0; overflow-y: auto; place-items: safe center; }
 @media (max-width: 900px) {
-  body[data-view="game"] #game { padding-block: 8px; }
+  body[data-view="game"] #game { padding-block: 12px 8px; }
   body[data-view="game"] .game-top { padding-bottom: 8px; }
   body[data-view="game"] .game-progress { margin-bottom: 8px; }
   /* plansza na górze, panel pod nią: najwyżej 40% ekranu */

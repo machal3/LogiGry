@@ -789,7 +789,7 @@ function buildList() {
     a.title = game.desc;
     paint(a, game);
     const body = el("span", "card-body");
-    body.append(el("span", "card-cat", game.big ? `${catName[game.cat]} · rozbudowana` : catName[game.cat]), el("span", "card-name", game.name), el("span", "card-desc", game.desc), el("span", "card-author", `Stworzył: ${game.author}`));
+    body.append(el("span", "card-name", game.name), el("span", "card-desc", game.desc), el("span", "card-author", `Stworzył: ${game.author}`));
     a.append(glyph(game.glyph), body, el("span", "pill", !game.mount ? "Wkrótce" : pts(game) ? `${pts(game)} pkt` : "Graj"));
     const on = favs.includes(game.id);
     const star = button("", "fav", () => {
