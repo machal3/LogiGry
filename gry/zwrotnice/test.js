@@ -67,8 +67,10 @@ test("każdy poziom da się ułożyć, ma jedno rozwiązanie i żadnej zbędnej 
       assert.ok(distance >= 2, `start zbyt blisko rozwiązania: ${distance}`);
 
       const used = new Set();
+      const routes = [];
       for (const t of p.trains) {
         const r = ride(p.n, p.m, p.idx, p.state, t.from[0], t.from[1], t.from[2]);
+        routes.push(r);
         assert.ok(r && r.exit, "pociąg nie wyjechał z planszy");
         assert.ok(r.uses > 0, "pociąg mija za mało zwrotnic");
         assert.ok(r.path.length > 1);
@@ -79,6 +81,16 @@ test("każdy poziom da się ułożyć, ma jedno rozwiązanie i żadnej zbędnej 
         }
       }
       assert.strictEqual(used.size, p.sw.length, "któraś zwrotnica nie jest używana");
+
+      // trasa żadnego pociągu nie przechodzi przez wjazd ani stację innego pociągu
+      for (let i = 0; i < routes.length; i++) {
+        const pathKeys = new Set(routes[i].path.map(([rr, cc]) => rr * p.m + cc));
+        for (let j = 0; j < p.trains.length; j++) {
+          if (i === j) continue;
+          assert.ok(!pathKeys.has(key(p.trains[j].from)), "trasa przechodzi przez wjazd innego pociągu");
+          assert.ok(!pathKeys.has(key(p.trains[j].to)), "trasa przechodzi przez stację innego pociągu");
+        }
+      }
 
       // przełączenie dowolnej zwrotnicy musi zepsuć co najmniej jedną trasę
       for (let i = 0; i < p.sw.length; i++) {

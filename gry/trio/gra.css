@@ -1,0 +1,90 @@
+/* Trio: karty z kształtami. Kształt zmienia się w liczbie, kształcie, kolorze i wypełnieniu.
+   Kartę tworzy pole z gridCells (przycisk), a jej wnętrze — rząd elementów .tr-shape.
+   Rozmiary tylko od var(--s), kolory z tokenów, więc obie sceny i oba motywy działają same. */
+
+[data-gra="trio"] {
+  --tr-c0: var(--red);
+  --tr-c1: var(--green);
+  --tr-c2: var(--blue);
+}
+
+/* stół pod kartami */
+[data-gra="trio"] .tr {
+  --max: 100px; /* karty 12 sztuk: na szerokim ekranie mogą być większe niż domyślne 88 px */
+  --tr-bw: calc(var(--s) * 0.045);
+  --tr-gap: calc(var(--s) * 0.035);
+  border-radius: calc(var(--cr) + var(--g));
+  background:
+    radial-gradient(130% 120% at 50% -10%, color-mix(in srgb, var(--c) 12%, transparent), transparent 62%),
+    var(--bg);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 30%, transparent),
+    0 36px 64px -42px var(--shadow);
+}
+
+/* karta */
+[data-gra="trio"] .tr .gb-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--s) * 0.08);
+  border-radius: calc(var(--s) * 0.16);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), var(--elev-1);
+  transition: transform 140ms var(--ease), box-shadow 160ms var(--ease), background-color 160ms;
+}
+[data-gra="trio"] .tr .gb-cell:hover { transform: translateY(calc(var(--s) * -0.03)); }
+[data-gra="trio"] .tr .gb-cell.is-sel {
+  background: color-mix(in srgb, var(--c) 14%, var(--surface));
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.05) var(--c), var(--elev-2);
+}
+[data-gra="trio"] .tr .gb-cell.is-sel:hover { transform: translateY(calc(var(--s) * -0.05)); }
+[data-gra="trio"] .tr .gb-cell:focus-visible { outline: 3px solid var(--c); outline-offset: calc(var(--s) * 0.04); }
+
+/* kształty na karcie */
+[data-gra="trio"] .tr-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tr-gap);
+}
+[data-gra="trio"] .tr-shape {
+  flex: none;
+  width: calc(var(--s) * var(--sh));
+  height: calc(var(--s) * var(--sh));
+  border-radius: 50%;
+  background: var(--cc);
+}
+[data-gra="trio"] .tr-shape[data-co="0"] { --cc: var(--tr-c0); }
+[data-gra="trio"] .tr-shape[data-co="1"] { --cc: var(--tr-c1); }
+[data-gra="trio"] .tr-shape[data-co="2"] { --cc: var(--tr-c2); }
+[data-gra="trio"] .tr-shape[data-sh="1"] { border-radius: calc(var(--s) * 0.07); }
+[data-gra="trio"] .tr-shape[data-sh="2"] {
+  width: calc(var(--s) * var(--sh) * 0.72);
+  height: calc(var(--s) * var(--sh) * 0.72);
+  border-radius: calc(var(--s) * 0.05);
+  transform: rotate(45deg);
+}
+[data-gra="trio"] .tr-shape[data-fi="1"] {
+  background-color: color-mix(in srgb, var(--cc) 22%, transparent);
+  background-image: repeating-linear-gradient(45deg, var(--cc) 0 26%, transparent 26% 52%);
+  box-shadow: inset 0 0 0 var(--tr-bw) var(--cc);
+}
+[data-gra="trio"] .tr-shape[data-fi="2"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--tr-bw) var(--cc);
+}
+
+/* nowe karty po zgodnej trójce wchodzą z podskokiem */
+[data-gra="trio"] .tr .gb-cell.trio-pop { animation: trio-pop 320ms var(--ease-pop); }
+@keyframes trio-pop {
+  from { transform: scale(0.74); opacity: 0.35; }
+  60% { transform: scale(1.05); }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="trio"] .tr .gb-cell,
+  [data-gra="trio"] .tr .gb-cell.trio-pop { transition: none; animation: none; }
+}

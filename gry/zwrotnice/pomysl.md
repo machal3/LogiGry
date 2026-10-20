@@ -7,9 +7,9 @@
 
 ## Zasady
 1. Po planszy biegną tory w wybranych rzędach i kolumnach, a na ich przecięciach leżą zwrotnice.
-2. Jasna oś zwrotnicy to tor główny: pociąg jadący nią jedzie prosto, a pociąg z bocznego toru skręca w prawo.
-3. Kliknięcie zwrotnicy albo klawisz z jej numerem przełącza oś. Wybór kształtu w panelu pokazuje trasę jednego pociągu.
-4. Każdy pociąg wjeżdża z krawędzi planszy i ma dojechać do stacji w tym samym kolorze i kształcie.
+2. Jasna oś zwrotnicy to tor główny: pociąg jadący nią jedzie prosto, a pociąg z bocznego toru skręca w prawo; przerywane łuki pokazują ten skręt.
+3. Kliknięcie zwrotnicy albo klawisz z jej numerem przełącza oś. Wybór kształtu w panelu pokazuje trasę pociągu i informuje, czy dojedzie do stacji.
+4. Każdy pociąg wjeżdża z krawędzi planszy i ma dojechać do stacji w tym samym kolorze i kształcie. Pełny kształt ze strzałką to wjazd, a kształt w obwódce to stacja.
 5. Przycisk „Wypuść pociągi” sprawdza całe ustawienie. Nieudane próby są ograniczone, a ich wyczerpanie kończy partię.
 6. Poziomy różnią się rozmiarem planszy, liczbą zwrotnic i pociągów oraz liczbą dozwolonych prób.
 

@@ -1,0 +1,3 @@
+/* Helisa: wieża na płótnie. Przeciąganie obraca wieżę, więc płótno nie przewija strony. */
+[data-gra="helisa"] .hx-board canvas { touch-action: none; cursor: grab; }
+[data-gra="helisa"] .hx-board canvas:active { cursor: grabbing; }

@@ -268,7 +268,7 @@
         if (i < 0) {
           cell.tabIndex = -1;
           cell.setAttribute("aria-hidden", "true");
-          cell.removeAttribute("aria-label");
+          cell.setAttribute("aria-label", "Tor");
         } else {
           cell.classList.add("sw");
           cell.dataset.sw = i;
@@ -362,7 +362,7 @@
         const path = tr.path;
         const [pr, pc] = path[path.length - 2] || tr.from;
         const dr = Math.sign(r - pr), dc = Math.sign(c - pc);
-        const x = cx(c) + dc * 0.3, y = cy(r) + dr * 0.3;
+        const x = cx(c) + dc * 0.2, y = cy(r) + dr * 0.2;
         const g = mk(marks, "g", { class: `zw-mark zw-out ${trainClass(k)}`, "data-out": `${r},${c}` });
         mk(g, "circle", { cx: x, cy: y, r: 0.36, class: "zw-out-halo" });
         const ring = mk(g, "polygon", { points: poly(x, y, 0.27, SIDES[k % 4], ROT[k % 4]), class: "zw-out-ring" });
@@ -385,6 +385,7 @@
         const dot = mk(trainGroup, "circle", { r: 0.17, class: `zw-train ${trainClass(k)}` });
         dot.setAttribute("cx", -1);
         dot.setAttribute("cy", -1);
+        dot.style.display = "none";
         return dot;
       });
       board.append(svg);
@@ -442,13 +443,28 @@
         trainDots.forEach((d) => {
           d.setAttribute("cx", -1);
           d.setAttribute("cy", -1);
+          d.style.display = "none";
         });
+      }
+
+      function clearSelection() {
+        selected = -1;
+        pickBtns.forEach((b) => b.setAttribute("aria-pressed", "false"));
+        markIn.forEach((o) => o.g.classList.remove("sel"));
+        markOut.forEach((o) => o.g.classList.remove("sel"));
+        previewGroup.style.display = "none";
+        previewNote.textContent = PREVIEW_HINT;
       }
 
       function selectTrain(k) {
         if (ctx.done || busy) return;
-        selected = selected === k ? -1 : k;
-        if (selected >= 0) previewUsed = true;
+        if (selected === k) {
+          clearSelection();
+          Sound.tap();
+          return;
+        }
+        selected = k;
+        previewUsed = true;
         pickBtns.forEach((b, i) => b.setAttribute("aria-pressed", String(i === selected)));
         markIn.forEach((o, i) => o.g.classList.toggle("sel", i === selected));
         markOut.forEach((o, i) => o.g.classList.toggle("sel", i === selected));
@@ -459,19 +475,24 @@
       function drawPreview() {
         if (selected < 0) {
           previewGroup.style.display = "none";
+          previewNote.textContent = PREVIEW_HINT;
           return;
         }
         const tr = p.trains[selected];
         const res = ride(n, m, p.idx, state, tr.from[0], tr.from[1], tr.from[2]);
         if (!res) {
           previewGroup.style.display = "none";
+          previewNote.textContent = PREVIEW_HINT;
           return;
         }
         previewGroup.style.display = "";
         previewGroup.setAttribute("class", `zw-preview-group ${trainClass(selected)}`);
         const pts = res.path.map(([r, c]) => `${cx(c).toFixed(3)},${cy(r).toFixed(3)}`).join(" ");
+        previewHalo.setAttribute("points", pts);
         previewLine.setAttribute("points", pts);
         const at = res.exit || res.path[res.path.length - 1];
+        previewHaloDot.setAttribute("cx", cx(at[1]));
+        previewHaloDot.setAttribute("cy", cy(at[0]));
         previewDot.setAttribute("cx", cx(at[1]));
         previewDot.setAttribute("cy", cy(at[0]));
         const good = !!res.exit && res.exit[0] === tr.to[0] && res.exit[1] === tr.to[1];
@@ -479,6 +500,11 @@
         previewLine.classList.toggle("loop", !!res.loop);
         previewDot.classList.toggle("good", good);
         previewDot.classList.toggle("loop", !!res.loop);
+        const who = `${colorName[selected % 4]} ${shapeName[selected % 4]}`;
+        const name = who.charAt(0).toUpperCase() + who.slice(1);
+        if (res.loop) previewNote.textContent = `${name} krąży po torach i nie dojedzie do stacji.`;
+        else if (good) previewNote.textContent = `${name} dojedzie do swojej stacji.`;
+        else previewNote.textContent = `${name} nie dojedzie do stacji.`;
         if (res.loop && !loopWarned) {
           loopWarned = true;
           ctx.toast("Ten pociąg krąży po torach i nie dojedzie do stacji.");
@@ -490,6 +516,8 @@
           const horizontal = state[i] === 0;
           s.h.classList.toggle("on", horizontal);
           s.v.classList.toggle("on", !horizontal);
+          s.armsH.style.opacity = horizontal ? "1" : "0";
+          s.armsV.style.opacity = horizontal ? "0" : "1";
           const cell = cells[p.sw[i][0] * m + p.sw[i][1]];
           cell.setAttribute("aria-pressed", String(!horizontal));
           cell.setAttribute("aria-label", `Zwrotnica ${i + 1}, oś ${horizontal ? "pozioma" : "pionowa"}`);
@@ -524,7 +552,7 @@
         if (ctx.done || busy) return;
         busy = true;
         setBusy(true);
-        previewGroup.style.display = "none";
+        if (selected >= 0) clearSelection();
         clearResult();
         const res = p.trains.map((tr) => ride(n, m, p.idx, state, tr.from[0], tr.from[1], tr.from[2]));
         const ok = res.map((R, k) => !!R.exit && R.exit[0] === p.trains[k].to[0] && R.exit[1] === p.trains[k].to[1]);
@@ -548,6 +576,7 @@
               const y = cy(p0[0]) + (cy(p1[0]) - cy(p0[0])) * f;
               trainDots[i].setAttribute("cx", x);
               trainDots[i].setAttribute("cy", y);
+              trainDots[i].style.display = "";
               const points = [];
               for (let j = 0; j <= a; j++) points.push(`${cx(R.path[j][1])},${cy(R.path[j][0])}`);
               points.push(`${x},${y}`);
@@ -562,6 +591,7 @@
               const y = cy(p0[0]) + (cy(p1[0]) - cy(p0[0])) * f;
               trainDots[i].setAttribute("cx", x);
               trainDots[i].setAttribute("cy", y);
+              trainDots[i].style.display = "";
               trail[i].setAttribute("points", R.loop.map(([rr, cc]) => `${cx(cc)},${cy(rr)}`).join(" "));
               trail[i].classList.add("loop");
               trail[i].style.display = "";
@@ -574,13 +604,13 @@
           trainDots.forEach((d) => {
             d.setAttribute("cx", -1);
             d.setAttribute("cy", -1);
+            d.style.display = "none";
           });
           const arrived = ok.filter(Boolean).length;
           arrEl.set(`${arrived} z ${p.trains.length}`, arrived / p.trains.length, "");
           ctx.progress(arrived / p.trains.length);
           markOut.forEach((o, i) => o.g.classList.add(ok[i] ? "good" : "bad"));
           if (arrived === p.trains.length) {
-            Sound.line();
             finishTimer = setTimeout(() => { if (!ctx.done) finish(); }, 220);
             return;
           }
@@ -588,9 +618,11 @@
           setBusy(false);
           failed++;
           leftEl.set(`${failed} z ${tries}`, null, "");
-          Sound.error();
           if (failed >= tries) ctx.lose("Pociągi się rozjechały", `Do stacji dojechało ${arrived} z ${p.trains.length} pociągów.`);
-          else ctx.toast(`Do stacji dojechało ${arrived} z ${p.trains.length} pociągów. Spróbuj inaczej`);
+          else {
+            Sound.error();
+            ctx.toast(`Do stacji dojechało ${arrived} z ${p.trains.length} pociągów. Spróbuj inaczej.`);
+          }
         };
         raf = requestAnimationFrame(frame);
       }

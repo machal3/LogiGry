@@ -1,0 +1,8 @@
+/* Style gry Iluzja. Wszystkie selektory zaczynają się od [data-gra="iluzja"]. */
+[data-gra="iluzja"] {
+  --iluzja-glow: color-mix(in srgb, var(--c) 35%, transparent);
+}
+[data-gra="iluzja"] .cvb-canvas {
+  cursor: pointer;
+  touch-action: none;
+}
