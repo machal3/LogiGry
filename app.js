@@ -544,7 +544,9 @@ function playGame(game, tools, root) {
     overlay.append(card);
     overlay.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     area.append(overlay);
-    setTimeout(() => go.focus({ preventScroll: true }), 50);
+    // fokus na samym oknie, nie na przycisku: przycisk nie wygląda na zaznaczony, a Tab prowadzi do niego
+    card.tabIndex = -1;
+    setTimeout(() => card.focus({ preventScroll: true }), 50);
   }
 
   function start() {
@@ -604,7 +606,9 @@ function playGame(game, tools, root) {
       overlay.setAttribute("aria-label", title);
       overlay.append(card);
       area.append(overlay);
-      setTimeout(() => acts.firstChild.focus({ preventScroll: true }), won ? 900 : 500);
+      // fokus na karcie wyniku, nie na pierwszym przycisku, żeby żaden nie wyglądał na zaznaczony
+      card.tabIndex = -1;
+      setTimeout(() => card.focus({ preventScroll: true }), won ? 900 : 500);
     };
 
     const ctx = {
