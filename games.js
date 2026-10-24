@@ -196,7 +196,7 @@ const GAMES = [
     cat: "strategia",
     big: true,
     name: "Podbój",
-    desc: "Zdobywaj terytoria w turach przeciw komputerom. Posiłki, rzuty kośćmi, umacnianie granic i premie za krainy.",
+    desc: "Zdobywaj regiony przeciw komputerom: posiłki, rzuty kośćmi, stolice z murami, medale i premie za krainy.",
     color: "#1982c4",
     ink: "#ffffff",
     glyph: ["####.", "#####", "#....", "#....", "#...."],
