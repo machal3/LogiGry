@@ -22,18 +22,60 @@ test("lochy: amulet osiągalny z wejścia na ostatnim piętrze", () => {
   }
 });
 
-test("podbój: spójna mapa, posiłki i rzuty", () => {
+test("podbój: spójna mapa, posiłki, rzuty i szanse", () => {
   const C = g("podboj");
-  for (const [n, p] of [[16, 3], [24, 4]]) {
-    const m = C.generate(n, p);
-    assert.equal(m.regions.length, n);
+  for (const [n, p, GW, GH] of [[16, 3, 32, 20], [24, 4, 32, 20], [24, 4, 24, 24]]) {
+    const G = C.newGame({ regions: n, players: p }, { GW, GH, RP: 8 });
+    const R = G.R;
+    assert.equal(R.length, n);
     const seen = new Set([0]), queue = [0];
-    for (let q = 0; q < queue.length; q++) for (const a of m.regions[queue[q]].adj) if (!seen.has(a)) { seen.add(a); queue.push(a); }
+    for (let q = 0; q < queue.length; q++) for (const a of R[queue[q]].adj) if (!seen.has(a)) { seen.add(a); queue.push(a); }
     assert.equal(seen.size, n);
-    assert.ok(C.reinforcements(m, 0) >= 3);
+    for (const r of R) for (const a of r.adj) assert.ok(R[a].adj.has(r.id)); // sąsiedztwo symetryczne
+    for (const r of R) assert.equal(G.map.lab[Math.floor(r.ly / 5 * 8) * G.map.MW + Math.floor(r.lx / 5 * 8)], r.id); // znacznik leży w swoim regionie
+    assert.equal(R.filter((r) => r.capital).length, p);
+    assert.equal(new Set(R.filter((r) => r.capital).map((r) => r.owner)).size, p);
+    assert.ok(C.reinforcements(G, 0).total >= 3 + 2);
   }
   const r = C.battle(10, 5, () => 0.99);
   assert.deepEqual([r.a.length, r.d.length, r.la, r.ld], [3, 2, 2, 0]); // remis broni obrońca
+  const m = C.battle(10, 5, () => 0.5, { def3: true, wall: true });
+  assert.deepEqual([m.d.length, m.la, m.ld], [3, 3, 0]); // góry: trzy kości obrony
+  assert.ok(Math.abs(C.odds(2, 1) - 15 / 36) < 1e-9); // jedna kość na jedną
+  assert.ok(C.odds(2, 1, { wall: true }) < C.odds(2, 1));
+  assert.ok(C.odds(10, 3) > 0.9 && C.odds(3, 10) < 0.05);
+  // szansa zgadza się z rzutami
+  let won = 0;
+  for (let k = 0; k < 4000; k++) {
+    const a = { armies: 6 }, d = { armies: 4 };
+    while (a.armies > 1 && d.armies > 0) { const b = C.battle(a.armies, d.armies); a.armies -= b.la; d.armies -= b.ld; }
+    if (d.armies <= 0) won++;
+  }
+  assert.ok(Math.abs(won / 4000 - C.odds(6, 4)) < 0.035);
+});
+
+test("podbój: partie komputerów się kończą, medale i wymiany", () => {
+  const C = g("podboj");
+  const lv = { regions: 16, players: 3, aggr: 1, smart: true, focus: 0, extra: 0 };
+  for (let k = 0; k < 4; k++) {
+    const G = C.newGame(lv, { RP: 6 });
+    let alive = 3;
+    for (let turn = 0; turn < 300 && alive > 1; turn++) {
+      for (let p = 0; p < 3; p++) {
+        if (!G.alive[p]) continue;
+        for (const ev of C.aiTurn(G, p, lv)) if (ev.t === "attack") assert.ok(ev.rolls.length > 0);
+        C.endTurn(G, p);
+        assert.ok(G.R.every((r) => r.armies >= 1 && r.owner >= 0));
+        assert.ok(G.medals.every((m) => m <= C.MAX_MEDALS));
+      }
+      alive = G.alive.filter(Boolean).length;
+    }
+    assert.equal(alive, 1);
+  }
+  const G = C.newGame({ regions: 16, players: 3 }, { RP: 6 });
+  G.medals[0] = 4;
+  assert.deepEqual([C.trade(G, 0), C.trade(G, 0), G.medals[0]], [4, 0, 1]);
+  assert.deepEqual([4, 6, 8, 10, 12, 15, 18].map((v, k) => C.tradeValue(k)), [4, 6, 8, 10, 12, 15, 18]);
 });
 
 test("metro: odległości do kształtu z przesiadkami", () => {

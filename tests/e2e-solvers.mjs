@@ -407,16 +407,17 @@ export default {
     await until(() => document.querySelector(".board-area.won"), 6000);
   `,
   podboj: `
-    const { map, s } = Conquest.last, R = map.regions;
+    const { map, s, W, H } = Conquest.last, R = map.regions;
     const a = R[0], d = R[[...a.adj][0]];
     R.forEach((r) => (r.owner = 0));
-    d.owner = 1; d.armies = 1; a.armies = 200;
-    Object.assign(s, { phase: "attack", pool: 0, sel: -1 });
+    d.owner = 1; d.armies = 1; d.capital = false; a.armies = 200;
+    Object.assign(s, { phase: "attack", pool: 0, sel: -1, busy: false });
     const cv = document.querySelector(".cvb-canvas"), r = cv.getBoundingClientRect();
-    const at = (g) => ({ clientX: r.x + (g.cx * 5 * r.width) / 160, clientY: r.y + (g.cy * 5 * r.height) / 100, bubbles: true });
+    const at = (g) => ({ clientX: r.x + (g.lx * r.width) / W, clientY: r.y + (g.ly * r.height) / H, bubbles: true });
     for (let k = 0; k < 40 && !document.querySelector(".board-area.won"); k++) {
-      cv.dispatchEvent(new PointerEvent("pointerdown", at(a)));
+      if (s.sel !== a.id) cv.dispatchEvent(new PointerEvent("pointerdown", at(a)));
       cv.dispatchEvent(new PointerEvent("pointerdown", at(d)));
+      await sleep(400);
     }
   `,
   przygoda: `
