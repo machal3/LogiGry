@@ -358,7 +358,28 @@ const Nonogram = (() => {
     return rows.every((cl, r) => same(runs(rowOf(g, w, r)), cl)) && cols.every((cl, c) => same(runs(colOf(g, w, h, c)), cl));
   }
 
-  const api = { PICTURES, runs, clues, solveLine, solvable, generate, matches, last: null };
+  // Krzyżyki automatyczne (3): każde puste pole linii zgodnej ze wskazówkami. Gdy linia przestaje się zgadzać, jej
+  // krzyżyki automatyczne znikają, chyba że trzyma je druga, ułożona linia. Krzyżyki gracza (2) zostają.
+  function autoCross(s, rows, cols, n) {
+    const g = s.map((v) => (v === 1 ? 1 : 0));
+    const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+    const keep = new Array(n * n).fill(false);
+    rows.forEach((cl, r) => { if (same(runs(rowOf(g, n, r)), cl)) for (let c = 0; c < n; c++) keep[r * n + c] = true; });
+    cols.forEach((cl, c) => { if (same(runs(colOf(g, n, n, c)), cl)) for (let r = 0; r < n; r++) keep[r * n + c] = true; });
+    return s.map((v, i) => (v === 0 && keep[i] ? 3 : v === 3 && !keep[i] ? 0 : v));
+  }
+  // Linia sprzeczna ze wskazówką: zamalowań i krzyżyków nie da się już pogodzić z liczbami.
+  const lineBad = (clue, line) => solveLine(clue, line.map((v) => (v === 1 ? 1 : v ? 0 : -1))) === null;
+
+  // Kolor odsłoniętego obrazka (z palety strony)
+  const COLORS = {
+    "Serce": "red", "Buźka": "yellow", "Strzałka": "blue", "Grzybek": "red", "Dzwonek": "yellow", "Łódka": "blue", "Kot": "orange",
+    "Klepsydra": "brown", "Kielich": "yellow", "Domek": "brown", "Grzyb": "red", "Kubek": "brown", "Rakieta": "violet", "Choinka": "green",
+    "Dom": "orange", "Ryba": "teal", "Klucz": "yellow", "Parasol": "violet", "Kaczka": "yellow", "Sowa": "brown", "Statek": "blue",
+    "Kotwica": "teal", "Kaktus": "green",
+  };
+
+  const api = { PICTURES, COLORS, runs, clues, solveLine, solvable, generate, matches, autoCross, lineBad, rowOf, colOf, last: null };
   return api;
 })();
 
@@ -366,6 +387,7 @@ if (typeof module !== "undefined") module.exports = Nonogram;
 
 
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obrazki"), {
+  author: "Claude, Claude Opus 5.5",
   levels: [
     { key: "easy", name: "5 × 5", points: 10, size: 5 },
     { key: "medium", name: "10 × 10", points: 25, size: 10 },
@@ -374,41 +396,61 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
   rules: [
     "Liczby przy wierszu i kolumnie to długości kolejnych bloków zamalowanych pól, w tej kolejności. Między blokami jest co najmniej jedno puste pole.",
     "Każdy obrazek da się odkryć linia po linii, bez zgadywania.",
-    "Przeciągaj, żeby malować wiele pól. Prawy przycisk stawia krzyżyk. Klawiatura: strzałki, spacja, X.",
+    "Przeciągaj, żeby malować całą linię; pędzel trzyma się wiersza albo kolumny, a dymek pokazuje długość. Prawy przycisk stawia krzyżyk.",
+    "Gdy linia zgadza się z liczbami, jej puste pola same dostają jasne krzyżyki. Można to wyłączyć w panelu.",
+    "Klawiatura: strzałki przesuwają kursor, spacja zamalowuje, X stawia krzyżyk.",
   ],
   achievements: [
     { id: "bez-cofania", name: "Bez gumki", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
+    { id: "czysta-kartka", name: "Czysta kartka", desc: "Rozwiąż planszę 10 × 10 albo większą bez stawiania krzyżyków ręcznie.", points: 25 },
     { id: "sprint", name: "Szybki rysownik", desc: "Rozwiąż średni poziom w mniej niż 5 min.", points: 25 },
+    { id: "kolekcjoner", name: "Mały album", desc: "Odkryj w albumie wszystkie obrazki 5 × 5.", points: 25 },
     { id: "mistrz", name: "Mistrz obrazków", desc: "Rozwiąż trudny poziom w mniej niż 12 min, bez cofania.", points: 50 },
+    { id: "album", name: "Pełny album", desc: "Odkryj wszystkie 26 obrazków ze wszystkich rozmiarów.", points: 50 },
   ],
   mount(board, ctx) {
     const { size: n, rows, cols, name } = Nonogram.generate(ctx.level.size);
-    const s = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 krzyżyk
-    let tool = 1, paint = null, cursor = 0, hot = -1;
+    const s = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 krzyżyk, 3 krzyżyk automatyczny
+    const store = (k, v) => {
+      try {
+        if (v === undefined) return localStorage.getItem(`logigra.obrazki.${k}`);
+        localStorage.setItem(`logigra.obrazki.${k}`, v);
+      } catch {}
+      return null;
+    };
+    const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timers = [];
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    ctx.onStop(() => timers.forEach(clearTimeout));
+    let autoX = store("autox") !== "off";
+    let tool = 1, drag = null, cursor = 0, hot = -1, finished = false, manualX = false;
     const rowText = rows.map((cl) => (cl.length ? cl : [0]));
     const colText = cols.map((cl) => (cl.length ? cl : [0]));
     const cw = Math.max(...rowText.map((cl) => cl.length)) * 0.62 + 0.5;
     const ch = Math.max(...colText.map((cl) => cl.length)) * 0.62 + 0.4;
+    const need = rows.flat().reduce((a, b) => a + b, 0);
 
-    board.classList.add("ng");
+    board.classList.add("ng", "ng-in");
+    later(() => board.classList.remove("ng-in"), still() ? 0 : 1400);
     board.style.setProperty("--n", n);
     board.style.setProperty("--cw", cw);
     board.style.setProperty("--ch", ch);
     board.style.setProperty("--cols", n + cw);
     board.style.setProperty("--rows", n + ch);
+    board.style.setProperty("--pc", `var(--${Nonogram.COLORS[name] || "pink"})`);
     board.tabIndex = 0;
     board.setAttribute("aria-label", "Plansza. Strzałki przesuwają kursor, spacja zamalowuje, X stawia krzyżyk.");
 
     board.append(el("div", "ng-corner"));
-    const colClues = colText.map((cl) => {
-      const d = el("div", "ng-clue col");
+    const colClues = colText.map((cl, c) => {
+      const d = el("div", `ng-clue col${c % 2 ? " alt" : ""}`);
       cl.forEach((v) => d.append(el("span", "", v)));
       board.append(d);
       return d;
     });
     const rowClues = [], cells = [];
     for (let r = 0; r < n; r++) {
-      const d = el("div", "ng-clue row");
+      const d = el("div", `ng-clue row${r % 2 ? " alt" : ""}`);
       rowText[r].forEach((v) => d.append(el("span", "", v)));
       board.append(d);
       rowClues.push(d);
@@ -416,6 +458,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
         const cell = el("div", "cell ng-cell");
         cell.dataset.i = r * n + c;
         cell.style.setProperty("--k", r + c);
+        cell.style.setProperty("--x", c);
+        cell.style.setProperty("--y", r);
         if (c % 5 === 4 && c < n - 1) cell.classList.add("edge-r");
         if (r % 5 === 4 && r < n - 1) cell.classList.add("edge-b");
         board.append(cell);
@@ -423,22 +467,63 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       }
     }
     roundCorners(cells, n);
+    // dymek z długością przeciąganego odcinka
+    const bubble = el("div", "ng-count");
+    board.append(bubble);
 
-    const toolSeg = segmented("Narzędzie", ["Zamaluj", "Krzyżyk"], (k) => { tool = k + 1; toolSeg.set(k); });
+    // --- panel ---
+    const stats = statsBlock(ctx, "Postęp", ["Linie", "Pola"]);
+    const toolSeg = segmented("Narzędzie", ["Zamaluj", "Krzyżyk"], (k) => { tool = k + 1; toolSeg.set(k); Sound.tap(); });
     toolSeg.set(0);
-    ctx.panel.append(panelBlock("", toolSeg.el, el("p", "panel-note", "Krzyżyk oznacza pole, które na pewno jest puste. Nie wpływa na wynik.")));
+    const autoSeg = segmented("Krzyżyki w ułożonych liniach", ["Same", "Ręcznie"], (k) => {
+      autoX = k === 0;
+      autoSeg.set(k);
+      store("autox", autoX ? "on" : "off");
+      if (finished) return;
+      save(s.slice());
+      if (autoX) commit(cursor, true);
+      else { s.forEach((v, i) => v === 3 && (s[i] = 0)); render(); }
+    });
+    autoSeg.set(autoX ? 0 : 1);
+    ctx.panel.append(panelBlock("Narzędzie", toolSeg.el, el("p", "panel-note", "Krzyżyk oznacza pole, które na pewno jest puste. Nie wpływa na wynik."), el("p", "ng-label", "Krzyżyki w ułożonych liniach"), autoSeg.el));
+    const albumEl = el("div", "ng-album");
+    const albumNote = el("p", "panel-note");
+    ctx.panel.append(panelBlock("Album", albumEl, albumNote));
+
+    const readAlbum = () => { try { return JSON.parse(store("album") || "{}"); } catch { return {}; } };
+    function renderAlbum(fresh) {
+      const album = readAlbum(), set = Nonogram.PICTURES[n];
+      if (!set) { albumNote.textContent = "W tym rozmiarze obrazki są losowe."; return; }
+      const got = album[n] || [];
+      albumEl.replaceChildren(...Object.entries(set).map(([nm, pic]) => {
+        const t = el("span", `ng-thumb${got.includes(nm) ? "" : " locked"}${fresh === nm ? " fresh" : ""}`);
+        t.style.setProperty("--tn", n);
+        t.style.setProperty("--pc", `var(--${Nonogram.COLORS[nm] || "pink"})`);
+        if (got.includes(nm)) {
+          t.title = nm;
+          t.setAttribute("aria-label", nm);
+          pic.join("").split("").forEach((ch) => t.append(el("i", ch === "#" ? "on" : "")));
+        } else {
+          t.setAttribute("aria-label", "Jeszcze nieodkryty");
+          t.append(el("b", "", "?"));
+        }
+        return t;
+      }));
+      albumNote.textContent = `Odkryte: ${got.length} z ${Object.keys(set).length}.`;
+    }
+    renderAlbum();
 
     const save = ctx.undoable((snap) => { snap.forEach((v, i) => (s[i] = v)); render(); okBefore = lineOk(); });
 
-    // Które linie zgadzają się ze wskazówkami; nowo ułożone dostają błysk i dźwięk.
-    const lineOk = () => {
-      const g = s.map((v) => (v === 1 ? 1 : 0));
-      return [
-        ...rows.map((cl, r) => eq(Nonogram.runs(g.slice(r * n, r * n + n)), cl)),
-        ...cols.map((cl, c) => eq(Nonogram.runs(g.filter((_, i) => i % n === c)), cl)),
-      ];
-    };
     const eq = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
+    const rowLine = (r) => s.slice(r * n, r * n + n);
+    const colLine = (c) => s.filter((_, i) => i % n === c);
+    const filled = (line) => line.map((v) => (v === 1 ? 1 : 0));
+    // Które linie zgadzają się ze wskazówkami; nowo ułożone dostają błysk i dźwięk.
+    const lineOk = () => [
+      ...rows.map((cl, r) => eq(Nonogram.runs(filled(rowLine(r))), cl)),
+      ...cols.map((cl, c) => eq(Nonogram.runs(filled(colLine(c))), cl)),
+    ];
     let okBefore = lineOk();
     const okAtStart = okBefore.filter(Boolean).length;
     const lines = (from) => {
@@ -456,43 +541,105 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       Sound.line();
       return true;
     };
-    const apply = (i) => {
-      if (ctx.done || s[i] === paint) return;
-      s[i] = paint;
+    // po każdej zmianie: krzyżyki automatyczne (rozchodzą się falą od ostatniego pola), wygląd, dźwięk ułożonej linii
+    function commit(from, quiet = false) {
+      if (autoX) {
+        const next = Nonogram.autoCross(s, rows, cols, n);
+        const fr = (from / n) | 0, fc = from % n;
+        next.forEach((v, i) => {
+          if (v === 3 && s[i] !== 3) cells[i].style.setProperty("--ad", `${(Math.abs(((i / n) | 0) - fr) + Math.abs((i % n) - fc)) * 28 + 60}ms`);
+          else if (v !== 3) cells[i].style.removeProperty("--ad");
+          s[i] = v;
+        });
+      }
       render();
-      if (!lines(i)) (paint === 1 ? Sound.place(1 + ((i % n) % 5)) : paint === 2 ? Sound.tap() : Sound.erase());
-    };
+      return lines(from) || quiet;
+    }
+    // jedno pole według bieżącego pociągnięcia; przy przeciąganiu nie nadpisuje innych znaków
+    function paintCell(j, first) {
+      const v = s[j], p = drag.paint;
+      let to = v;
+      if (p === 1) to = first || v === 0 ? 1 : v;
+      else if (p === 2) to = first || v === 0 || v === 3 ? 2 : v;
+      else to = v === drag.erase || (drag.erase === 2 && v === 3) ? 0 : v;
+      if (to === v) return false;
+      s[j] = to;
+      if (to === 2) manualX = true;
+      cells[j].style.removeProperty("--ad");
+      return true;
+    }
+    function sound(i) {
+      const p = drag ? drag.paint : 1;
+      if (p === 1) Sound.place(1 + ((i % n) % 5));
+      else if (p === 2) Sound.tap();
+      else Sound.erase();
+    }
+    function start(i, want) {
+      const v = s[i];
+      save(s.slice());
+      // krzyżyk automatyczny pod krzyżykiem zostaje krzyżykiem gracza
+      const paint = want === 1 ? (v === 1 ? 0 : 1) : v === 2 ? 0 : 2;
+      drag = { start: i, end: i, paint, erase: paint === 0 ? v : null, axis: null };
+      cursor = i;
+      const changed = paintCell(i, true);
+      if (changed && !commit(i)) sound(i);
+      showCount();
+    }
+    // pędzel trzyma się wiersza albo kolumny pierwszego ruchu i maluje cały odcinek od pola startowego
+    function dragTo(i) {
+      const d = drag;
+      if (i === d.end) return;
+      const r0 = (d.start / n) | 0, c0 = d.start % n, r = (i / n) | 0, c = i % n;
+      if (!d.axis && i !== d.start) d.axis = Math.abs(c - c0) >= Math.abs(r - r0) ? "row" : "col";
+      const end = d.axis === "col" ? r * n + c0 : r0 * n + c;
+      const step = end === d.start ? 0 : d.axis === "col" ? (end > d.start ? n : -n) : end > d.start ? 1 : -1;
+      let changed = false;
+      for (let j = d.start; ; j += step) {
+        if (paintCell(j, false)) changed = true;
+        if (j === end || !step) break;
+      }
+      d.end = end;
+      cursor = end;
+      if (changed && !commit(end)) sound(end);
+      else if (!changed) render();
+      showCount();
+    }
+    function showCount() {
+      const d = drag;
+      const len = d ? Math.abs(d.axis === "col" ? ((d.end / n) | 0) - ((d.start / n) | 0) : (d.end % n) - (d.start % n)) + 1 : 0;
+      bubble.classList.toggle("show", !!d && d.paint !== 0 && len > 1);
+      if (!d) return;
+      bubble.textContent = len;
+      bubble.style.setProperty("--x", d.end % n);
+      bubble.style.setProperty("--y", (d.end / n) | 0);
+    }
+    const blocked = () => ctx.done || finished;
     board.addEventListener("contextmenu", (e) => e.preventDefault());
     board.addEventListener("pointerdown", (e) => {
       const cell = e.target.closest(".ng-cell");
-      if (!cell || ctx.done) return;
+      if (!cell || blocked()) return;
       e.preventDefault();
       board.focus({ preventScroll: true });
-      const i = +cell.dataset.i;
-      const want = e.button === 2 ? 2 : tool;
-      save(s.slice());
-      paint = s[i] === want ? 0 : want;
-      cursor = i;
-      apply(i);
+      start(+cell.dataset.i, e.button === 2 ? 2 : tool);
     });
     ctx.on(document, "pointermove", (e) => {
       const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".ng-cell");
       const i = cell && board.contains(cell) ? +cell.dataset.i : -1;
+      if (drag && i >= 0 && !blocked()) dragTo(i);
       if (i !== hot) { hot = i; render(); }
-      if (paint !== null && i >= 0) apply(i);
     });
     ctx.on(document, "pointerup", () => {
-      if (paint === null) return;
-      paint = null;
+      if (!drag) return;
+      drag = null;
+      showCount();
       check();
     });
 
     const keyMark = (v) => () => {
-      if (ctx.done) return;
-      save(s.slice());
-      paint = s[cursor] === v ? 0 : v;
-      apply(cursor);
-      paint = null;
+      if (blocked()) return;
+      start(cursor, v);
+      drag = null;
+      showCount();
       check();
     };
     cellKeys(ctx, {
@@ -504,34 +651,60 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     board.addEventListener("blur", () => render());
 
     function check() {
-      if (Nonogram.matches(s, rows, cols, n, n)) {
-        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (finished || !Nonogram.matches(s, rows, cols, n, n)) return;
+      finished = true;
+      if (ctx.undos === 0) ctx.achieve("bez-cofania");
+      if (n >= 10 && !manualX) ctx.achieve("czysta-kartka");
       if (ctx.level.key === "medium" && ctx.time < 300) ctx.achieve("sprint");
       if (ctx.level.key === "hard" && ctx.time < 720 && ctx.undos === 0) ctx.achieve("mistrz");
-      
+      if (name && Nonogram.PICTURES[n]?.[name]) {
+        const album = readAlbum();
+        album[n] = [...new Set([...(album[n] || []), name])];
+        store("album", JSON.stringify(album));
+        if (album[5]?.length >= Object.keys(Nonogram.PICTURES[5]).length) ctx.achieve("kolekcjoner");
+        const all = Object.values(Nonogram.PICTURES).reduce((a, p) => a + Object.keys(p).length, 0);
+        if (Object.values(album).reduce((a, l) => a + l.length, 0) >= all) ctx.achieve("album");
+        renderAlbum(name);
       }
-      if (Nonogram.matches(s, rows, cols, n, n)) ctx.win(name && `Wyszedł obrazek: ${name.toLowerCase()}.`);
+      // odsłonięcie: krzyżyki i linie gasną, pola zlewają się w obrazek w jego kolorze
+      hot = -1;
+      render();
+      board.classList.add("reveal");
+      later(() => ctx.win(name ? `Wyszedł obrazek: ${name.toLowerCase()}.` : undefined), still() ? 0 : 1300);
     }
 
     function render() {
-      const g = s.map((v) => (v === 1 ? 1 : 0));
       const hr = hot >= 0 ? (hot / n) | 0 : -1, hc = hot >= 0 ? hot % n : -1;
-      const showCursor = document.activeElement === board;
+      const showCursor = document.activeElement === board && !finished;
+      let count = 0;
       cells.forEach((cell, i) => {
+        if (s[i] === 1) count++;
         cell.classList.toggle("on", s[i] === 1);
-        cell.classList.toggle("x", s[i] === 2);
+        cell.classList.toggle("x", s[i] === 2 || s[i] === 3);
+        cell.classList.toggle("auto", s[i] === 3);
         cell.classList.toggle("hot", ((i / n) | 0) === hr || i % n === hc);
         cell.classList.toggle("cursor", showCursor && i === cursor);
+        cell.setAttribute("aria-label", `Wiersz ${((i / n) | 0) + 1}, kolumna ${(i % n) + 1}: ${["puste", "zamalowane", "krzyżyk", "krzyżyk"][s[i]]}`);
       });
+      let done = 0;
       rowClues.forEach((d, r) => {
-        d.classList.toggle("ok", eq(Nonogram.runs(g.slice(r * n, r * n + n)), rows[r]));
+        const line = rowLine(r), ok = eq(Nonogram.runs(filled(line)), rows[r]);
+        done += ok;
+        d.classList.toggle("ok", ok);
+        d.classList.toggle("bad", !ok && Nonogram.lineBad(rows[r], line));
         d.classList.toggle("hot", r === hr || (showCursor && r === ((cursor / n) | 0)));
       });
       colClues.forEach((d, c) => {
-        d.classList.toggle("ok", eq(Nonogram.runs(g.filter((_, i) => i % n === c)), cols[c]));
+        const line = colLine(c), ok = eq(Nonogram.runs(filled(line)), cols[c]);
+        done += ok;
+        d.classList.toggle("ok", ok);
+        d.classList.toggle("bad", !ok && Nonogram.lineBad(cols[c], line));
         d.classList.toggle("hot", c === hc || (showCursor && c === cursor % n));
       });
+      stats.set("Linie", `${done} z ${2 * n}`);
+      stats.set("Pola", `${count} z ${need}`);
     }
-    render();
+    if (autoX) commit(0, true);
+    else render();
   },
 });

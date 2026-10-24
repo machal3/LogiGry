@@ -523,29 +523,33 @@ body[data-view="game"] footer { display: none; }
 /* --- Obrazki logiczne --- */
 .ng {
   --max: 60px;
+  --gap: max(1px, calc(var(--s) * 0.07));
   display: grid;
   grid-template-columns: calc(var(--cw) * var(--s)) repeat(var(--n), var(--s));
   grid-template-rows: calc(var(--ch) * var(--s)) repeat(var(--n), var(--s));
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 .ng:focus-visible { outline: none; }
-/* ramka wokół pól (bez wskazówek) */
-.ng::after {
+/* kartka pod polami i miękka ramka (bez wskazówek) */
+.ng::before, .ng::after {
   content: "";
   position: absolute;
   inset: calc(var(--ch) * var(--s)) 0 0 calc(var(--cw) * var(--s));
-  border: 2px solid var(--text);
-  border-radius: 4px;
+  border-radius: calc(var(--s) * 0.24);
   pointer-events: none;
 }
+.ng::before { background: var(--surface); box-shadow: var(--elev-3); }
+.ng::after { z-index: 2; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, var(--line)); transition: box-shadow 700ms var(--ease); }
 .ng-clue {
+  position: relative;
   font-size: calc(var(--s) * 0.46);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
   color: var(--text);
-  transition: color 200ms, background-color 200ms, opacity 200ms;
+  transition: color 300ms, background-color 300ms, opacity 300ms;
 }
 .ng-clue.col {
   display: flex;
@@ -554,7 +558,7 @@ body[data-view="game"] footer { display: none; }
   align-items: center;
   gap: calc(var(--s) * 0.04);
   padding-bottom: calc(var(--s) * 0.2);
-  border-radius: 8px 8px 0 0;
+  border-radius: calc(var(--s) * 0.3) calc(var(--s) * 0.3) 0 0;
 }
 .ng-clue.row {
   display: flex;
@@ -562,34 +566,123 @@ body[data-view="game"] footer { display: none; }
   align-items: center;
   gap: calc(var(--s) * 0.24);
   padding-right: calc(var(--s) * 0.26);
-  border-radius: 8px 0 0 8px;
+  border-radius: calc(var(--s) * 0.3) 0 0 calc(var(--s) * 0.3);
 }
-.ng-clue.hot { background: color-mix(in srgb, var(--c) 13%, transparent); }
-.ng-clue.ok { color: var(--muted); opacity: 0.45; }
+/* co druga linia lekko podbarwiona: łatwiej trafić wzrokiem w liczby */
+.ng-clue.alt { background: color-mix(in srgb, var(--c) 5%, transparent); }
+.ng-clue.hot { background: color-mix(in srgb, var(--c) 14%, transparent) !important; }
+.ng-clue.ok { color: var(--muted); opacity: 0.4; }
+.ng-clue.bad { color: var(--bad); }
+.ng-clue.bad::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--bad) 12%, transparent) 0 calc(var(--s) * 0.08), transparent 0 calc(var(--s) * 0.16)); pointer-events: none; }
+.ng-clue.flash { animation: ng-flash 700ms var(--ease); }
+@keyframes ng-flash { 25% { color: var(--c); transform: scale(1.12); opacity: 1; } }
+
 .ng-cell {
-  background: var(--surface);
+  z-index: 1;
+  background: transparent;
   box-shadow: inset calc(-1 * var(--rw, 1px)) 0 0 var(--rc, var(--line)), inset 0 calc(-1 * var(--bw, 1px)) 0 var(--bc, var(--line));
   cursor: pointer;
+  transition: background-color 200ms, box-shadow 700ms var(--ease);
 }
-.ng-cell.edge-r { --rw: 2px; --rc: var(--muted); }
-.ng-cell.edge-b { --bw: 2px; --bc: var(--muted); }
-.ng-cell.hot { background: color-mix(in srgb, var(--c) 7%, var(--surface)); }
+.ng-cell.edge-r { --rw: 2px; --rc: color-mix(in srgb, var(--muted) 70%, var(--line)); }
+.ng-cell.edge-b { --bw: 2px; --bc: color-mix(in srgb, var(--muted) 70%, var(--line)); }
+.ng-cell.hot { background: color-mix(in srgb, var(--c) 6%, transparent); }
+@media (hover: hover) { .ng-cell:hover { background: color-mix(in srgb, var(--c) 14%, transparent); } }
+/* zamalowane pole: jeden ciągły połysk przez cały obrazek, miękkie wejście z odbiciem */
 .ng-cell::after, .ng-cell::before {
   content: "";
   position: absolute;
-  inset: 0 var(--rw, 1px) var(--bw, 1px) 0;
+  pointer-events: none;
   transform: scale(0);
-  transition: transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  opacity: 0;
+  transition: transform 260ms var(--ease-pop), opacity 180ms, border-radius 700ms var(--ease), inset 700ms var(--ease), background-color 600ms var(--ease);
 }
-.ng-cell::after { border-radius: calc(var(--s) * 0.1); background: var(--c); }
+.ng-cell::after {
+  inset: var(--gap) calc(var(--gap) + var(--rw, 1px) - 1px) calc(var(--gap) + var(--bw, 1px) - 1px) var(--gap);
+  border-radius: calc(var(--s) * 0.16);
+  background-color: var(--c);
+  background-image: linear-gradient(155deg, rgba(255, 255, 255, 0.28), transparent 45%, rgba(0, 0, 0, 0.12));
+  background-size: calc(var(--n) * var(--s)) calc(var(--n) * var(--s));
+  background-position: calc(var(--x) * var(--s) * -1) calc(var(--y) * var(--s) * -1);
+  box-shadow: inset 0 calc(var(--s) * -0.05) 0 rgba(0, 0, 0, 0.1);
+}
+.ng-cell.on::after { transform: scale(1); opacity: 1; }
+/* krzyżyk rysowany dwiema kreskami; automatyczny jaśniejszy i wchodzi falą */
 .ng-cell::before {
-  inset: 28%;
+  inset: 30%;
   background:
-    linear-gradient(45deg, transparent 43%, var(--muted) 43% 57%, transparent 57%),
-    linear-gradient(-45deg, transparent 43%, var(--muted) 43% 57%, transparent 57%);
+    linear-gradient(45deg, transparent 42%, var(--muted) 42% 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, var(--muted) 42% 58%, transparent 58%);
+  border-radius: 2px;
+  transform: scale(0.3) rotate(-45deg);
 }
-.ng-cell.on::after, .ng-cell.x::before { transform: scale(1); }
-.ng-cell.cursor { outline: 2px solid var(--text); outline-offset: -2px; z-index: 1; }
+.ng-cell.x::before { transform: none; opacity: 0.85; }
+.ng-cell.x.auto::before { opacity: 0.32; inset: 35%; transition-delay: var(--ad, 0ms); }
+/* wejście planszy: pola i wskazówki pojawiają się ukośną falą */
+.ng.ng-in .ng-cell { animation: ng-in 420ms var(--ease) calc(var(--k) * 22ms) both; }
+.ng.ng-in .ng-clue { animation: ng-in 420ms var(--ease) 120ms both; }
+@keyframes ng-in { from { opacity: 0; transform: scale(0.7); } }
+/* ułożona linia: łagodna fala światła, bez skakania pól */
+.ng-cell.sweep { animation: ng-sweep 700ms var(--ease) calc(var(--si) * 34ms) both; }
+@keyframes ng-sweep { 35% { background-color: color-mix(in srgb, var(--c) 22%, transparent); } }
+.ng-cell.cursor { outline: 2px solid var(--text); outline-offset: -2px; border-radius: calc(var(--s) * 0.12); z-index: 3; }
+/* dymek z długością odcinka przy przeciąganiu */
+.ng-count {
+  position: absolute;
+  z-index: 4;
+  left: calc((var(--cw) + var(--x, 0) + 0.5) * var(--s));
+  top: calc((var(--ch) + var(--y, 0)) * var(--s));
+  min-width: calc(var(--s) * 0.7);
+  padding: calc(var(--s) * 0.06) calc(var(--s) * 0.16);
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 700;
+  font-size: max(12px, calc(var(--s) * 0.36));
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--elev-2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -115%) scale(0.6);
+  transition: opacity 150ms, transform 200ms var(--ease-pop), left 90ms, top 90ms;
+}
+.ng-count.show { opacity: 1; transform: translate(-50%, -115%); }
+/* odsłonięcie obrazka: linie i krzyżyki gasną, pola zlewają się i falą przybierają kolor obrazka */
+.ng.reveal .ng-cell { cursor: default; box-shadow: none; background: transparent; animation: none; }
+.ng.reveal .ng-cell::before { opacity: 0; transform: scale(0.3); transition-delay: 0ms; }
+.ng.reveal .ng-cell::after {
+  inset: -0.5px;
+  border-radius: 0;
+  background-color: var(--pc);
+  box-shadow: none;
+  transition-delay: calc(var(--k) * 30ms);
+}
+.ng.reveal .ng-cell.on { animation: ng-pulse 600ms var(--ease) calc(var(--k) * 30ms) both; }
+.ng.reveal::after { box-shadow: inset 0 0 0 2px transparent; }
+.ng.reveal .ng-clue { opacity: 0.25; }
+@keyframes ng-pulse { 45% { transform: scale(1.06); } }
+.won .ng-cell { animation: none; }
+
+/* album odkrytych obrazków w panelu */
+.ng-label { margin: 10px 0 6px; font-size: var(--fs-sm); font-weight: 600; }
+.ng-album { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.ng-thumb {
+  display: grid;
+  grid-template-columns: repeat(var(--tn), 1fr);
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.ng-thumb i.on { background: var(--pc); border-radius: 1px; }
+.ng-thumb.locked { place-items: center; grid-template-columns: 1fr; color: var(--muted); font-size: var(--fs-sm); }
+.ng-thumb.fresh { animation: ng-new 700ms var(--ease-pop) 900ms both; }
+@keyframes ng-new { from { transform: scale(0.4) rotate(-12deg); opacity: 0; } 60% { transform: scale(1.2); } }
+@media (prefers-reduced-motion: reduce) {
+  .ng-cell::after, .ng-cell::before, .ng-count, .ng-thumb { transition: none !important; animation: none !important; }
+}
 
 /* --- Mosty --- */
 .br { --max: 96px; width: calc(var(--cols) * var(--s)); }
