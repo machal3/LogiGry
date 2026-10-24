@@ -1061,7 +1061,7 @@ if (typeof module !== "undefined") module.exports = Nonogram;
 
 
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obrazki"), {
-  author: "Claude, Claude Opus 5.5",
+  author: "Claude Opus 5.5",
   levels: [
     { key: "easy", name: "5 × 5", points: 10, size: 5 },
     { key: "medium", name: "10 × 10", points: 25, size: 10 },
