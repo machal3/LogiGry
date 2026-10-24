@@ -1,0 +1,4 @@
+[data-gra="pasieka"] .cvb-canvas {
+  box-shadow: var(--elev-2);
+  border-radius: calc(var(--s) * 0.18);
+}

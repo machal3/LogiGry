@@ -1,0 +1,66 @@
+/* Skośne: kratka, duchy ukośników i cyfry w węzłach nad polami. */
+[data-gra="skosne"] .sk-board .svgb-svg { font-family: var(--font); }
+[data-gra="skosne"] .sk-grid line {
+  stroke: color-mix(in srgb, var(--line) 70%, var(--text));
+  stroke-width: 0.32;
+}
+[data-gra="skosne"] .sk-ghost line {
+  stroke: color-mix(in srgb, var(--line) 55%, transparent);
+  stroke-width: 0.42;
+  stroke-linecap: round;
+}
+[data-gra="skosne"] .sk-ghost.is-hid { display: none; }
+[data-gra="skosne"] .sk-ln {
+  stroke: var(--c);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-gra="skosne"] .sk-ln.is-on { opacity: 1; }
+[data-gra="skosne"] .sk-ln.is-lock { stroke: color-mix(in srgb, var(--c) 55%, var(--text)); }
+[data-gra="skosne"] .sk-ln.is-bad { stroke: var(--bad); }
+[data-gra="skosne"] .sk-cell {
+  fill: transparent;
+  cursor: pointer;
+}
+[data-gra="skosne"] .sk-cell:hover { fill: color-mix(in srgb, var(--c) 10%, transparent); }
+[data-gra="skosne"] .sk-cell.cursor {
+  fill: color-mix(in srgb, var(--c) 16%, transparent);
+  stroke: var(--c);
+  stroke-width: 0.38;
+}
+[data-gra="skosne"] .sk-cell.is-lock { cursor: default; }
+[data-gra="skosne"] .sk-nodes { pointer-events: none; }
+[data-gra="skosne"] .sk-dot {
+  fill: var(--surface);
+  stroke: var(--line);
+  stroke-width: 0.3;
+}
+[data-gra="skosne"] .sk-num {
+  fill: var(--text);
+  font-size: 3.35px;
+  font-weight: 700;
+}
+[data-gra="skosne"] .sk-node.is-empty .sk-dot {
+  fill: color-mix(in srgb, var(--line) 80%, var(--text));
+  stroke: none;
+}
+[data-gra="skosne"] .sk-node.is-ok .sk-dot {
+  fill: color-mix(in srgb, var(--ok) 40%, var(--surface));
+  stroke: var(--ok);
+}
+[data-gra="skosne"] .sk-node.is-ok .sk-num { fill: color-mix(in srgb, var(--ok) 35%, var(--text)); }
+[data-gra="skosne"] .sk-node.is-bad .sk-dot {
+  fill: color-mix(in srgb, var(--bad) 32%, var(--surface));
+  stroke: var(--bad);
+}
+[data-gra="skosne"] .sk-node.is-bad .sk-num { fill: var(--bad); }
+[data-gra="skosne"] .sk-node.is-ok .sk-dot,
+[data-gra="skosne"] .sk-node.is-bad .sk-dot {
+  animation: skosne-pop 220ms var(--ease-pop);
+}
+@keyframes skosne-pop { 50% { transform: scale(1.14); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="skosne"] .sk-node.is-ok .sk-dot,
+  [data-gra="skosne"] .sk-node.is-bad .sk-dot { animation: none; }
+}

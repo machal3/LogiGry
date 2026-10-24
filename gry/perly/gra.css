@@ -1,0 +1,74 @@
+[data-gra="perly"] { --perly-ink: #18181b; }
+@media (prefers-color-scheme: dark) {
+  [data-gra="perly"] { --perly-ink: #0b0b0f; }
+  [data-gra="perly"] .pe-grid .gb-cell.black .pe-pearl {
+    box-shadow: 0 0 0 calc(var(--s) * 0.07) var(--text);
+  }
+}
+[data-gra="perly"] .pe-grid .gb-cell {
+  position: relative;
+  background: color-mix(in srgb, var(--surface) 82%, var(--bg));
+  overflow: visible;
+}
+[data-gra="perly"] .pe-grid .gb-cell .pe-e,
+[data-gra="perly"] .pe-grid .gb-cell .pe-s,
+[data-gra="perly"] .pe-grid .gb-cell .pe-mid {
+  position: absolute;
+  background: var(--c);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+}
+[data-gra="perly"] .pe-grid .gb-cell.e .pe-e,
+[data-gra="perly"] .pe-grid .gb-cell.s .pe-s,
+[data-gra="perly"] .pe-grid .gb-cell.has .pe-mid { opacity: 1; }
+[data-gra="perly"] .pe-grid .gb-cell .pe-e {
+  left: 50%;
+  right: calc(var(--g) * -0.5 - 1px);
+  top: calc(50% - var(--s) * 0.075);
+  height: calc(var(--s) * 0.15);
+  border-radius: 99px;
+}
+[data-gra="perly"] .pe-grid .gb-cell .pe-s {
+  top: 50%;
+  bottom: calc(var(--g) * -0.5 - 1px);
+  left: calc(50% - var(--s) * 0.075);
+  width: calc(var(--s) * 0.15);
+  border-radius: 99px;
+}
+[data-gra="perly"] .pe-grid .gb-cell .pe-mid {
+  width: calc(var(--s) * 0.15);
+  height: calc(var(--s) * 0.15);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+[data-gra="perly"] .pe-grid .gb-cell .pe-pearl {
+  position: absolute;
+  inset: calc(var(--s) * 0.2);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+[data-gra="perly"] .pe-grid .gb-cell.white .pe-pearl {
+  background: transparent;
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.09) var(--text);
+}
+[data-gra="perly"] .pe-grid .gb-cell.black .pe-pearl {
+  background: var(--perly-ink);
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.06) var(--text);
+}
+[data-gra="perly"] .pe-grid .gb-cell.white.is-ok .pe-pearl {
+  box-shadow: inset 0 0 0 calc(var(--s) * 0.09) var(--ok);
+}
+[data-gra="perly"] .pe-grid .gb-cell.black.is-ok .pe-pearl {
+  box-shadow: 0 0 0 calc(var(--s) * 0.07) var(--ok);
+}
+[data-gra="perly"] .pe-grid .gb-cell.is-sel {
+  animation: perly-lift 200ms var(--ease-pop);
+}
+@keyframes perly-lift { 50% { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="perly"] .pe-grid .gb-cell.is-sel { animation: none; }
+}
