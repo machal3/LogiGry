@@ -19,6 +19,11 @@ test("lochy: amulet osiągalny z wejścia na ostatnim piętrze", () => {
     const seen = new Set([m.start]), queue = [m.start];
     for (let q = 0; q < queue.length; q++) for (const d of [1, -1, D.MW, -D.MW]) { const n = queue[q] + d; if (m.t[n] && !seen.has(n)) { seen.add(n); queue.push(n); } }
     assert.ok(seen.has(amulet.i));
+    // urządzenia stoją na podłodze, nie na sobie nawzajem i nie na przedmiotach
+    const spots = [...m.feats, ...m.items].map((x) => x.i);
+    assert.equal(new Set(spots).size, spots.length);
+    for (const f of m.feats) assert.equal(m.t[f.i], 1);
+    assert.ok(m.feats.some((f) => f.kind === "fountain") && m.feats.some((f) => f.kind === "altar"));
   }
 });
 
