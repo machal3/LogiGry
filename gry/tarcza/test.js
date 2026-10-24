@@ -1,4 +1,4 @@
-// Test logiki Tarczy: poprawne liczby pierścieni, biz na dokładne zero i jedynkę.
+// Test logiki Tarczy: poprawne liczby pierścieni, biz na dokładne zero i jedynkę, mnożniki.
 const test = require("node:test");
 const assert = require("node:assert");
 Object.assign(globalThis, require("../../lib.js"));
@@ -51,10 +51,15 @@ test("biz: jeden punkt poniżej zera i jeden jest bizem", () => {
   assert.equal(isBust(1, 1), false, "trafienie zera to wygrana, nie biz");
 });
 
+test("mnożniki punktów dla wielu tarcz", () => {
+  assert.equal(scoreAt(0, 0, RR, 2).pts, 100);
+  assert.equal(scoreAt(0, 0, RR, 3).pts, 150);
+  const t20_x2 = scoreAt(0, -16 / 31, RR, 2);
+  assert.equal(t20_x2.pts, 120);
+});
+
 test("trafienie dokładnie zera wygrywa — symulacja cały wyniku", () => {
   let score = 301;
-  const rnd = () => { const j = (Math.random() - 0.5) * 6; return (x, y) => j; };
-  // celujemy T20 z drżeniem 2 jednostki; z symulacji tylko wyniki bilansują się bez błędu
   for (let k = 0; k < 200; k++) {
     let before = score;
     score = Math.max(0, score);

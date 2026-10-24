@@ -1,96 +1,184 @@
-/* Galaktyki: kolorowe regiony wokół gwiazd, każdy obracalny o 180 stopni wokół środka.
-   Region dostaje własną barwę, a gwiazda jest jego widocznym środkiem. */
+/* Galaktyki: nocna plansza, na której regiony układają się wokół gwiazd.
+   Region dostaje własną barwę i wspólną granicę, gwiazda jest jego środkiem. */
 [data-gra="galaktyki"] {
-  --gal-1: color-mix(in srgb, #4263eb 34%, var(--surface));
-  --gal-2: color-mix(in srgb, #e8590c 34%, var(--surface));
-  --gal-3: color-mix(in srgb, #0ca678 34%, var(--surface));
-  --gal-4: color-mix(in srgb, #be4bdb 34%, var(--surface));
-  --gal-5: color-mix(in srgb, #f08c00 34%, var(--surface));
-  --gal-6: color-mix(in srgb, #1098ad 34%, var(--surface));
-  --gal-7: color-mix(in srgb, #2f9e44 34%, var(--surface));
-  --gal-8: color-mix(in srgb, #c2255c 34%, var(--surface));
-  --gal-shine: #ffffff;
-  --gal-shade: #000000;
+  /* plansza jest zawsze nocna, więc ma własne kolory czytelne w obu motywach */
+  --gal-ink: #eef1ff;
+  --gal-shade: #05081a;
+  --gal-accent: #9d8cff;
+  --gal-line: rgba(238, 241, 255, 0.09);
+  --gal-edge: color-mix(in srgb, var(--gal-ink) 30%, transparent);
+  --gal-dim: rgba(238, 241, 255, 0.03);
+  --gal-white: #ffffff;
+  --gal-glow-strong: rgba(255, 255, 255, 0.8);
+  --gal-glow-soft: rgba(255, 255, 255, 0.45);
+  --gal-glow-cool: rgba(205, 220, 255, 0.7);
+  --gal-glow-pink: rgba(214, 56, 100, 0.16);
+  --gal-film: rgba(255, 255, 255, 0.1);
+  --gal-ring: rgba(255, 255, 255, 0.36);
+  --gal-sky-1: #0a0d1d;
+  --gal-sky-2: #161c3d;
+  --gal-sky-3: #0a0e20;
+  --gal-1: color-mix(in srgb, var(--blue) 52%, #101530);
+  --gal-2: color-mix(in srgb, var(--orange) 54%, #101530);
+  --gal-3: color-mix(in srgb, var(--teal) 50%, #101530);
+  --gal-4: color-mix(in srgb, var(--violet) 54%, #101530);
+  --gal-5: color-mix(in srgb, var(--yellow) 50%, #101530);
+  --gal-6: color-mix(in srgb, var(--red) 50%, #101530);
+  --gal-7: color-mix(in srgb, var(--green) 50%, #101530);
+  --gal-8: color-mix(in srgb, var(--pink) 50%, #101530);
 }
 
 [data-gra="galaktyki"] .gal {
-  position: relative;
   border-radius: calc(var(--cr) + var(--g));
+  overflow: hidden;
   background:
-    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%),
-    var(--bg);
+    radial-gradient(circle at 17% 24%, var(--gal-glow-strong) 0 0.7px, transparent 1.4px) 0 0 / 83px 71px,
+    radial-gradient(circle at 71% 63%, var(--gal-glow-soft) 0 0.6px, transparent 1.2px) 0 0 / 61px 59px,
+    radial-gradient(circle at 42% 82%, var(--gal-glow-cool) 0 0.9px, transparent 1.7px) 0 0 / 137px 127px,
+    radial-gradient(ellipse 70% 55% at 78% 6%, color-mix(in srgb, var(--gal-accent) 26%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 10% 94%, var(--gal-glow-pink), transparent 70%),
+    linear-gradient(160deg, var(--gal-sky-1), var(--gal-sky-2) 58%, var(--gal-sky-3));
   box-shadow:
-    inset 0 0 0 1px var(--line),
-    inset 0 1px 0 color-mix(in srgb, var(--gal-shine) 9%, transparent),
-    0 36px 64px -40px var(--shadow);
+    inset 0 0 0 1px var(--gal-film),
+    0 36px 70px -40px var(--shadow);
 }
 
 [data-gra="galaktyki"] .gal .gb-cell {
-  background: var(--gk, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
-  color: var(--text);
-  transition: background-color 240ms, box-shadow 200ms;
-}
-[data-gra="galaktyki"] .gal .gb-cell:not(.free) {
+  --el: transparent;
+  --er: transparent;
+  --et: transparent;
+  --eb: transparent;
+  border-radius: 0;
+  background-color: var(--gk, transparent);
+  background-image: linear-gradient(150deg, var(--gal-film), transparent 55%);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--gal-shade) 16%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--gal-shine) 18%, transparent);
+    inset 2px 0 0 var(--el),
+    inset -2px 0 0 var(--er),
+    inset 0 2px 0 var(--et),
+    inset 0 -2px 0 var(--eb),
+    inset -1px 0 0 var(--gal-line),
+    inset 0 -1px 0 var(--gal-line);
+  color: var(--gal-ink);
+  transition: background-color 220ms var(--ease), box-shadow 180ms var(--ease), filter 200ms;
 }
-[data-gra="galaktyki"] .gal .gb-cell.free { background: none; }
-[data-gra="galaktyki"] .gal .gb-cell { cursor: default; }
-[data-gra="galaktyki"] .gal .gb-cell.free.open {
-  background: color-mix(in srgb, var(--c) 6%, transparent);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c) 30%, transparent);
+[data-gra="galaktyki"] .gal .gb-cell.free {
+  background-color: var(--gal-dim);
+  background-image: none;
+  cursor: default;
+}
+[data-gra="galaktyki"] .gal .gb-cell:not(.free) { cursor: default; }
+
+/* granice regionów: pole z innym sąsiadem dostaje grubszą krawędź */
+[data-gra="galaktyki"] .gal .gb-cell.gal-el { --el: var(--gal-edge); }
+[data-gra="galaktyki"] .gal .gb-cell.gal-er { --er: var(--gal-edge); }
+[data-gra="galaktyki"] .gal .gb-cell.gal-et { --et: var(--gal-edge); }
+[data-gra="galaktyki"] .gal .gb-cell.gal-eb { --eb: var(--gal-edge); }
+
+/* pola, które da się teraz dołożyć do wybranej gwiazdy */
+[data-gra="galaktyki"] .gal .gb-cell.open {
+  background-color: color-mix(in srgb, var(--gal-accent) 20%, transparent);
   cursor: pointer;
 }
-[data-gra="galaktyki"] .gal .gb-cell:hover.free.open { background: color-mix(in srgb, var(--c) 12%, transparent); }
-[data-gra="galaktyki"] .gal .gb-cell.mate { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 48%, transparent); }
-[data-gra="galaktyki"] .gal .gb-cell.own { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--text) 55%, transparent); }
-[data-gra="galaktyki"] .gal .gb-cell.cursor { outline: 3px solid var(--text); outline-offset: -3px; z-index: 2; }
-[data-gra="galaktyki"] .gal .gb-cell.new { animation: galaktyki-pop 280ms cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+[data-gra="galaktyki"] .gal .gb-cell.open::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gal-accent) 62%, transparent);
+  pointer-events: none;
+}
+[data-gra="galaktyki"] .gal .gb-cell.open:hover {
+  background-color: color-mix(in srgb, var(--gal-accent) 32%, transparent);
+}
+
+/* pola wybranego regionu i podgląd pary pod kursorem */
+[data-gra="galaktyki"] .gal .gb-cell.own::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gal-ink) 52%, transparent);
+  pointer-events: none;
+}
+[data-gra="galaktyki"] .gal .gb-cell.mate {
+  outline: 2px dashed color-mix(in srgb, var(--gal-ink) 76%, transparent);
+  outline-offset: -3px;
+  z-index: 1;
+}
+[data-gra="galaktyki"] .gal .gb-cell.cursor {
+  outline: 3px solid var(--gal-ink);
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+[data-gra="galaktyki"] .gal .gb-cell.gal-pop { animation: galaktyki-pop 260ms var(--ease-pop); }
+[data-gra="galaktyki"] .gal .gb-cell.gal-flash { animation: galaktyki-flash 520ms var(--ease); }
+[data-gra="galaktyki"] .gal .gb-cell.gal-glow { animation: galaktyki-glow 620ms var(--ease) 2; }
 
 /* gwiazdy regionów */
 [data-gra="galaktyki"] .gal-stars { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 [data-gra="galaktyki"] .gal-star {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: calc(var(--s) * 0.76);
-  height: calc(var(--s) * 0.76);
+  width: calc(var(--s) * 0.72);
+  height: calc(var(--s) * 0.72);
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--gos, var(--surface));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--text) 26%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--gal-shine) 30%, transparent),
-    0 calc(var(--s) * 0.05) calc(var(--s) * 0.12) color-mix(in srgb, var(--gal-shade) 26%, transparent);
-  color: var(--text);
-  font-size: calc(var(--s) * 0.4);
+  background: radial-gradient(
+    circle at 36% 30%,
+    color-mix(in srgb, var(--gos) 42%, var(--gal-white)),
+    var(--gos) 60%,
+    color-mix(in srgb, var(--gos) 55%, var(--gal-shade))
+  );
+  color: var(--gal-ink);
+  font-size: calc(var(--s) * 0.38);
   line-height: 1;
+  text-shadow: 0 0 calc(var(--s) * 0.18) color-mix(in srgb, var(--gal-white) 70%, transparent);
+  box-shadow:
+    0 0 calc(var(--s) * 0.32) color-mix(in srgb, var(--gos) 66%, transparent),
+    inset 0 0 0 1px var(--gal-ring);
   cursor: pointer;
   pointer-events: auto;
-  transition: transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1.4), background-color 160ms, color 160ms, opacity 200ms;
+  transition: transform 160ms var(--ease-pop), box-shadow 160ms, opacity 200ms;
 }
 [data-gra="galaktyki"] .gal-star:hover,
-[data-gra="galaktyki"] .gal-star:focus-visible { transform: translate(-50%, -50%) scale(1.16); }
-[data-gra="galaktyki"] .gal-star:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+[data-gra="galaktyki"] .gal-star:focus-visible { transform: translate(-50%, -50%) scale(1.14); }
+[data-gra="galaktyki"] .gal-star:focus-visible { outline: 2px solid var(--gal-ink); outline-offset: 2px; }
 [data-gra="galaktyki"] .gal-star.on {
-  background: var(--c);
-  color: var(--on);
-  box-shadow: 0 0 0 2px var(--c), 0 0 calc(var(--s) * 0.55) color-mix(in srgb, var(--c) 55%, transparent);
-  animation: galaktyki-pulse 1500ms ease-in-out infinite;
+  background: radial-gradient(
+    circle at 36% 30%,
+    var(--gal-white),
+    var(--gos) 55%,
+    color-mix(in srgb, var(--gos) 55%, var(--gal-shade))
+  );
+  box-shadow:
+    0 0 0 2px var(--gal-ink),
+    0 0 calc(var(--s) * 0.7) color-mix(in srgb, var(--gos) 82%, transparent);
 }
 [data-gra="galaktyki"] .gal-star.done {
-  opacity: 0.62;
-  color: color-mix(in srgb, var(--text) 70%, var(--gal-shade));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent);
+  opacity: 0.72;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 85%, transparent),
+    0 0 calc(var(--s) * 0.28) color-mix(in srgb, var(--gold) 55%, transparent);
 }
 
-@keyframes galaktyki-pulse { 50% { box-shadow: 0 0 0 2px var(--c), 0 0 calc(var(--s) * 0.95) color-mix(in srgb, var(--c) 72%, transparent); } }
-@keyframes galaktyki-pop { from { transform: scale(0.6); } 60% { transform: scale(1.08); } to { transform: scale(1); } }
+@keyframes galaktyki-pop {
+  from { transform: scale(0.72); }
+  60% { transform: scale(1.06); }
+  to { transform: scale(1); }
+}
+@keyframes galaktyki-flash {
+  30% { filter: brightness(1.55) saturate(1.25); }
+}
+@keyframes galaktyki-glow {
+  40% { filter: brightness(1.8); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  [data-gra="galaktyki"] .gal-star,
-  [data-gra="galaktyki"] .gal-star.on,
-  [data-gra="galaktyki"] .gal .gb-cell.new { transition: none; animation: none; }
+  [data-gra="galaktyki"] .gal .gb-cell,
+  [data-gra="galaktyki"] .gal-star { transition: none; }
+  [data-gra="galaktyki"] .gal .gb-cell.gal-pop,
+  [data-gra="galaktyki"] .gal .gb-cell.gal-flash,
+  [data-gra="galaktyki"] .gal .gb-cell.gal-glow { animation: none; }
 }

@@ -220,10 +220,10 @@
     return true;
   }
 
-  // Udział regionów, które nie są prostokątami, i udział pól-gwiazd. Wyższy wynik =
-  // ciekawsza plansza.
+  // Udział regionów, które nie są prostokątami, i kara za drobne regiony.
+  // Wyższy wynik = ciekawsza, mniej oczywista plansza.
   function shapeScore(n, m, reg) {
-    let nonRect = 0, single = 0;
+    let nonRect = 0, small = 0;
     for (const cells of reg) {
       let r0 = n, r1 = -1, c0 = m, c1 = -1;
       for (const i of cells) {
@@ -232,9 +232,9 @@
         if (c < c0) c0 = c; if (c > c1) c1 = c;
       }
       if ((r1 - r0 + 1) * (c1 - c0 + 1) !== cells.length) nonRect++;
-      if (cells.length === 1) single++;
+      if (cells.length < 3) small++;
     }
-    return (nonRect / reg.length) * 6 - (single / reg.length) * 3;
+    return (nonRect / reg.length) * 7 - (small / reg.length) * 5;
   }
 
   // Awaryjny podział: prostokąty z losowego cięcia. Zawsze poprawny, bo prostokąt
@@ -333,43 +333,45 @@
     ink: "#ffffff",
     glyph: ["..#..", "#####", "..#..", ".###.", "..#.."],
     levels: [
-      { key: "easy", name: "6 × 6", points: 10, n: 6, m: 6, target: 7 },
-      { key: "medium", name: "8 × 8", points: 25, n: 8, m: 8, target: 11 },
-      { key: "hard", name: "10 × 10", points: 50, n: 10, m: 10, target: 17 },
+      { key: "easy", name: "7 × 7", points: 10, n: 7, m: 7, target: 8 },
+      { key: "medium", name: "9 × 9", points: 25, n: 9, m: 9, target: 12 },
+      { key: "hard", name: "11 × 11", points: 50, n: 11, m: 11, target: 18 },
     ],
     rules: [
       "Każda gwiazda jest środkiem jednego regionu: obrót regionu o 180 stopni wokół gwiazdy daje ten sam kształt.",
       "Region startuje z pól, na których stoi jego gwiazda, i rośnie parami pól będących swoimi odbiciami.",
       "Wybierz gwiazdę i kliknij wolne pole — jego odbicie trafia do tego samego regionu razem z nim.",
       "Para pól musi dotykać regionu. Regiony dzielą planszę bez luk i bez nakładania się.",
-      "Wygrywasz, gdy każde pole ma swoją gwiazdę. Strzałki przesuwają kursor, spacja stawia pole.",
+      "Wygrywasz, gdy każde pole należy do regionu. Gdy zabraknie ruchu, cofnij ostatnie ułożenie. Strzałki przesuwają kursor, spacja stawia pole.",
     ],
     achievements: [
-      { id: "bez-podpowiedzi", name: "Samodzielnie", desc: "Rozwiąż planszę 6 × 6 bez podpowiedzi.", points: 10 },
-      { id: "szybka-reka", name: "Szybka ręka", desc: "Rozwiąż planszę 6 × 6 w mniej niż minutę.", points: 10 },
-      { id: "bez-cofniecia", name: "Bez cofnięcia", desc: "Rozwiąż planszę 8 × 8 bez użycia cofania.", points: 25 },
-      { id: "wprawna-reka", name: "Wprawna ręka", desc: "Rozwiąż planszę 8 × 8 w mniej niż dwie minuty.", points: 25 },
-      { id: "pelny-obraz", name: "Pełny obraz", desc: "Rozwiąż planszę 10 × 10 bez użycia cofania.", points: 50 },
+      { id: "bez-podpowiedzi", name: "Samodzielnie", desc: "Rozwiąż planszę 7 × 7 bez podpowiedzi.", points: 10 },
+      { id: "szybka-reka", name: "Szybka ręka", desc: "Rozwiąż planszę 7 × 7 w mniej niż minutę.", points: 10 },
+      { id: "bez-cofniecia", name: "Bez cofnięcia", desc: "Rozwiąż planszę 9 × 9 bez użycia cofania.", points: 25 },
+      { id: "wprawna-reka", name: "Wprawna ręka", desc: "Rozwiąż planszę 9 × 9 w mniej niż dwie minuty.", points: 25 },
+      { id: "pelny-obraz", name: "Pełny obraz", desc: "Rozwiąż planszę 11 × 11 bez użycia cofania.", points: 50 },
+      { id: "bez-wskazowek", name: "Bez wskazówek", desc: "Rozwiąż planszę 11 × 11 bez podpowiedzi.", points: 50 },
     ],
 
     mount(board, ctx) {
       const { n, m, target } = ctx.level;
-      const GAP = 0.06;
       const p = puzzle(n, m, target, makeRng((Date.now() ^ (Math.random() * 4294967296)) >>> 0));
       const stars = p.stars, reg = p.reg;
       const color = colorRegions(n, m, reg, p.owner);
-      let owner = new Int16Array(n * m).fill(-1);
+      const total = n * m;
+      let owner = new Int16Array(total).fill(-1);
       stars.forEach((s, k) => { for (const i of seedCells(n, m, s.R, s.C)) owner[i] = k; });
-      let active = 0, cursor = 0, hinted = false, hoverEl = null;
+      let active = 0, cursor = 0, hinted = false, hoverEls = [];
 
-      const cells = gridCells(board, m, n, "gal", { gap: GAP });
+      // Pola stykają się, więc region czyta się jako jedna plama, a nie rządek kafelków.
+      const cells = gridCells(board, m, n, "gal", { gap: 0 });
       const layer = el("div", "gal-stars");
       board.append(layer);
-      const W = m + GAP * (m + 1), H = n + GAP * (n + 1);
-      // gwiazda stoi dokładnie w środku swojej pozycji, także na krawędzi czy narożniku
-      const at = (v) => GAP + v + Math.floor(v) * GAP;
+      const W = m, H = n;
+      // pole ma bok 1, więc pozycja gwiazdy to po prostu jej współrzędna
+      const at = (v) => v;
       const starEls = stars.map((s, k) => {
-        const b = button("★", "gal-star", () => { if (!ctx.done) { active = k; cursor = 0; Sound.tap(); render(); } });
+        const b = button("★", "gal-star", () => { if (!ctx.done) select(k); });
         b.setAttribute("aria-label", `Gwiazda regionu ${k + 1}`);
         b.style.setProperty("--gos", `var(--gal-${color[k] + 1})`);
         b.style.left = `${(at((s.C + 1) / 2) / W) * 100}%`;
@@ -379,13 +381,19 @@
       });
 
       const doneEl = statBlock(ctx, "Zapełnione", { meter: true });
-      const next = button("Następny region", "btn-ghost wide", () => { if (!ctx.done) { active = (active + 1) % reg.length; cursor = 0; Sound.tap(); render(); } });
+      const next = button("Następna gwiazda", "btn-ghost wide", () => { if (!ctx.done) { select((active + 1) % reg.length); Sound.tap(); } });
       const help = button("Podpowiedź", "btn-ghost wide", hint);
-      ctx.panel.append(panelBlock("", next, help));
+      ctx.panel.append(panelBlock("Regiony", next, help));
 
-      const save = ctx.undoable((snap) => { owner = Int16Array.from(snap.owner); active = snap.active; render(); });
-      let count = 0;
-      for (let i = 0; i < owner.length; i++) if (owner[i] >= 0) count++;
+      // Cofanie przywraca też licznik pól, więc pasek postępu i koniec partii
+      // zawsze zgadzają się z tym, co widać na planszy.
+      const save = ctx.undoable((snap) => {
+        owner = Int16Array.from(snap.owner);
+        active = snap.active;
+        cursor = snap.cursor;
+        render();
+        ctx.toast("Cofnięto ostatnie ułożenie");
+      });
 
       const idxMirror = (k, i) => {
         const r = (i / m) | 0, c = i % m;
@@ -409,80 +417,130 @@
         if (j !== i && !touches(k, i) && !touches(k, j)) return -1;
         return j;
       }
+      const owned = () => {
+        let c = 0;
+        for (let i = 0; i < total; i++) if (owner[i] >= 0) c++;
+        return c;
+      };
+      const regionDone = (k) => reg[k].every((i) => owner[i] === k);
+      function select(k) {
+        active = k;
+        cursor = reg[k].find((i) => owner[i] < 0) ?? 0;
+        render();
+        Sound.tap();
+      }
+      function anyMove() {
+        for (let i = 0; i < total; i++) {
+          if (owner[i] >= 0) continue;
+          for (let k = 0; k < reg.length; k++) if (fit(k, i) >= 0) return true;
+        }
+        return false;
+      }
 
       function paint(k, i) {
         const j = idxMirror(k, i);
-        save({ owner: owner.slice(), active });
+        if (j < 0) return;
+        save({ owner: owner.slice(), active, cursor });
+        const before = regionDone(k);
         owner[i] = k;
         if (j !== i) owner[j] = k;
-        count += j === i ? 1 : 2;
         cursor = i;
         Sound.place(color[k] + 1);
-        replay(cells[i], "new");
-        if (j !== i) replay(cells[j], "new");
+        replay(cells[i], "gal-pop");
+        if (j !== i) replay(cells[j], "gal-pop");
         render();
-        if (count === n * m) finish();
+        if (!before && regionDone(k)) {
+          Sound.line();
+          for (const t of reg[k]) replay(cells[t], "gal-flash");
+          ctx.toast(`Region ${k + 1} gotowy`);
+        }
+        if (owned() === total) finish();
+        else if (!anyMove()) ctx.toast("Brak ruchu — cofnij ostatnie ułożenie");
       }
 
       function place(i) {
         if (ctx.done) return;
+        if (owner[i] >= 0) {
+          Sound.error(); replay(cells[i], "shake");
+          ctx.toast(owner[i] === active ? "To pole już jest w tym regionie" : "To pole należy do innego regionu");
+          return;
+        }
         let k = active;
         if (fit(k, i) < 0) {
           const cand = [];
           for (let t = 0; t < reg.length; t++) if (t !== k && fit(t, i) >= 0) cand.push(t);
           if (cand.length === 1) { active = k = cand[0]; }
           else if (cand.length === 0) {
-            if (owner[i] >= 0) { Sound.error(); replay(cells[i], "shake"); ctx.toast("To pole należy już do innego regionu"); }
-            else ctx.toast("Para pól nie dotyka tego regionu albo odbicie jest zajęte");
+            Sound.error(); replay(cells[i], "shake");
+            ctx.toast("Para pól nie dotyka regionu albo odbicie jest zajęte");
             return;
           } else {
             Sound.error(); replay(cells[i], "shake");
-            ctx.toast("To pole pasuje do kilku regionów — najpierw wybierz gwiazdę");
+            ctx.toast("To pole pasuje do kilku regionów — wybierz gwiazdę");
             return;
           }
         }
         paint(k, i);
       }
 
-      // Podpowiedź podaje parę z rozwiązania, więc nigdy nie prowadzi w ślepy zaułek.
+      // Podpowiedź wybiera legalną parę, najchętniej z rozwiązania i bez
+      // wieloznaczności. Nie stawia pól sama, więc każdy ruch zostaje Twój.
       function hint() {
         if (ctx.done) return;
-        for (let k = 0; k < reg.length; k++) {
-          for (const i of reg[k]) {
-            if (owner[i] >= 0) continue;
-            const j = idxMirror(k, i);
-            if (j < 0 || owner[j] >= 0) continue;
-            if (j !== i && !touches(k, i) && !touches(k, j)) continue;
-            hinted = true;
-            active = k; cursor = i;
-            render();
-            sweep(j === i ? [cells[i]] : [cells[i], cells[j]]);
-            return;
+        let best = null;
+        for (let i = 0; i < total; i++) {
+          if (owner[i] >= 0) continue;
+          let bestK = -1, bestInSol = false, options = 0;
+          for (let k = 0; k < reg.length; k++) {
+            const j = fit(k, i);
+            if (j < 0) continue;
+            options++;
+            const inSol = reg[k].includes(i) && (j === i || reg[k].includes(j));
+            if (bestK < 0 || (inSol && !bestInSol)) { bestK = k; bestInSol = inSol; }
           }
+          if (bestK < 0) continue;
+          const score = (bestInSol ? 0 : 1000) + options;
+          if (!best || score < best.score) best = { i, k: bestK, score };
         }
-        ctx.toast("Nie ma już pary z rozwiązania — cofnij ruch");
+        if (!best) { ctx.toast("Brak ruchu — cofnij ostatnie ułożenie"); return; }
+        hinted = true;
+        active = best.k;
+        cursor = best.i;
+        render();
+        const j = idxMirror(best.k, best.i);
+        replay(cells[best.i], "gal-glow");
+        if (j >= 0 && j !== best.i) replay(cells[j], "gal-glow");
+        Sound.tap();
+        ctx.toast(`Para należy do regionu ${best.k + 1}`);
       }
 
       function finish() {
         if (ctx.done) return;
-        if (n === 6 && !hinted) ctx.achieve("bez-podpowiedzi");
-        if (n === 6 && ctx.time < 60) ctx.achieve("szybka-reka");
-        if (n === 8 && ctx.undos === 0) ctx.achieve("bez-cofniecia");
-        if (n === 8 && ctx.time < 120) ctx.achieve("wprawna-reka");
-        if (n === 10 && ctx.undos === 0) ctx.achieve("pelny-obraz");
-        ctx.win("Każde pole ma swoją gwiazdę.");
+        if (n === 7 && !hinted) ctx.achieve("bez-podpowiedzi");
+        if (n === 7 && ctx.time < 60) ctx.achieve("szybka-reka");
+        if (n === 9 && ctx.undos === 0) ctx.achieve("bez-cofniecia");
+        if (n === 9 && ctx.time < 120) ctx.achieve("wprawna-reka");
+        if (n === 11 && ctx.undos === 0) ctx.achieve("pelny-obraz");
+        if (n === 11 && !hinted) ctx.achieve("bez-wskazowek");
+        ctx.win("Każde pole należy do regionu.");
       }
 
       board.addEventListener("click", (e) => {
         const c = e.target.closest(".gal .gb-cell");
         if (c) place(+c.dataset.i);
       });
-      const hover = (i) => {
-        if (hoverEl) { hoverEl.classList.remove("mate"); hoverEl = null; }
+      // Podgląd pary: zaznaczamy pole i jego odbicie, żeby przed kliknięciem
+      // było widać cały ruch.
+      function hover(i) {
+        for (const c of hoverEls) c.classList.remove("mate");
+        hoverEls = [];
         if (i < 0 || owner[i] >= 0) return;
         const j = idxMirror(active, i);
-        if (j >= 0 && j !== i && owner[j] < 0) { hoverEl = cells[j]; hoverEl.classList.add("mate"); }
-      };
+        if (j < 0) return;
+        for (const t of new Set([i, j])) {
+          if (owner[t] < 0) { cells[t].classList.add("mate"); hoverEls.push(cells[t]); }
+        }
+      }
       cells.forEach((c, i) => c.addEventListener("pointerenter", () => hover(i)));
       board.addEventListener("pointerleave", () => hover(-1));
       cellKeys(ctx, {
@@ -494,24 +552,32 @@
 
       function render() {
         hover(-1);
+        let count = 0, doneCount = 0;
         cells.forEach((c, i) => {
           const k = owner[i];
+          if (k >= 0) count++;
+          const r = (i / m) | 0, col = i % m;
           c.style.setProperty("--gk", k >= 0 ? `var(--gal-${color[k] + 1})` : "transparent");
           c.classList.toggle("free", k < 0);
           c.classList.toggle("own", k === active && k >= 0);
           c.classList.toggle("open", k < 0 && fit(active, i) >= 0);
           c.classList.toggle("cursor", i === cursor);
+          c.classList.toggle("gal-el", k >= 0 && (col === 0 || owner[i - 1] !== k));
+          c.classList.toggle("gal-er", k >= 0 && (col === m - 1 || owner[i + 1] !== k));
+          c.classList.toggle("gal-et", k >= 0 && (r === 0 || owner[i - m] !== k));
+          c.classList.toggle("gal-eb", k >= 0 && (r === n - 1 || owner[i + m] !== k));
         });
         starEls.forEach((s, k) => {
-          const done = reg[k].every((i) => owner[i] === k);
+          const done = regionDone(k);
+          if (done) doneCount++;
           s.classList.toggle("on", k === active);
           s.classList.toggle("done", done);
           const mark = done ? "✓" : "★";
           if (s.textContent !== mark) s.textContent = mark;
           s.setAttribute("aria-label", done ? `Region ${k + 1} gotowy` : `Gwiazda regionu ${k + 1}`);
         });
-        doneEl.set(`${count} / ${n * m}`, count / (n * m), `Region ${active + 1} z ${reg.length}`);
-        ctx.progress(count / (n * m));
+        doneEl.set(`${count} / ${total}`, count / total, `Gotowe: ${doneCount} z ${reg.length}`);
+        ctx.progress(count / total);
       }
       render();
     },

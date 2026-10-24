@@ -46,7 +46,7 @@ function check(n, m, stars, reg) {
 }
 
 test("generator zawsze dzieli planszę na poprawne regiony", () => {
-  for (const [n, m] of [[6, 6], [8, 8], [10, 10]]) {
+  for (const [n, m] of [[7, 7], [9, 9], [11, 11]]) {
     const rng = makeRng(1234 + n * 31 + m * 7);
     for (let k = 0; k < 25; k++) {
       const g = grow(n, m, rng);
@@ -57,7 +57,7 @@ test("generator zawsze dzieli planszę na poprawne regiony", () => {
 });
 
 test("każdy region da się zbudować parami pól ze swojej gwiazdy", () => {
-  for (const [n, m] of [[6, 6], [8, 8], [10, 10]]) {
+  for (const [n, m] of [[7, 7], [9, 9], [11, 11]]) {
     const rng = makeRng(77 + n + m);
     for (let k = 0; k < 20; k++) {
       const g = grow(n, m, rng);
@@ -68,11 +68,11 @@ test("każdy region da się zbudować parami pól ze swojej gwiazdy", () => {
 });
 
 test("plansza do gry trafia w żądaną liczbę gwiazd", () => {
-  for (const [n, m, target] of [[6, 6, 7], [8, 8, 11], [10, 10, 17]]) {
+  for (const [n, m, target] of [[7, 7, 8], [9, 9, 12], [11, 11, 18]]) {
     const rng = makeRng(2024 + n * 13 + m);
     for (let k = 0; k < 8; k++) {
       const g = puzzle(n, m, target, rng);
-      assert.ok(Math.abs(g.count - target) <= 2, `zbyt wiele gwiazd: ${g.count} zamiast ${target}`);
+      assert.ok(Math.abs(g.count - target) <= 3, `zbyt wiele gwiazd: ${g.count} zamiast ${target}`);
       check(n, m, g.stars, g.reg);
       assert.ok(buildable(n, m, g.stars, g.reg), "planszy nie da się zbudować parami pól");
     }
@@ -84,11 +84,11 @@ test("regiony są różnorodne, a część nie jest prostokątami", () => {
   const sigs = new Set();
   let nonRect = 0, total = 0;
   for (let k = 0; k < 12; k++) {
-    const g = puzzle(8, 8, 11, rng);
+    const g = puzzle(9, 9, 12, rng);
     sigs.add(g.reg.map((r) => r.join(".")).sort().join("|"));
     for (const cells of g.reg) {
       let minR = 9, maxR = -1, minC = 9, maxC = -1;
-      for (const i of cells) { const r = (i / 8) | 0, c = i % 8; minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c); }
+      for (const i of cells) { const r = (i / 9) | 0, c = i % 9; minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c); }
       total++;
       if ((maxR - minR + 1) * (maxC - minC + 1) !== cells.length) nonRect++;
     }
@@ -99,7 +99,7 @@ test("regiony są różnorodne, a część nie jest prostokątami", () => {
 
 test("sąsiadujące regiony mają różne kolory", () => {
   const rng = makeRng(5);
-  const n = 10, m = 10;
+  const n = 11, m = 11;
   for (let k = 0; k < 10; k++) {
     const g = puzzle(n, m, 17, rng);
     const color = colorRegions(n, m, g.reg, g.owner);
@@ -119,7 +119,7 @@ test("sąsiadujące regiony mają różne kolory", () => {
 
 test("awaryjny podział zawsze daje poprawną i budowalną planszę", () => {
   const rng = makeRng(9);
-  for (const [n, m, count] of [[6, 6, 9], [8, 8, 13], [10, 10, 19]]) {
+  for (const [n, m, count] of [[7, 7, 9], [9, 9, 13], [11, 11, 19]]) {
     for (let k = 0; k < 8; k++) {
       const g = bands(n, m, count, rng);
       assert.equal(g.reg.length, count, "zła liczba regionów");

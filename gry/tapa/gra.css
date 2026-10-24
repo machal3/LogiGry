@@ -1,0 +1,119 @@
+[data-gra="tapa"] {
+  --tapa-dot: var(--muted);
+  --tapa-lock: var(--bg);
+}
+
+[data-gra="tapa"] .gb-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  user-select: none;
+  transition: background-color var(--dur) var(--ease), transform 100ms var(--ease);
+}
+
+[data-gra="tapa"] .gb-cell:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+[data-gra="tapa"] .gb-cell.is-clue {
+  background: var(--tapa-lock);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: default;
+}
+
+[data-gra="tapa"] .gb-cell.is-clue.is-ok {
+  background: color-mix(in srgb, var(--ok) 20%, var(--surface));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ok) 65%, transparent);
+}
+
+[data-gra="tapa"] .tapa-clues {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  align-items: center;
+  justify-items: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+[data-gra="tapa"] .tapa-clues.m-1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-gra="tapa"] .tapa-clues.m-2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  padding: calc(var(--s) * 0.08);
+}
+[data-gra="tapa"] .tapa-clues.m-2 .tapa-n:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+}
+[data-gra="tapa"] .tapa-clues.m-2 .tapa-n:nth-child(2) {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  justify-self: end;
+}
+
+[data-gra="tapa"] .tapa-clues.m-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  padding: calc(var(--s) * 0.06);
+}
+[data-gra="tapa"] .tapa-clues.m-3 .tapa-n:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+}
+[data-gra="tapa"] .tapa-clues.m-3 .tapa-n:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  justify-self: end;
+}
+[data-gra="tapa"] .tapa-clues.m-3 .tapa-n:nth-child(3) {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  align-self: end;
+  justify-self: center;
+}
+
+[data-gra="tapa"] .tapa-clues.m-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  padding: calc(var(--s) * 0.05);
+}
+
+[data-gra="tapa"] .tapa-n {
+  font-size: calc(var(--s) * 0.44);
+  color: var(--text);
+  font-weight: 800;
+}
+
+[data-gra="tapa"] .tapa-clues.m-2 .tapa-n {
+  font-size: calc(var(--s) * 0.32);
+}
+
+[data-gra="tapa"] .tapa-clues.m-3 .tapa-n,
+[data-gra="tapa"] .tapa-clues.m-4 .tapa-n {
+  font-size: calc(var(--s) * 0.24);
+}
+
+[data-gra="tapa"] .gb-cell.is-dot::after {
+  content: "";
+  position: absolute;
+  width: calc(var(--s) * 0.22);
+  height: calc(var(--s) * 0.22);
+  border-radius: 50%;
+  background: var(--tapa-dot);
+  pointer-events: none;
+}

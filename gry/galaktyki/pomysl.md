@@ -10,8 +10,8 @@
 2. Kształt regionu jest symetryczny obrotowo o 180 stopni względem swojej gwiazdy.
 3. Region startuje z pól, na których stoi gwiazda; dalej rośnie parami pól, które są swoimi odbiciami wokół tej gwiazdy.
 4. Klikasz gwiazdę, a potem wolne pole. Para pól (pole i jego odbicie) musi dotykać regionu; wtedy oba pola trafiają do niego.
-5. Gdy pomyłka zablokuje planszę, wracasz przyciskiem „Cofnij”.
-6. Wygrywasz, gdy każde pole należy do jakiegoś regionu. Poziomy różnią się rozmiarem planszy i liczbą gwiazd.
+5. Jeden klik to jedno ułożenie pary, więc każdy ruch można cofnąć przyciskiem „Cofnij”. Gdy zabraknie ruchu, cofnij ostatnie ułożenie.
+6. Wygrywasz, gdy każde pole należy do jakiegoś regionu. Poziomy różnią się rozmiarem planszy (7 × 7, 9 × 9, 11 × 11) i liczbą gwiazd.
 
 ## Czym różni się od podobnych gier
 To dzielenie planszy na obrotowo symetryczne obszary wokół gwiazd, inne od prostokątów Shikaku i od hidato.
