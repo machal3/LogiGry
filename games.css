@@ -397,6 +397,7 @@ body[data-view="game"] footer { display: none; }
 .result-stats dt { font-size: 0.8125rem; color: var(--muted); }
 .result-stats dd { margin: 2px 0 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .result-actions { display: grid; gap: 10px; }
+.result-card:focus { outline: none; }
 
 /* --- Osiągnięcia --- */
 .result-ach { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 6px; animation-delay: 970ms !important; }
