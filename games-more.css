@@ -2138,11 +2138,61 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .td-stats .rl-bar, .td-stats .fm-goal { grid-column: 1 / -1; }
 
 /* --- Metro --- */
-.mt-lines { display: grid; gap: 6px; }
-.mt-line { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; min-height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--bg); font-size: 0.8125rem; text-align: left; cursor: pointer; }
-.mt-line i { height: 6px; border-radius: 999px; background: var(--lc); }
-.mt-line kbd { font: 500 0.75rem var(--font); color: var(--muted); }
-.mt-line.on { box-shadow: inset 0 0 0 2px var(--lc); }
+.mt-lines { display: grid; gap: 6px; margin-bottom: var(--sp-2); }
+.mt-line { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 12px; background: var(--bg); color: var(--text); text-align: left; cursor: pointer; transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease), background-color var(--dur) var(--ease); }
+.mt-line:hover { transform: translateX(2px); }
+.mt-line.on { background: color-mix(in srgb, var(--lc) 10%, var(--surface)); box-shadow: inset 0 0 0 2px var(--lc); }
+.mt-sw { position: relative; height: 6px; border-radius: 999px; background: var(--lc); }
+.mt-sw::before, .mt-sw::after { content: ""; position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translateY(-50%); background: var(--surface); box-shadow: inset 0 0 0 2px var(--lc); }
+.mt-sw::before { left: -1px; }
+.mt-sw::after { right: -1px; }
+.mt-sw.loop { height: 14px; background: none; box-shadow: inset 0 0 0 3px var(--lc); }
+.mt-sw.loop::before, .mt-sw.loop::after { display: none; }
+.mt-line.empty .mt-sw { background: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lc) 55%, transparent); }
+.mt-line.empty .mt-sw::before, .mt-line.empty .mt-sw::after { display: none; }
+.mt-line-name { display: grid; min-width: 0; }
+.mt-line-name b { font-size: var(--fs-sm); }
+.mt-line-name small { overflow: hidden; color: var(--muted); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+.mt-line kbd { font: 500 var(--fs-xs) var(--font); color: var(--muted); }
+.mt-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: var(--sp-3); }
+.mt-days span { display: grid; gap: 4px; color: var(--muted); font-size: 0.6875rem; font-weight: 600; text-align: center; transition: color var(--dur) var(--ease); }
+.mt-days i { position: relative; display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.mt-days i::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--c); transform: scaleX(var(--f, 0)); transform-origin: left; transition: transform 250ms linear; }
+.mt-days span.now, .mt-days span.done { color: var(--text); }
+.mt-reward { position: absolute; inset: 0; z-index: 5; display: grid; align-content: center; justify-items: center; gap: var(--sp-4); padding: var(--sp-4); border-radius: inherit; background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(4px); animation: metro-fade 220ms var(--ease) both; }
+.mt-reward.out { animation: metro-fade 180ms var(--ease) reverse both; }
+.mt-reward-head { display: grid; gap: 2px; text-align: center; }
+.mt-reward-head small { color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.mt-reward-head h3 { margin: 0; font-size: var(--fs-xl); letter-spacing: -0.03em; }
+.mt-reward-list { display: grid; gap: var(--sp-2); width: min(420px, 100%); }
+.mt-opt { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-3); border: 0; border-radius: var(--radius); background: var(--surface); color: var(--text); text-align: left; box-shadow: var(--elev-2), inset 0 0 0 1px var(--line); cursor: pointer; animation: metro-rise 340ms var(--ease-pop) var(--d, 0ms) both; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.mt-opt:hover, .mt-opt:focus-visible { transform: translateY(-2px); box-shadow: var(--elev-3), inset 0 0 0 2px var(--oc); outline: none; }
+.mt-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--oc) 16%, var(--surface)); color: var(--oc); }
+.mt-ico svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.mt-opt:hover .mt-ico svg { animation: metro-wiggle 400ms var(--ease-pop); }
+.mt-opt-text { display: grid; gap: 2px; min-width: 0; }
+.mt-opt-text b { font-size: var(--fs); }
+.mt-opt-text span { color: var(--muted); font-size: var(--fs-sm); }
+.mt-opt kbd { align-self: start; font: 500 var(--fs-xs) var(--font); color: var(--muted); }
+@keyframes metro-fade { from { opacity: 0; } }
+@keyframes metro-rise { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+@keyframes metro-wiggle { 40% { transform: scale(1.12) rotate(-4deg); } 70% { transform: scale(0.98) rotate(2deg); } }
+.mt-opt-text small { display: none; }
+@media (max-width: 520px) {
+  .mt-reward { gap: var(--sp-2); padding: var(--sp-2); }
+  .mt-reward-head h3 { font-size: var(--fs-lg); }
+  .mt-reward-list { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .mt-opt { grid-template-columns: 1fr; justify-items: center; gap: var(--sp-1); padding: var(--sp-2) var(--sp-1); text-align: center; }
+  .mt-ico { width: 34px; height: 34px; border-radius: 10px; }
+  .mt-ico svg { width: 22px; height: 22px; }
+  .mt-opt-text b { font-size: var(--fs-xs); line-height: 1.2; }
+  .mt-opt-text span, .mt-opt kbd { display: none; }
+  .mt-opt-text small { display: block; color: var(--muted); font-size: 0.6875rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-reward, .mt-reward.out, .mt-opt, .mt-opt:hover .mt-ico svg { animation: none; }
+  .mt-line, .mt-opt, .mt-days span, .mt-days i::before { transition: none; }
+}
 
 /* --- Podbój --- */
 .cq-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--bg); }
