@@ -81,3 +81,36 @@ test("przygoda: każdy etap ma start i metę", () => {
     assert.ok(L.things.some((t) => t.kind === "start") && L.things.some((t) => t.kind === "goal"));
   }
 });
+
+test("twierdza: budowa, ulepszenia, czary i wygrana prostą obroną na łatwym", () => {
+  const TD = g("twierdza");
+  const lv = { key: "easy", map: "easy", waves: 10, gold: 230, lives: 20, hp: 0.75, grow: 1.09 };
+  const s = TD.create(lv, { events: false });
+  const road = [...s.road][0];
+  assert.equal(TD.build(s, "archer", road), null);
+  const t = TD.build(s, "archer", 1 * TD.COLS + 3);
+  assert.ok(t);
+  assert.equal(TD.build(s, "cannon", t.i), null);
+  s.gold = 1000;
+  assert.ok(TD.upgrade(s, t) && TD.upgrade(s, t, 1));
+  assert.equal(t.tier, 2);
+  assert.equal(TD.spec(t).key, "kusza");
+  assert.equal(TD.upgrade(s, t), false);
+  TD.sell(s, t);
+  assert.equal(s.towers.length, 0);
+  // fale rosną, ostatnia ma bossa; podgląd zgadza się z liczebnością
+  assert.ok(TD.wave(10, 10).some((q) => q.type === "boss"));
+  assert.equal(TD.waveSummary(TD.wave(7, 15)).reduce((a, [, n]) => a + n, 0), TD.wave(7, 15).length);
+  assert.ok(TD.wave(3, 20, 2).some((q) => q.path === 1));
+  // 6 łuczników na najlepszych polach i czary wystarczają do wygranej
+  const s2 = TD.create(lv, { events: false });
+  s2.gold = 2000;
+  for (const i of [3 * 16 + 5, 3 * 16 + 7, 7 * 16 + 7, 7 * 16 + 10, 4 * 16 + 10, 2 * 16 + 12]) { const a = TD.build(s2, "archer", i); TD.upgrade(s2, a); TD.upgrade(s2, a, 0); }
+  for (let k = 0; k < 60 * 60 * 15 && !s2.over; k++) {
+    if (s2.waveDone) TD.callWave(s2);
+    if (s2.enemies.length > 5 && s2.cd.meteor <= 0) TD.cast(s2, "meteor", s2.enemies[0].x, s2.enemies[0].y);
+    TD.step(s2, 1 / 60);
+  }
+  assert.equal(s2.over, "win");
+  assert.ok(s2.lives > 0);
+});

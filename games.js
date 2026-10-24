@@ -126,7 +126,7 @@ const GAMES = [
     cat: "strategia",
     big: true,
     name: "Twierdza",
-    desc: "Buduj wieże przy drodze i odpieraj kolejne fale wrogów. Ulepszenia, pięć rodzajów wież, boss na końcu.",
+    desc: "Buduj i ulepszaj wieże przy drodze, rzucaj czary i odpieraj fale wrogów aż do bossa.",
     color: "#3d5a80",
     ink: "#ffffff",
     glyph: ["#.#.#", "#####", ".###.", ".#.#.", ".###."],
