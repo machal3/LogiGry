@@ -666,7 +666,7 @@ body[data-view="game"] footer { display: none; }
 
 /* album odkrytych obrazków w panelu */
 .ng-label { margin: 10px 0 6px; font-size: var(--fs-sm); font-weight: 600; }
-.ng-album { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.ng-album { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .ng-thumb {
   display: grid;
   grid-template-columns: repeat(var(--tn), 1fr);
