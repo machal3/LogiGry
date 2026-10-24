@@ -673,7 +673,7 @@ const GAMES = [
   },
 ];
 // wszystkie gry powyżej stworzył Claude
-GAMES.forEach((g) => (g.author ||= "Claude"));
+GAMES.forEach((g) => (g.author ||= "Claude Opus 5.5"));
 
 // --- Gry z folderu gry/ (platforma dla modeli AI, zasady w AGENTS.md) ---
 // Każda nowa gra dopisuje się sama: gry/<id>/gra.js wywołuje registerGame({...}).

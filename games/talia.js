@@ -266,7 +266,7 @@ const Deck = (() => {
 if (typeof module !== "undefined") module.exports = Deck;
 
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "talia"), {
-  author: "Claude, Claude Opus 5.5",
+  author: "Claude Opus 5.5",
   levels: Deck.LEVELS,
   rules: [
     "Wędruj po mapie, wybierając kolejne pola: walki, elity z artefaktami, ogniska, skarby i sklepy. Na końcu czeka smok.",
