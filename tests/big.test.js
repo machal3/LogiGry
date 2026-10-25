@@ -103,6 +103,22 @@ test("metro: odcinki pod kątem 45° i przystanki przed pociągiem", () => {
   assert.deepEqual(M.ahead([1, 2, 3, 4], 2, -1), [2, 1]);
 });
 
+test("metro: pętla w jedną stronę i wybór pociągu najkrótszą drogą", () => {
+  const M = g("metro");
+  const st = [{ id: 1, shape: "circle" }, { id: 2, shape: "square" }, { id: 3, shape: "square" }, { id: 4, shape: "triangle" }];
+  // pętla 1-2-3-4, pociągi tylko "do przodu": z 1 do trójkąta (4) trzeba objechać pętlę (3 przystanki)
+  const one = M.distances(st, [{ stops: [1, 2, 3, 4], loop: true, dirs: new Set([1]) }], "triangle");
+  assert.equal(one.get(1), 3);
+  const both = M.distances(st, [{ stops: [1, 2, 3, 4], loop: true, dirs: new Set([1, -1]) }], "triangle");
+  assert.equal(both.get(1), 1);
+  // wsiada tylko pociąg, którego następny przystanek przybliża do celu
+  assert.ok(M.rides(both, 1, 4));
+  assert.ok(!M.rides(both, 1, 2));
+  assert.ok(M.rides(one, 1, 2));
+  // pasażer, który nie ma drogi, nie wsiada
+  assert.ok(!M.rides(M.distances(st, [{ stops: [1, 2] }], "triangle"), 1, 2));
+});
+
 test("metro: układ sieci omija stacje, łagodzi skręty i rozdziela linie", () => {
   const M = g("metro");
   // obcy przystanek leży na trasie "najpierw prosto", więc odcinek zaczyna się skosem

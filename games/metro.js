@@ -2,24 +2,25 @@
 // Gracz rysuje linie (także pętle); pociągi jeżdżą po nich, a trasę pasażera wyznacza przegląd sieci (z przesiadkami).
 const Metro = (() => {
   const SHAPES = ["circle", "triangle", "square", "star", "cross", "diamond"];
-  // sąsiedzi po liniach; linia zamknięta w pętlę łączy też ostatni przystanek z pierwszym
-  function graph(stations, lines) {
-    const adj = new Map(stations.map((s) => [s.id, new Set()]));
-    const link = (a, b) => { adj.get(a).add(b); adj.get(b).add(a); };
-    for (const l of lines) {
-      for (let k = 1; k < l.stops.length; k++) link(l.stops[k - 1], l.stops[k]);
-      if (l.loop && l.stops.length > 2) link(l.stops[l.stops.length - 1], l.stops[0]);
-    }
-    return adj;
-  }
-  // odległość w przystankach od każdej stacji do najbliższej stacji kształtu `shape` po liniach
+  // odległość w przystankach od każdej stacji do najbliższej stacji kształtu `shape`, jadąc pociągami.
+  // Zwykła linia działa w obie strony; w pętli tylko w kierunkach, w których jeżdżą jej pociągi (l.dirs),
+  // żeby pasażer nie czekał na pociąg w stronę, w którą nic nie jedzie.
   function distances(stations, lines, shape) {
-    const adj = graph(stations, lines);
+    const rev = new Map(stations.map((s) => [s.id, []]));
+    const edge = (u, v) => { if (rev.has(u) && rev.has(v)) rev.get(v).push(u); };
+    for (const l of lines) {
+      const n = l.stops.length, loop = l.loop && n > 2, any = !loop || !l.dirs?.size;
+      const fw = any || l.dirs.has(1), bw = any || l.dirs.has(-1);
+      for (let k = 1; k < n; k++) { if (fw) edge(l.stops[k - 1], l.stops[k]); if (bw) edge(l.stops[k], l.stops[k - 1]); }
+      if (loop) { if (fw) edge(l.stops[n - 1], l.stops[0]); if (bw) edge(l.stops[0], l.stops[n - 1]); }
+    }
     const dist = new Map(), queue = [];
     for (const s of stations) if (s.shape === shape) { dist.set(s.id, 0); queue.push(s.id); }
-    for (let q = 0; q < queue.length; q++) for (const nb of adj.get(queue[q])) if (!dist.has(nb)) { dist.set(nb, dist.get(queue[q]) + 1); queue.push(nb); }
+    for (let q = 0; q < queue.length; q++) for (const nb of rev.get(queue[q])) if (!dist.has(nb)) { dist.set(nb, dist.get(queue[q]) + 1); queue.push(nb); }
     return dist;
   }
+  // pasażer jedzie dalej (albo wsiada), gdy następny przystanek leży na najkrótszej drodze do celu
+  const rides = (dist, here, next) => { const d = dist.get(here); return d !== undefined && d > 0 && dist.get(next) === d - 1; };
   // czy odcinek przecina rzekę (pionowy pas między rx0 a rx1)
   const crosses = (a, b, rx0, rx1) => (a.x < rx0 && b.x > rx1) || (b.x < rx0 && a.x > rx1) || (a.x >= rx0 && a.x <= rx1) !== (b.x >= rx0 && b.x <= rx1);
   // odcinek jak na schemacie metra: mode 0 najpierw prosto, potem pod kątem 45°; mode 1 najpierw skos, potem prosto
@@ -160,7 +161,7 @@ const Metro = (() => {
     const n = stops.length;
     return Array.from({ length: n - 1 }, (_, k) => stops[(((i + d * (k + 1)) % n) + n) % n]);
   }
-  return { SHAPES, distances, crosses, route, bend, curve, layout, ahead, last: null };
+  return { SHAPES, distances, rides, crosses, route, bend, curve, layout, ahead, last: null };
 })();
 
 if (typeof module !== "undefined") module.exports = Metro;
@@ -168,16 +169,19 @@ if (typeof module !== "undefined") module.exports = Metro;
 
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metro"), {
   levels: [
-    { key: "easy", name: "Łatwy", points: 20, target: 50, rate: 0.7, tunnels: 3, maxw: 7, crowd: 20, every: 26, cap: 13, rare: 0.05 },
-    { key: "medium", name: "Średni", points: 50, target: 120, rate: 1.05, tunnels: 2, maxw: 6, crowd: 15, every: 20, cap: 16, rare: 0.12 },
-    { key: "hard", name: "Trudny", points: 100, target: 220, rate: 1.25, tunnels: 2, maxw: 6, crowd: 12, every: 17, cap: 19, rare: 0.2 },
+    // rate: pasażerowie na sekundę na starcie; ramp: po ilu sekundach tempo się podwaja; peak: najwyższy mnożnik;
+    // grace: ile sekund nowa stacja nie ma pasażerów; mercy: jak mocno losowanie omija zatłoczone stacje;
+    // demand: jak często pasażerowie chcą jechać do rzadkich kształtów; rush: dni godzin szczytu (0 = Pn) od tygodnia rushFrom
+    { key: "easy", name: "Łatwy", points: 20, target: 50, rate: 0.36, ramp: 170, peak: 2.1, tunnels: 3, maxw: 7, crowd: 20, every: 26, cap: 13, rare: 0.05, grace: 12, mercy: 0.3, demand: 0.5, rush: [4], rushFrom: 2 },
+    { key: "medium", name: "Średni", points: 50, target: 120, rate: 0.5, ramp: 140, peak: 2.6, tunnels: 2, maxw: 6, crowd: 15, every: 20, cap: 16, rare: 0.12, grace: 8, mercy: 0.12, demand: 0.8, rush: [1, 4], rushFrom: 1 },
+    { key: "hard", name: "Trudny", points: 100, target: 220, rate: 0.6, ramp: 115, peak: 3, tunnels: 2, maxw: 6, crowd: 12, every: 17, cap: 19, rare: 0.2, grace: 5, mercy: 0, demand: 1, rush: [0, 2, 4], rushFrom: 1 },
   ],
   rules: [
     "Pasażer (mały kształt przy stacji) chce dojechać do dowolnej stacji o takim samym kształcie. Połącz stacje liniami, a pociągi zrobią resztę, także z przesiadkami.",
     "Przeciągnij od stacji do stacji, żeby zbudować linię. Przeciągnij koniec linii (znacznik T) do kolejnej stacji, żeby ją przedłużyć, z powrotem, żeby skrócić, albo na drugi koniec, żeby zamknąć pętlę. Przeciągnij odcinek między stacjami na inną stację, żeby wstawić ją pośrodku.",
     "Przejście pod rzeką zużywa tunel. Linię wybierasz w panelu albo klawiszami 1–7, Delete usuwa wybraną linię, Esc kończy rysowanie.",
     "Gdy na stacji czeka zbyt wielu pasażerów, wokół niej rośnie czerwony okrąg. Pełny okrąg kończy grę.",
-    "Co tydzień wybierasz nagrodę: nową linię, pociąg, wagon (więcej miejsc), tunel albo węzeł przesiadkowy (stacja mieści dwa razy więcej osób).",
+    "Co tydzień wybierasz nagrodę: nową linię, pociąg, wagon (więcej miejsc), tunel albo węzeł przesiadkowy (stacja mieści dwa razy więcej osób). W dni szczytu (wyróżnione w panelu) pasażerów przybywa szybciej.",
     "Dowieź wymaganą liczbę pasażerów. Spacja zatrzymuje grę, a F przełącza szybszy czas.",
   ],
   achievements: [
@@ -190,11 +194,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     { id: "dyspozytor", name: "Dyspozytor doskonały", desc: "Wygraj trudny poziom, nie dopuszczając do poważnego tłoku na żadnej stacji.", points: 50 },
   ],
   mount(board, ctx) {
-    const { SHAPES, ahead, curve } = Metro;
+    const { SHAPES, curve } = Metro;
     const modes = new Map(), mids = new Map(), offs = new Map();
     const lv = ctx.level;
     const W = 160, H = 110, RX0 = 72, RX1 = 84, CAP = 6, R = 3.3, HIT = 7, WEEK = 42, MAXC = 3;
-    const VMAX = 24, ACC = 30, CAR = 7.4, GAP = 0.9;
+    const VMAX = 24, VPASS = 13, ACC = 30, CAR = 7.4, GAP = 0.9;
     const KEYS = ["red", "blue", "green", "yellow", "violet", "teal", "brown"];
     const NAMES = ["Czerwona", "Niebieska", "Zielona", "Żółta", "Fioletowa", "Morska", "Brązowa"];
     const DAYS = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
@@ -204,7 +208,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     let nextId = 1;
     const s = {
       stations: [], lines: [], trains: [], fx: [], delivered: 0, t: 0, clock: 0, week: 0, tunnels: lv.tunnels,
-      sel: 0, speed: 1, spawnS: 0, spawnP: 1.2, choosing: false, placing: false, veil: 0,
+      sel: 0, speed: 1, spawnS: 0, spawnP: 1.5, nextStation: lv.every, choosing: false, placing: false, veil: 0,
     };
     Metro.last = s;
 
@@ -215,20 +219,31 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       parks.push({ x: left ? 6 + Math.random() * (RX0 - 20 - w) : RX1 + 12 + Math.random() * (W - RX1 - 18 - w), y: 6 + Math.random() * (H - 12 - h), w, h });
     }
 
+    // nowa stacja: miasto rośnie od środka, blisko istniejących stacji, z dala od linii, po mniej zajętej stronie rzeki
     const addStation = (shape) => {
-      for (let t = 0; t < 300; t++) {
+      const left = s.stations.filter((o) => o.x < RX0).length, right = s.stations.length - left;
+      let best = null;
+      for (let t = 0; t < 400; t++) {
         const x = 9 + Math.random() * (W - 18), y = 9 + Math.random() * (H - 18);
         if (x > RX0 - 7 && x < RX1 + 7) continue;
-        if (s.stations.some((o) => Math.hypot(o.x - x, o.y - y) < 16)) continue;
-        const st = { id: nextId++, x, y, shape, wait: [], over: 0, born: s.clock, hs: 1, hub: false };
-        s.stations.push(st);
-        s.fx.push({ kind: "ring", x, y, t: 0, dur: 0.9, color: "text", r0: R, r1: R + 10 });
-        return st;
+        const near = s.stations.reduce((m, o) => Math.min(m, Math.hypot(o.x - x, o.y - y)), Infinity);
+        if (near < 16) continue;
+        let score = s.stations.length ? Math.abs(near - 22) : 0;
+        score += (x < RX0 ? left - right : right - left) * 3;
+        if (segmentAt(x, y, 5)) score += 12;
+        score += Math.random() * 6;
+        if (!best || score < best.score) best = { x, y, score };
       }
+      if (!best) return;
+      const { x, y } = best;
+      const st = { id: nextId++, x, y, shape, wait: [], over: 0, born: s.clock, bornT: s.t, hs: 1, hub: false };
+      s.stations.push(st);
+      s.fx.push({ kind: "ring", x, y, t: 0, dur: 0.9, color: "text", r0: R, r1: R + 10 });
+      return st;
     };
     // start: po obu stronach rzeki, żeby od razu było co łączyć
     for (const shape of ["circle", "triangle", "square", "circle"]) addStation(shape);
-    s.stations.forEach((st) => (st.born = -9));
+    s.stations.forEach((st) => Object.assign(st, { born: -9, bornT: -99 }));
     s.fx = [];
     for (let k = 0; k < 3; k++) s.lines.push({ key: KEYS[k], stops: [], loop: false, grow: {} });
 
@@ -716,21 +731,44 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     }
 
     // --- symulacja ---
+    // odległości do kształtów; liczone od nowa tylko po zmianie sieci (linie, pętle i kierunki ich pociągów, stacje)
+    let netKey = "", distCache = new Map();
+    function distOf(shape) {
+      const key = s.lines.map((l, i) => l.stops.join(".") + (l.loop ? "o" + [...new Set(s.trains.filter((t) => t.line === i).map((t) => t.dir))].sort().join("") : "")).join("|") + "#" + s.stations.length;
+      if (key !== netKey) { netKey = key; distCache = new Map(); }
+      if (!distCache.has(shape)) {
+        const net = s.lines.map((l, i) => ({ stops: l.stops, loop: l.loop, dirs: new Set(s.trains.filter((t) => t.line === i).map((t) => t.dir)) }));
+        distCache.set(shape, Metro.distances(s.stations, net, shape));
+      }
+      return distCache.get(shape);
+    }
+    // indeks i kierunek po przystanku j: w pętli dookoła, na zwykłej linii zawrócenie na końcu
+    function after(l, j, dir) {
+      const n = l.stops.length;
+      let nx = j + dir;
+      if (l.loop && n > 2) return [(nx + n) % n, dir];
+      if (nx < 0 || nx >= n) { dir = -dir; nx = j + dir; }
+      return [nx, dir];
+    }
+    // czy pociąg musi stanąć na stacji `t.to`: ktoś wysiada, ktoś wsiada albo to koniec linii
+    function needStop(t) {
+      const l = s.lines[t.line], j = l.stops.indexOf(t.to), [nx, dir] = after(l, j, t.dir);
+      if (dir !== t.dir) return true;
+      const st = byId(t.to), next = l.stops[nx];
+      let left = 0;
+      for (const p of t.load) if (p.k === st.shape || !Metro.rides(distOf(p.k), st.id, next)) return true; else left++;
+      return left < CAP * t.cars && st.wait.some((p) => Metro.rides(distOf(p.k), st.id, next));
+    }
     function atStation(t) {
-      const l = s.lines[t.line], st = byId(t.from), i = l.stops.indexOf(t.from);
-      const cache = {};
-      const distOf = (shape) => (cache[shape] ||= Metro.distances(s.stations, s.lines, shape));
-      const front = ahead(l.stops, i, t.dir, l.loop && l.stops.length > 2);
-      // najbliższa celowi stacja przed pociągiem
-      const bestAhead = (dist) => front.reduce((m, id) => Math.min(m, dist.get(id) ?? Infinity), Infinity);
+      const l = s.lines[t.line], st = byId(t.from);
       let moved = 0, got = 0;
       const stay = [];
-      // wysiadanie: cel osiągnięty albo przesiadka, gdy dalsza jazda nie przybliża
+      // wysiadanie: cel osiągnięty albo przesiadka, gdy dalsza jazda nie prowadzi najkrótszą drogą
       t.load.forEach((p, k) => {
         if (p.k === st.shape) {
           s.delivered++; got++; moved++;
           s.fx.push({ kind: "fly", shape: p.k, from: { train: t, slot: k }, to: { x: st.x, y: st.y - 3 }, t: 0, dur: 0.4, fade: true, delay: got * 0.04 });
-        } else if (bestAhead(distOf(p.k)) >= (distOf(p.k).get(st.id) ?? Infinity)) {
+        } else if (!Metro.rides(distOf(p.k), st.id, t.to)) {
           st.wait.push({ k: p.k, b: s.clock + 0.35 });
           moved++;
           s.fx.push({ kind: "fly", shape: p.k, from: { train: t, slot: k }, to: { st, slot: st.wait.length - 1 }, t: 0, dur: 0.35 });
@@ -743,11 +781,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
         s.fx.push({ kind: "ring", x: st.x, y: st.y, t: 0, dur: 0.6, color: l.key, r0: R + 1, r1: R + 6 + got });
         if (got >= 6) ctx.achieve("pelny-kurs");
       }
-      // wsiadanie: tylko gdy pociąg jedzie w stronę celu
+      // wsiadanie: najpierw ci, którzy czekają najdłużej
       const keep = [];
       st.wait.forEach((p, k) => {
-        const dist = distOf(p.k);
-        if (t.load.length < CAP * t.cars && bestAhead(dist) < (dist.get(st.id) ?? Infinity)) {
+        if (t.load.length < CAP * t.cars && Metro.rides(distOf(p.k), st.id, t.to)) {
           t.load.push({ k: p.k });
           moved++;
           s.fx.push({ kind: "fly", shape: p.k, from: { st, slot: k }, to: { train: t, slot: t.load.length - 1 }, t: 0, dur: 0.32, delay: moved * 0.03 });
@@ -757,43 +794,61 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       return st.hub ? moved * 0.5 : moved;
     }
     function moveTrain(t, dt) {
-      const l = s.lines[t.line], n = l.stops.length;
+      const l = s.lines[t.line];
       if (t.wait > 0) { t.wait -= dt; return; }
       const G = geo[t.line], sg = G.seg[segOf(t).k];
       if (!sg) return;
-      const len = sg.e - sg.s || 1;
-      // przyspieszanie i hamowanie przed przystankiem
-      const rest = (1 - t.f) * len;
-      t.v = Math.min(t.v + ACC * dt, VMAX, Math.max(2.5, Math.sqrt(2 * ACC * rest)));
+      const len = sg.e - sg.s || 1, rest = (1 - t.f) * len;
+      // przed stacją: hamowanie do zera albo, gdy nie ma po co stawać, przejazd z mniejszą prędkością
+      if (rest < 14) t.pass = !needStop(t);
+      const vEnd = t.pass ? VPASS : 0;
+      const brake = Math.max(2.5, Math.sqrt(vEnd * vEnd + 2 * ACC * rest));
+      t.v = Math.max(t.v - 2.2 * ACC * dt, Math.min(t.v + ACC * dt, VMAX, brake));
       t.f += (t.v * dt) / len;
       if (t.f < 1) return;
-      const j = l.stops.indexOf(t.to);
-      let next = j + t.dir;
-      if (l.loop && n > 2) next = (next + n) % n;
-      else if (next < 0 || next >= n) { t.dir = -t.dir; next = j + t.dir; }
-      Object.assign(t, { from: t.to, to: l.stops[next], f: 0, v: 0 });
-      t.wait = 0.35 + atStation(t) * 0.12;
+      const [nx, dir] = after(l, l.stops.indexOf(t.to), t.dir);
+      Object.assign(t, { from: t.to, to: l.stops[nx], dir, f: 0 });
+      const moved = atStation(t);
+      if (t.pass && !moved) { t.v = Math.min(t.v, VPASS); t.wait = 0; }
+      else { t.v = 0; t.wait = 0.35 + moved * 0.12; }
+      t.pass = false;
+    }
+    // dzień tygodnia 0–6 i godzina szczytu
+    const dayNow = () => Math.min(6, (((s.t % WEEK) / WEEK) * 7) | 0);
+    const rushNow = () => s.week >= lv.rushFrom && lv.rush.includes(dayNow());
+    // nowy pasażer: stacja losowana z wagą (nowa stacja ma chwilę spokoju, zatłoczone rzadziej na łatwiejszych poziomach),
+    // cel losowany spośród innych kształtów, rzadkie kształty według poziomu
+    function spawnPassenger() {
+      const pool = s.stations.map((st) => [st, s.t - st.bornT < lv.grace ? 0 : 1 / (1 + st.wait.length * lv.mercy)]).filter(([, w]) => w > 0);
+      if (!pool.length) return;
+      let r = Math.random() * pool.reduce((a, [, w]) => a + w, 0), st = pool[0][0];
+      for (const [o, w] of pool) { r -= w; if (r <= 0) { st = o; break; } }
+      const shapes = [...new Set(s.stations.map((o) => o.shape))].filter((x) => x !== st.shape).map((x) => [x, SHAPES.indexOf(x) < 3 ? 1 : lv.demand]);
+      if (!shapes.length) return;
+      let q = Math.random() * shapes.reduce((a, [, w]) => a + w, 0), k = shapes[0][0];
+      for (const [x, w] of shapes) { q -= w; if (q <= 0) { k = x; break; } }
+      st.wait.push({ k, b: s.clock });
     }
     function step(dt) {
       s.t += dt;
       // nowe stacje: coraz rzadsze kształty pojawiają się później
       s.spawnS += dt;
-      if (s.spawnS > lv.every && s.stations.length < lv.cap) {
+      if (s.spawnS > s.nextStation && s.stations.length < lv.cap) {
         s.spawnS = 0;
+        s.nextStation = lv.every * (0.8 + Math.random() * 0.4);
         const have = new Set(s.stations.map((o) => o.shape));
         const rare = SHAPES.slice(3).filter((x) => !have.has(x));
         const r = Math.random();
         const shape = s.t > WEEK * 0.8 && rare.length && r < lv.rare ? pick(rare) : r < 0.5 ? "circle" : r < 0.78 ? "triangle" : r < 0.93 ? "square" : pick(SHAPES.slice(3, have.size > 4 ? 6 : 4));
         addStation(shape);
       }
-      // pasażerowie: coraz częściej
-      s.spawnP -= dt * lv.rate * (1 + s.t / 150);
-      if (s.spawnP <= 0) {
-        s.spawnP = 1.8;
-        const st = pick(s.stations);
-        const shapes = [...new Set(s.stations.map((o) => o.shape))].filter((x) => x !== st.shape);
-        if (shapes.length) st.wait.push({ k: pick(shapes), b: s.clock });
-      }
+      // pasażerowie: tempo rośnie z czasem i liczbą stacji, w godzinach szczytu szybciej
+      const rush = rushNow();
+      if (rush && !s.rushOn) { ctx.toast("Godzina szczytu: pasażerów przybywa szybciej"); Sound.flag(); }
+      s.rushOn = rush;
+      const mul = Math.min(lv.peak, 1 + s.t / lv.ramp) * (0.75 + 0.04 * s.stations.length) * (rush ? 1.7 : 1);
+      s.spawnP -= dt * lv.rate * mul;
+      if (s.spawnP <= 0) { s.spawnP += 0.6 + Math.random() * 0.8; spawnPassenger(); }
       if (s.depot?.length) {
         const li = s.lines.findIndex((l) => l.stops.length > 1);
         if (li >= 0) addTrain(li, s.depot.shift());
@@ -1211,11 +1266,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       const wk = (s.t % WEEK) / WEEK, day = Math.min(6, (wk * 7) | 0);
       weekTitle.textContent = `Tydzień ${s.week + 1}`;
       dayEls.forEach((d, k) => {
+        d.classList.toggle("rush", s.week >= lv.rushFrom && lv.rush.includes(k));
         d.classList.toggle("done", k < day);
         d.classList.toggle("now", k === day);
         d.style.setProperty("--f", k < day ? 1 : k === day ? (wk * 7 - day).toFixed(2) : 0);
       });
-      days.setAttribute("aria-label", `Dzień ${day + 1} z 7, nagroda na koniec tygodnia`);
+      days.setAttribute("aria-label", `Dzień ${day + 1} z 7${rushNow() ? ", godzina szczytu" : ""}, nagroda na koniec tygodnia`);
       const free = s.tunnels - usedTunnels();
       weekEl.set("Tunele", `${free} z ${s.tunnels}`);
       weekEl.set("Pociągi", s.trains.length + (s.depot?.length || 0) + s.lines.reduce((a, l) => a + (l.parked?.length || 0), 0));

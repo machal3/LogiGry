@@ -2159,6 +2159,11 @@ button.gb-cell:active { transform: scale(0.93); transition-duration: 60ms; }
 .mt-days i { position: relative; display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
 .mt-days i::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--c); transform: scaleX(var(--f, 0)); transform-origin: left; transition: transform 250ms linear; }
 .mt-days span.now, .mt-days span.done { color: var(--text); }
+/* dzień szczytu: pomarańczowy pasek i kropka przy nazwie dnia */
+.mt-days span.rush { color: var(--warn); }
+.mt-days span.rush i::before { background: var(--warn); }
+.mt-days span.rush i { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 60%, transparent); }
+.mt-days span.rush::after { content: ""; justify-self: center; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--warn); }
 .mt-reward { position: absolute; inset: 0; z-index: 5; display: grid; align-content: center; justify-items: center; gap: var(--sp-4); padding: var(--sp-4); border-radius: inherit; background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(4px); animation: metro-fade 220ms var(--ease) both; }
 .mt-reward.out { animation: metro-fade 180ms var(--ease) reverse both; }
 .mt-reward-head { display: grid; gap: 2px; text-align: center; }
