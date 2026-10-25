@@ -64,7 +64,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
   ],
   rules: [
     "Pasażer (mały kształt przy stacji) chce dojechać do dowolnej stacji o takim samym kształcie. Połącz stacje liniami, a pociągi zrobią resztę, także z przesiadkami.",
-    "Przeciągnij od stacji do stacji, żeby zbudować linię. Przeciągnij koniec linii (znacznik T) do kolejnej stacji, żeby ją przedłużyć, z powrotem, żeby skrócić, albo na drugi koniec, żeby zamknąć pętlę. Można też klikać stacje po kolei.",
+    "Przeciągnij od stacji do stacji, żeby zbudować linię. Przeciągnij koniec linii (znacznik T) do kolejnej stacji, żeby ją przedłużyć, z powrotem, żeby skrócić, albo na drugi koniec, żeby zamknąć pętlę. Przeciągnij odcinek między stacjami na inną stację, żeby wstawić ją pośrodku.",
     "Przejście pod rzeką zużywa tunel. Linię wybierasz w panelu albo klawiszami 1–7, Delete usuwa wybraną linię, Esc kończy rysowanie.",
     "Gdy na stacji czeka zbyt wielu pasażerów, wokół niej rośnie czerwony okrąg. Pełny okrąg kończy grę.",
     "Co tydzień wybierasz nagrodę: nową linię, pociąg, wagon (więcej miejsc), tunel albo węzeł przesiadkowy (stacja mieści dwa razy więcej osób).",
@@ -205,6 +205,27 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       Sound.erase();
       afterChange();
     }
+    // wstawienie stacji pośrodku odcinka k (między stops[k] a następnym przystankiem)
+    function insertStop(li, k, st) {
+      const l = s.lines[li], n = l.stops.length, ia = l.stops[k], ib = l.stops[(k + 1) % n];
+      if (l.stops.includes(st.id)) return false;
+      const stops = [...l.stops];
+      stops.splice(k + 1, 0, st.id);
+      if (usedTunnels() - lineTunnels(l.stops, l.loop) + lineTunnels(stops, l.loop) > s.tunnels) return noTunnel(), false;
+      const a = byId(ia), b = byId(ib);
+      const len = (p, q) => curve(p, q).reduce((sum, o, i, arr) => (i ? sum + Math.hypot(o.x - arr[i - 1].x, o.y - arr[i - 1].y) : 0), 0);
+      // pociąg na przebudowanym odcinku jedzie dalej z tego samego miejsca, tylko nową trasą
+      for (const t of s.trains) if (t.line === li && ((t.from === ia && t.to === ib) || (t.from === ib && t.to === ia))) {
+        const p = byId(t.from), q = byId(t.to), d = t.f * len(p, q), L1 = len(p, st), L2 = len(st, q);
+        Object.assign(t, d < L1 ? { to: st.id, f: d / L1 } : { from: st.id, f: Math.min(0.99, (d - L1) / L2) });
+      }
+      ghost(a, b, l.key);
+      l.stops = stops;
+      Sound.place(1 + (l.stops.length % 8));
+      s.fx.push({ kind: "ring", x: st.x, y: st.y, t: 0, dur: 0.6, color: l.key, r0: R + 1, r1: R + 7 });
+      afterChange();
+      return true;
+    }
     function ghost(a, b, key) { s.fx.push({ kind: "ghost", pts: curve(a, b), color: key, t: 0, dur: 0.45 }); }
     // zdjęcie ostatniej stacji z końca linii
     function shorten(li, end) {
@@ -263,12 +284,33 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
 
     // --- sterowanie ---
     // grab: linia i koniec, za który trzyma gracz; zostaje po puszczeniu, żeby można było klikać stacje po kolei
-    let grab = null, dragging = false, moved = false, ptr = null, overId = null;
+    // bend: chwycony odcinek linii (linia i numer odcinka), który można przeciągnąć na stację
+    let grab = null, bend = null, dragging = false, moved = false, ptr = null, overId = null;
     const stationAt = (x, y, hit = HIT) => {
       let best = null, bd = hit;
       for (const o of s.stations) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd) { bd = d; best = o; } }
       return best;
     };
+    // najbliższy odcinek linii pod wskaźnikiem; wybrana linia ma pierwszeństwo
+    function segmentAt(x, y, hit = 3.2) {
+      let best = null, bd = hit;
+      const near = (G, sg) => {
+        const pts = span(G, sg.s, sg.e);
+        let m = Infinity;
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1], b = pts[i], dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1;
+          const u = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / L));
+          m = Math.min(m, Math.hypot(a.x + dx * u - x, a.y + dy * u - y));
+        }
+        return m;
+      };
+      const order = s.lines.map((_, i) => i).sort((a, b) => (b === s.sel) - (a === s.sel));
+      for (const li of order) geo[li]?.seg.forEach((sg, k) => {
+        const d = near(geo[li], sg) - (li === s.sel ? 0.5 : 0);
+        if (d < bd) { bd = d; best = { li, k }; }
+      });
+      return best;
+    }
     const endId = (gr) => { const l = s.lines[gr.li]; return gr.end ? l.stops[l.stops.length - 1] : l.stops[0]; };
     const otherId = (gr) => { const l = s.lines[gr.li]; return gr.end ? l.stops[0] : l.stops[l.stops.length - 1]; };
     const prevId = (gr) => { const l = s.lines[gr.li]; return l.stops.length < 2 ? null : gr.end ? l.stops[l.stops.length - 2] : l.stops[1]; };
@@ -324,7 +366,17 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       e.preventDefault();
       ptr = cv.at(e);
       const st = stationAt(...ptr);
-      if (!st) return release();
+      if (!st) {
+        release();
+        bend = s.placing ? null : segmentAt(...ptr);
+        if (!bend) return;
+        cv.cv.setPointerCapture?.(e.pointerId);
+        dragging = true;
+        overId = null;
+        s.sel = bend.li;
+        Sound.tap();
+        return render();
+      }
       cv.cv.setPointerCapture?.(e.pointerId);
       dragging = !s.placing;
       moved = false;
@@ -334,8 +386,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     ctx.on(cv.cv, "pointermove", (e) => {
       const prev = ptr;
       ptr = cv.at(e);
-      cv.cv.style.cursor = dragging ? "grabbing" : stationAt(...ptr) ? "pointer" : "";
+      cv.cv.style.cursor = dragging ? "grabbing" : stationAt(...ptr) ? "pointer" : !s.placing && segmentAt(...ptr) ? "grab" : "";
       if (!dragging || ctx.done || s.choosing) return;
+      if (bend) {
+        // odcinek upuszczony nad stacją spoza linii wstawia ją pośrodku
+        const st = stationAt(...ptr, HIT - 1.5), l = s.lines[bend.li];
+        if (st && !l.stops.includes(st.id) && insertStop(bend.li, bend.k, st)) bend = null;
+        return;
+      }
       // szybki ruch przeskakuje stacje między zdarzeniami, więc sprawdzamy całą drogę wskaźnika
       const n = prev ? Math.max(1, Math.ceil(Math.hypot(ptr[0] - prev[0], ptr[1] - prev[1]) / 2)) : 1;
       for (let k = 1; k <= n; k++) {
@@ -349,6 +407,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     const up = (e) => {
       if (!dragging) return;
       dragging = false;
+      bend = null;
       overId = null;
       if (e.pointerType !== "mouse") ptr = null;
       // po przeciągnięciu rysowanie się kończy; po stuknięciu koniec zostaje w ręce i można klikać kolejne stacje
@@ -776,7 +835,29 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
         g.globalAlpha = 1;
       }
     }
+    function drawBend() {
+      const l = s.lines[bend.li], n = l.stops.length, a = byId(l.stops[bend.k]), b = byId(l.stops[(bend.k + 1) % n]);
+      if (!a || !b) return (bend = null);
+      const over = stationAt(...ptr), ok = over && !l.stops.includes(over.id);
+      const mid = ok ? over : { x: ptr[0], y: ptr[1] };
+      const stops = ok ? [...l.stops.slice(0, bend.k + 1), over.id, ...l.stops.slice(bend.k + 1)] : l.stops;
+      const blocked = ok && usedTunnels() - lineTunnels(l.stops, l.loop) + lineTunnels(stops, l.loop) > s.tunnels;
+      // dotychczasowy odcinek przygasa, nowa trasa idzie przez wskaźnik
+      const G = geo[bend.li], sg = G.seg[bend.k];
+      if (sg) { g.globalAlpha = 0.5; poly(span(G, sg.s, sg.e)); g.strokeStyle = col("surface"); g.lineWidth = 1.4; g.stroke(); }
+      g.strokeStyle = col(blocked ? "bad" : l.key);
+      g.globalAlpha = ok ? 0.85 : 0.55;
+      g.lineWidth = 2.4;
+      if (!ok || blocked) { g.setLineDash([2.4, 2]); g.lineDashOffset = -s.clock * 8; }
+      poly([...curve(a, mid), ...curve(mid, b).slice(1)]); g.stroke();
+      g.setLineDash([]);
+      g.globalAlpha = 1;
+      const pulse = 0.5 + 0.5 * Math.sin(s.clock * 8);
+      g.lineWidth = 0.8;
+      g.beginPath(); g.arc(mid.x, mid.y, ok ? R + 2.2 + pulse * 0.8 : 1.6 + pulse * 0.4, 0, Math.PI * 2); g.stroke();
+    }
     function drawPreview() {
+      if (bend && ptr) return drawBend();
       if (!grab || !ptr) return;
       const l = s.lines[grab.li], a = byId(endId(grab)), over = stationAt(...ptr);
       if (!a) return;
