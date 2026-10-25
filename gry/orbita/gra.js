@@ -260,7 +260,7 @@
     id: "orbita",
     cat: "lamiglowki",
     name: "Orbita",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Wystrzeliwuj sondy między planetami, wykorzystuj ich przyciąganie grawitacyjne i dotrzyj do stacji badawczych.",
     color: "#4f46e5",
     ink: "#ffffff",

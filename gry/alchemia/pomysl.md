@@ -2,7 +2,7 @@
 
 - id: alchemia
 - opis: Warz eliksiry w pracowni, łącz składniki w kotle, odkrywaj receptury i realizuj zamówienia klientów.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: symulacje
 
 ## Zasady

@@ -14,16 +14,19 @@
     { name: "Melon", r: 19.5, c1: "#d8f5a2", c2: "#82c91e", kind: "melon" },
     { name: "Arbuz", r: 22.2, c1: "#69db7c", c2: "#2b8a3e", kind: "water" },
   ];
+  // Tęczowy owoc (nagroda za etap w trybie bez końca): łączy się z pierwszym owocem, którego dotknie.
+  const JOKER = { name: "Tęczowy owoc", r: 7.0, c1: "#ffffff", c2: "#cccccc", kind: "joker" };
+  const spec = (t) => (t < 0 ? JOKER : FRUITS[t]);
   const W = 100, H = 150, BOTTOM = 143, LINE = 38, DROP_Y = 20, G = 260, SUB = 8;
   const score = (tier) => (tier * (tier + 1)) / 2;
 
   function createWorld(jarW) {
-    return { fruits: [], L: 50 - jarW / 2, R: 50 + jarW / 2, events: [], id: 0, best: 0 };
+    return { fruits: [], L: 50 - jarW / 2, R: 50 + jarW / 2, line: LINE, events: [], id: 0, best: 0 };
   }
   function drop(w, x, tier) {
-    const r = FRUITS[tier].r;
+    const r = spec(tier).r;
     x = Math.max(w.L + r, Math.min(w.R - r, x));
-    const f = { id: ++w.id, tier, r, full: r, x: x + (Math.random() - 0.5) * 0.1, y: DROP_Y, px: x, py: DROP_Y - 0.4, a: 0, age: 0, dead: false };
+    const f = { id: ++w.id, tier, joker: tier < 0, r, full: r, x: x + (Math.random() - 0.5) * 0.1, y: DROP_Y, px: x, py: DROP_Y - 0.4, a: 0, age: 0, dead: false };
     w.fruits.push(f);
     return f;
   }
@@ -53,7 +56,7 @@
             if (Math.abs(dx) >= min || Math.abs(dy) >= min) continue;
             const d2 = dx * dx + dy * dy;
             if (d2 >= min * min) continue;
-            if (a.tier === b.tier) { merge(w, a, b); break; }
+            if (a.tier === b.tier || a.joker || b.joker) { merge(w, a, b); break; }
             const d = Math.sqrt(d2) || 0.001, over = (min - d) * 0.8;
             const nx = dx / d, ny = dy / d, ma = a.r * a.r, mb = b.r * b.r, k = over / (ma + mb);
             a.x -= nx * k * mb; a.y -= ny * k * mb;
@@ -80,20 +83,37 @@
   }
   function merge(w, a, b) {
     a.dead = b.dead = true;
-    const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
-    if (a.tier === FRUITS.length - 1) { w.events.push({ x, y, tier: a.tier + 1, gone: true }); return; }
-    const t = a.tier + 1, r = FRUITS[t].r;
+    // z tęczowym owocem: większy owoc powstaje w miejscu tego drugiego
+    const o = a.joker && b.joker ? null : a.joker ? b : b.joker ? a : null;
+    const base = a.joker && b.joker ? 2 : o ? o.tier : a.tier;
+    const x = o ? o.x : (a.x + b.x) / 2, y = o ? o.y : (a.y + b.y) / 2;
+    if (base === FRUITS.length - 1) { w.events.push({ x, y, tier: base + 1, gone: true }); return; }
+    const t = base + 1, r = FRUITS[t].r;
     const vx = (a.x - a.px + b.x - b.px) / 2, vy = (a.y - a.py + b.y - b.py) / 2;
-    const n = { id: ++w.id, tier: t, r: a.r, full: r, x, y, px: x - vx * 0.3, py: y - vy * 0.3, a: (a.a + b.a) / 2, age: 2, dead: false, pop: 1 };
+    const n = { id: ++w.id, tier: t, r: o ? o.r : a.r, full: r, x, y, px: x - vx * 0.3, py: y - vy * 0.3, a: (a.a + b.a) / 2, age: 2, dead: false, pop: 1 };
     w.fruits.push(n);
     w.best = Math.max(w.best, t);
     w.events.push({ x, y, tier: t });
   }
   // Najwyższy punkt owoców, które już leżą (świeżo upuszczone się nie liczą).
-  const overLine = (w) => w.fruits.some((f) => f.age > 1.4 && f.y - f.r < LINE);
+  const overLine = (w) => w.fruits.some((f) => f.age > 1.4 && f.y - f.r < w.line);
   const nextTier = () => [0, 0, 0, 1, 1, 1, 2, 2, 3, 4][rnd(10)];
 
-  if (typeof module !== "undefined") module.exports = { FRUITS, createWorld, drop, step, overLine, nextTier, W, H, BOTTOM, LINE };
+  // Tryb bez końca: etap co STAGE_DROPS upuszczeń (około minuty). Słój zwęża się od łatwego (86) przez trudny (76, etap 6)
+  // do 70, potem linia powoli opada, aż do etapu 14; dalej trudność już nie rośnie.
+  const STAGE_DROPS = 25;
+  const endlessStage = (k) => ({ jar: Math.max(70, 86 - 2 * k), line: LINE + Math.min(10, Math.max(0, k - 8) * 2) });
+  // Punkty profilu z wyniku biegu. Symulacja: wynik przy gruszce (łatwy) ≈ 150, ananasie (średni) ≈ 700,
+  // melonie (trudny) ≈ 1300. Krótszy bieg 0–5 pkt, dalej coraz szybciej (platforma obcina do 150).
+  function endlessPoints(score) {
+    if (score < 150) return Math.floor((5 * score) / 150);
+    if (score < 700) return Math.round(10 + (15 * (score - 150)) / 550);
+    if (score < 1300) return Math.round(25 + (25 * (score - 700)) / 600);
+    const x = (score - 1300) / 600;
+    return Math.min(150, Math.round(50 + 25 * x + 5 * x * x));
+  }
+
+  if (typeof module !== "undefined") module.exports = { FRUITS, createWorld, drop, step, overLine, nextTier, endlessStage, endlessPoints, STAGE_DROPS, W, H, BOTTOM, LINE };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "owoce",
@@ -109,11 +129,13 @@
       { key: "medium", name: "Średni", points: 25, jar: 82, target: 8 },
       { key: "hard", name: "Trudny", points: 50, jar: 76, target: 9 },
     ],
+    endless: { jar: 86 },
     rules: [
       "Przesuń owoc nad słojem myszą albo palcem i puść, żeby go upuścić. Klawiatura: strzałki przesuwają, spacja upuszcza.",
       "Dwa jednakowe owoce po zetknięciu łączą się w kolejny, większy. Kolejność widać w panelu.",
       "Wygrywasz, gdy powstanie owoc docelowy. Przegrywasz, gdy owoce zbyt długo wystają ponad przerywaną linię.",
       "Duże owoce trzymaj na bokach, a małe łącz od razu, zanim się zakopią.",
+      "Tryb ∞ trwa do przepełnienia słoja: co etap słój się zwęża, a w nagrodę dostajesz tęczowy owoc, który łączy się z każdym.",
     ],
     achievements: [
       { id: "ananas", name: "Ananas", desc: "Połącz dwie brzoskwinie w ananasa.", points: 10 },
@@ -121,6 +143,8 @@
       { id: "spokoj", name: "Zimna krew", desc: "Wygraj średni lub trudny poziom, nie przekraczając ani razu linii.", points: 25 },
       { id: "punkty", name: "Sadownik", desc: "Zdobądź 600 punktów w jednej partii.", points: 25 },
       { id: "arbuz", name: "Arbuz", desc: "Wyhoduj arbuza, największy owoc.", points: 50 },
+      { id: "etap-6", name: "Długi bieg", desc: "Dojdź do szóstego etapu w trybie bez końca.", points: 25 },
+      { id: "sad", name: "Sad bez końca", desc: "Zdobądź 2500 punktów w jednym biegu bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
@@ -128,9 +152,14 @@
       const cv = canvasGame(board, ctx, W, H, { max: 72 });
       const { g } = cv;
       const w = createWorld(L.jar);
-      const s = { x: 50, cur: nextTier(), next: nextTier(), cool: 0, score: 0, danger: 0, warned: false, parts: [], floats: [], shake: 0, ending: 0 };
+      const s = { x: 50, cur: nextTier(), next: nextTier(), cool: 0, score: 0, danger: 0, warned: false, parts: [], floats: [], shake: 0, ending: 0, drops: 0, stage: 0, jar: L.jar };
 
       const scoreEl = statBlock(ctx, "Wynik", { meter: true });
+      let runEl = null;
+      if (L.endless) {
+        runEl = statsBlock(ctx, "Bieg", ["Etap", "Za bieg"]);
+        runEl.block.append(button("Zakończ bieg", "btn-ghost wide", () => endRun("Bieg zakończony.")));
+      }
       const chain = el("div", "ow-chain");
       FRUITS.forEach((f, i) => {
         const dot = el("span", "ow-dot");
@@ -139,11 +168,29 @@
         dot.style.setProperty("--f2", f.c2);
         dot.title = f.name;
         dot.setAttribute("aria-label", f.name);
-        if (i === L.target) dot.classList.add("goal");
+        if (!L.endless && i === L.target) dot.classList.add("goal");
         chain.append(dot);
       });
-      const goalNote = el("p", "panel-note", `Cel: ${FRUITS[L.target].name.toLowerCase()}. Kolejność owoców od najmniejszego:`);
-      ctx.panel.append(panelBlock("Cel", goalNote, chain));
+      const goalNote = el("p", "panel-note", L.endless
+        ? "Dwa arbuzy znikają i dają 100 pkt. Kolejność owoców od najmniejszego:"
+        : `Cel: ${FRUITS[L.target].name.toLowerCase()}. Kolejność owoców od najmniejszego:`);
+      ctx.panel.append(panelBlock(L.endless ? "Owoce" : "Cel", goalNote, chain));
+
+      function endRun(text) {
+        if (ctx.done) return;
+        ctx.over(s.score, endlessPoints(s.score), text);
+      }
+      // Nowy etap biegu: węższy słój (zwęża się płynnie w pętli), niższa linia i tęczowy owoc jako następny.
+      function nextStage() {
+        s.stage++;
+        const st = endlessStage(s.stage);
+        s.jar = st.jar;
+        w.line = st.line;
+        s.next = -1;
+        Sound.line();
+        ctx.toast(`Etap ${s.stage + 1}: w drodze tęczowy owoc`);
+        if (s.stage >= 5) ctx.achieve("etap-6");
+      }
 
       function dropNow() {
         if (ctx.done || s.cool > 0 || s.ending) return;
@@ -152,6 +199,7 @@
         s.cur = s.next;
         s.next = nextTier();
         s.cool = 0.5;
+        if (L.endless && ++s.drops % STAGE_DROPS === 0) nextStage();
       }
       const moveTo = (e) => { s.x = cv.at(e)[0]; };
       let down = false;
@@ -174,11 +222,12 @@
         if (ev.tier === 8) ctx.achieve("ananas");
         if (ev.tier === 10 || ev.gone) ctx.achieve("arbuz");
         if (s.score >= 600) ctx.achieve("punkty");
+        if (L.endless && s.score >= 2500) ctx.achieve("sad");
         const now = performance.now();
         s.chainT = (s.chainT || []).filter((t) => now - t < 2000);
         s.chainT.push(now);
         if (s.chainT.length >= 4) ctx.achieve("lancuch");
-        if (ev.tier >= L.target && !s.ending && !ctx.done) {
+        if (!L.endless && ev.tier >= L.target && !s.ending && !ctx.done) {
           s.ending = 1.4;
           ctx.toast(`Cel osiągnięty: ${FRUITS[L.target].name.toLowerCase()}`);
         }
@@ -188,7 +237,10 @@
         if (!ctx.done) {
           if (keys.arrowleft || keys.a) s.x -= 70 * dt;
           if (keys.arrowright || keys.d) s.x += 70 * dt;
-          const r = FRUITS[s.cur].r;
+          // słój zwęża się płynnie do szerokości etapu
+          const half = s.jar / 2;
+          if (w.R - 50 > half) { w.L = Math.min(50 - half, w.L + 2 * dt); w.R = Math.max(50 + half, w.R - 2 * dt); }
+          const r = spec(s.cur).r;
           s.x = Math.max(w.L + r, Math.min(w.R - r, s.x));
           s.cool -= dt;
           step(w, dt);
@@ -198,7 +250,8 @@
             if (!s.warned) { s.warned = true; Sound.error(); ctx.toast("Uwaga, owoce nad linią"); }
             if (s.danger > 3) {
               const best = FRUITS[w.best]?.name.toLowerCase() || "wiśnia";
-              ctx.lose("Słoik pełny", `Największy owoc: ${best}. Wynik: ${s.score}.`);
+              if (L.endless) endRun(`Słoik pełny na etapie ${s.stage + 1}. Największy owoc: ${best}.`);
+              else ctx.lose("Słoik pełny", `Największy owoc: ${best}. Wynik: ${s.score}.`);
             }
           } else s.danger = Math.max(0, s.danger - dt * 2);
           if (s.ending) {
@@ -208,9 +261,18 @@
               ctx.win(`Wynik: ${s.score}.`);
             }
           }
-          scoreEl.set(s.score, w.best / L.target, `Największy owoc: ${FRUITS[w.best].name.toLowerCase()}`);
           [...chain.children].forEach((d, i) => d.classList.toggle("on", i <= w.best));
-          ctx.progress(w.best / L.target);
+          if (L.endless) {
+            const part = (s.drops % STAGE_DROPS) / STAGE_DROPS;
+            const left = STAGE_DROPS - (s.drops % STAGE_DROPS);
+            scoreEl.set(s.score, part, `Do etapu ${s.stage + 2}: ${left} ${plural(left, "owoc", "owoce", "owoców")}`);
+            runEl.set("Etap", s.stage + 1);
+            runEl.set("Za bieg", `${endlessPoints(s.score)} pkt`);
+            ctx.progress(part);
+          } else {
+            scoreEl.set(s.score, w.best / L.target, `Największy owoc: ${FRUITS[w.best].name.toLowerCase()}`);
+            ctx.progress(w.best / L.target);
+          }
         }
         draw(dt);
       });
@@ -243,11 +305,11 @@
         g.setLineDash([2.2, 2.2]);
         g.strokeStyle = warn ? `rgba(224,49,49,${0.5 + 0.5 * Math.sin(performance.now() / 80)})` : "rgba(140,90,60,0.45)";
         g.lineWidth = 0.6;
-        g.beginPath(); g.moveTo(jl, LINE); g.lineTo(jr, LINE); g.stroke();
+        g.beginPath(); g.moveTo(jl, w.line); g.lineTo(jr, w.line); g.stroke();
         g.setLineDash([]);
         // celownik i owoc do upuszczenia
         if (!ctx.done && !s.ending) {
-          const r = FRUITS[s.cur].r;
+          const r = spec(s.cur).r;
           g.strokeStyle = "rgba(140,90,60,0.25)";
           g.lineWidth = 0.5;
           g.beginPath(); g.moveTo(s.x, DROP_Y + r); g.lineTo(s.x, BOTTOM); g.stroke();
@@ -296,28 +358,35 @@
         g.font = "600 3.6px Geist, system-ui, sans-serif";
         g.textAlign = "right";
         g.fillText("Następny", 96, 6);
-        drawFruit({ tier: s.next, r: Math.min(5, FRUITS[s.next].r), x: 90, y: 12.5, a: 0 }, 1, 1, true);
+        drawFruit({ tier: s.next, r: Math.min(5, spec(s.next).r), x: 90, y: 12.5, a: 0 }, 1, 1, true);
         g.restore();
       }
 
       // Owoc z buzią; rysunek obraca się razem z toczeniem.
       function drawFruit(f, alpha = 1, scale = 1, mini = false) {
-        const spec = FRUITS[f.tier], r = f.r * scale;
+        const sp = spec(f.tier), r = f.r * scale;
         g.save();
         g.globalAlpha = alpha;
         g.translate(f.x, f.y);
         // cień
         if (!mini) { g.fillStyle = "rgba(90,40,10,0.12)"; g.beginPath(); g.ellipse(0, r * 0.9, r * 0.8, r * 0.18, 0, 0, 7); g.fill(); }
         g.rotate(f.a);
-        const grad = g.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
-        grad.addColorStop(0, spec.c1);
-        grad.addColorStop(1, spec.c2);
-        g.fillStyle = grad;
+        if (sp.kind === "joker") {
+          // tęcza: kolorowe wycinki obracają się
+          const grad = g.createConicGradient(performance.now() / 600, 0, 0);
+          ["#ff6b6b", "#ffa94d", "#ffe066", "#69db7c", "#4dabf7", "#b197fc", "#ff6b6b"].forEach((c, i) => grad.addColorStop(i / 6, c));
+          g.fillStyle = grad;
+        } else {
+          const grad = g.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+          grad.addColorStop(0, sp.c1);
+          grad.addColorStop(1, sp.c2);
+          g.fillStyle = grad;
+        }
         g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
         g.lineWidth = r * 0.06;
         g.strokeStyle = "rgba(60,20,10,0.18)";
         g.stroke();
-        details(spec.kind, r);
+        details(sp.kind, r);
         if (!mini) face(r);
         // połysk
         g.fillStyle = "rgba(255,255,255,0.45)";

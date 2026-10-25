@@ -148,7 +148,29 @@
     return { left: near(t.flippers[0]), right: near(t.flippers[1]) };
   }
 
-  if (typeof module !== "undefined") module.exports = { makeTable, newBall, step, bot, W, H };
+  // --- Tryb bez końca ---
+  // Etap n zaczyna się od wyniku start(n); odstępy rosną o 2000: 0, 5000, 12 000, 21 000, 32 000, 45 000, 60 000...
+  const stageStart = (n) => (n <= 1 ? 0 : 5000 * (n - 1) + 1000 * (n - 1) * (n - 2));
+  function endlessStage(score) {
+    let n = 1;
+    while (score >= stageStart(n + 1)) n++;
+    return { n, from: stageStart(n), to: stageStart(n + 1) };
+  }
+  // grawitacja: etap 1 jak łatwy (120), etap 4 jak średni (144), etap 6 jak trudny (160), dalej do 210
+  const endlessG = (n) => Math.min(210, 120 + 8 * (n - 1));
+  // ratowanie kulki po wystrzale: 8 s na starcie, znika od etapu 6
+  const endlessSave = (n) => Math.max(0, 8 - 1.6 * (n - 1));
+  // dodatkowa kulka co trzeci etap (4, 7, 10...), najwyżej 5 w zapasie
+  const endlessExtraBall = (n) => n > 1 && (n - 1) % 3 === 0;
+  // Punkty profilu za bieg z wyniku stołu, oparte na celach poziomów (10 000 / 25 000 / 50 000 → 10 / 25 / 50).
+  // Poniżej celu łatwego 0–5, dalej coraz szybciej: 100 000 → 141, limit platformy 150 (ok. 105 000).
+  function endlessPoints(score) {
+    if (score < 10000) return Math.floor((5 * score) / 10000);
+    if (score < 50000) return Math.floor(score / 1000);
+    return Math.min(150, Math.floor(50 * Math.pow(score / 50000, 1.5)));
+  }
+
+  if (typeof module !== "undefined") module.exports = { makeTable, newBall, step, bot, W, H, endlessStage, endlessG, endlessSave, endlessExtraBall, endlessPoints };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "flipery",
@@ -164,11 +186,13 @@
       { key: "medium", name: "Średni", points: 25, goal: 25000, g: 140, save: 4 },
       { key: "hard", name: "Trudny", points: 50, goal: 50000, g: 160, save: 0 },
     ],
+    endless: {},
     rules: [
       "Z albo strzałka w lewo porusza lewym flipperem, M albo strzałka w prawo prawym. Na ekranie dotykowym dotknij lewej lub prawej połowy stołu.",
       "Kulkę wystrzeliwuje sprężyna: przytrzymaj spację (albo dotknij stołu) i puść. Dłużej trzymana mocniej strzela.",
       "Odbijacze, procy, cele i dołek dają punkty. Trzy zapalone tory u góry albo komplet celów podnoszą mnożnik.",
       "Masz trzy kulki. Zdobądź wymagany wynik, zanim wszystkie wpadną między flippery.",
+      "W trybie ∞ grasz do utraty kulek: każdy etap wyniku podnosi mnożnik i grawitację, co trzeci daje dodatkową kulkę.",
     ],
     achievements: [
       { id: "cele", name: "Komplet celów", desc: "Zbij wszystkie cztery cele.", points: 10 },
@@ -176,19 +200,28 @@
       { id: "jedna-kulka", name: "Jedna kulka", desc: "Zdobądź wymagany wynik pierwszą kulką.", points: 25 },
       { id: "dolek", name: "Dołek", desc: "Trafiaj do dołka trzy razy podczas jednej kulki.", points: 10 },
       { id: "czarodziej", name: "Czarodziej flipperów", desc: "Zdobądź 100 000 punktów w jednej grze.", points: 50 },
+      { id: "etap-5", name: "Piąty etap", desc: "Dojdź do etapu 5 w trybie bez końca.", points: 25 },
+      { id: "etap-10", name: "Dziesiąty etap", desc: "Dojdź do etapu 10 w trybie bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
       const L = ctx.level;
+      const E = !!L.endless;
       const cv = canvasGame(board, ctx, W, H, { max: 64 });
       const { g } = cv;
       const t = makeTable();
       const s = { ball: newBall(), balls: 3, score: 0, mult: 1, lanes: [0, 0, 0], plunge: 0, launchT: 0, saucers: 0, hit: [], floats: [], lit: { sling: [0, 0] }, over: false, ballNo: 1, drainT: 0, targetsReset: 0 };
       const input = { left: false, right: false };
 
+      // tryb ∞: etap, grawitacja i ratowanie kulki zależą od wyniku
+      s.stage = 1;
+      const opts = { g: E ? endlessG(1) : L.g };
+      let save = E ? endlessSave(1) : L.save;
+
       const scoreEl = statBlock(ctx, "Wynik", { meter: true });
-      const ballEl = statBlock(ctx, "Kulki", { small: true });
-      const multEl = statBlock(ctx, "Mnożnik", { small: true });
+      const ballEl = E ? null : statBlock(ctx, "Kulki", { small: true });
+      const multEl = E ? null : statBlock(ctx, "Mnożnik", { small: true });
+      const runEl = E ? statsBlock(ctx, "Bieg", ["Kulki", "Mnożnik", "Etap", "Za bieg"]) : null;
 
       const keys = heldKeys(ctx);
       let touch = { left: 0, right: 0, plunge: false };
@@ -215,6 +248,7 @@
         const v = pts * s.mult;
         s.score += v;
         if (x != null) s.floats.push({ x, y, t: 0.9, text: v });
+        if (E) { checkStage(); return; }
         if (s.score >= L.goal && !s.won) {
           s.won = true;
           if (s.ballNo === 1) ctx.achieve("jedna-kulka");
@@ -226,6 +260,22 @@
       };
       let alive = true;
       ctx.onStop(() => { alive = false; });
+      function checkStage() {
+        const n = endlessStage(s.score).n;
+        while (s.stage < n) {
+          s.stage++;
+          opts.g = endlessG(s.stage);
+          save = endlessSave(s.stage);
+          s.mult = Math.min(5, s.mult + 1);
+          if (s.mult >= 3) ctx.achieve("mnoznik");
+          if (s.stage >= 5) ctx.achieve("etap-5");
+          if (s.stage >= 10) ctx.achieve("etap-10");
+          const extra = endlessExtraBall(s.stage) && s.balls < 5;
+          if (extra) s.balls++;
+          ctx.toast(`Etap ${s.stage}: mnożnik w górę${extra ? ", dodatkowa kulka" : ""}`);
+          Sound.line();
+        }
+      }
       function finish() { if (!ctx.done) ctx.win(`Wynik: ${s.score.toLocaleString("pl-PL")}.`); }
 
       const events = [];
@@ -238,7 +288,7 @@
           else if (plungeHeld) { plungeHeld = false; release(); }
           // kulka, która wróciła na sprężynę (albo jeszcze na niej leży), czeka na wystrzał
           if (s.ball.inLane && s.ball.y > 140 && Math.abs(s.ball.vy) < 25) Object.assign(s.ball, { x: 92, y: 144, vx: 0, vy: 0 });
-          if (!(s.ball.inLane && !s.ball.vy)) step(t, s.ball, input, dt, { g: L.g }, events);
+          if (!(s.ball.inLane && !s.ball.vy)) step(t, s.ball, input, dt, opts, events);
           s.launchT += dt;
           handle(events.splice(0));
         }
@@ -281,7 +331,7 @@
         Sound.line();
       }
       function drain() {
-        if (L.save && s.launchT < L.save) {
+        if (save && s.launchT < save) {
           ctx.toast("Kulka uratowana");
           s.ball = newBall();
           return;
@@ -291,6 +341,11 @@
         if (s.balls <= 0) {
           s.ball = newBall();
           s.ball.gone = true;
+          if (E) {
+            const sc = s.score.toLocaleString("pl-PL");
+            ctx.over(s.score, endlessPoints(s.score), `Wynik: ${sc}, etap ${s.stage}.`);
+            return;
+          }
           if (!s.won) ctx.lose("Koniec kulek", `Wynik: ${s.score.toLocaleString("pl-PL")} z ${L.goal.toLocaleString("pl-PL")}.`);
           return;
         }
@@ -298,7 +353,7 @@
         s.mult = 1;
         s.saucers = 0;
         s.ball = newBall();
-        ctx.toast(`Kulka ${s.ballNo} z 3`);
+        ctx.toast(E ? `Zostało kulek: ${s.balls}` : `Kulka ${s.ballNo} z 3`);
       }
 
       // --- Rysowanie ---
@@ -421,6 +476,16 @@
       }
 
       function render() {
+        if (E) {
+          const st = endlessStage(s.score), frac = (s.score - st.from) / (st.to - st.from);
+          scoreEl.set(s.score.toLocaleString("pl-PL"), frac, `Etap ${st.n + 1} od ${st.to.toLocaleString("pl-PL")}`);
+          runEl.set("Kulki", s.balls);
+          runEl.set("Mnożnik", `×${s.mult}`);
+          runEl.set("Etap", s.stage);
+          runEl.set("Za bieg", `${endlessPoints(s.score)} pkt`);
+          ctx.progress(frac);
+          return;
+        }
         scoreEl.set(s.score.toLocaleString("pl-PL"), s.score / L.goal, `Cel: ${L.goal.toLocaleString("pl-PL")}`);
         ballEl.set(`${s.ballNo > 3 ? 3 : s.ballNo} z 3`);
         multEl.set(`×${s.mult}`);

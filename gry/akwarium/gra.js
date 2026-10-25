@@ -54,7 +54,7 @@
     cat: "symulacje",
     big: true,
     name: "Akwarium",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Hoduj kolorowe ryby w rafie koralowej, dbaj o czystość wody, karm ławice i chroń je przed drapieżnikami.",
     color: "#0d9488",
     ink: "#ffffff",

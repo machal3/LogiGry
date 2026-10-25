@@ -2,7 +2,7 @@
 
 - id: witraz
 - opis: Dobieraj kolorowe szkiełka z warsztatu i układaj mozaikę w oknie katedry zgodnie ze wzorami i sąsiedztwem.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: planszowe
 
 ## Zasady

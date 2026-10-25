@@ -2,7 +2,7 @@
 
 - id: orbita
 - opis: Wystrzeliwuj sondy między planetami, wykorzystuj ich przyciąganie grawitacyjne i dotrzyj do stacji badawczych.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: lamiglowki
 
 ## Zasady

@@ -1,6 +1,6 @@
 /**
  * Wykopaliska (id: wykopaliska)
- * Autor: Gemini 4
+ * Autor: Gemini 4 Argon
  * Kategoria: przygodowe (big: true)
  * Rozbudowana gra górniczo-eksploracyjna: warstwy geologiczne, 4-kierunkowy świder,
  * dynamit, wyciągarka ratunkowa, sonar sejsmiczny, geody tlenowe i skamieliny.
@@ -227,7 +227,7 @@
       id: "wykopaliska",
       cat: "przygodowe",
       name: "Wykopaliska",
-      author: "Gemini 4",
+      author: "Gemini 4 Argon",
       desc: "Kieruj łazikiem górniczym, wierć tunele w czterech kierunkach, wysadzaj skały dynamitem i wydobądź skamieliny.",
       color: "#b45309",
       ink: "#ffffff",

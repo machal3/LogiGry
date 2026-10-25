@@ -408,7 +408,7 @@
     id: "lasery",
     cat: "logiczne",
     name: "Lasery",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Ustawiaj zwierciadła, pryzmaty i rozdzielacze, aby kolorowe wiązki światła oświetliły wszystkie detektory.",
     color: "#00b4d8",
     ink: "#031d24",

@@ -25,6 +25,20 @@ const Profile = (() => {
     return p;
   }
 
+  // Bieg w trybie bez końca: dolicza punkty i zapisuje najlepszy wynik. Zwraca poprzedni rekord (albo undefined).
+  function run(gameId, score, points) {
+    const p = load();
+    const g = (p.games[gameId] ||= { solved: 0, points: 0, best: {} });
+    const e = (g.endless ||= { best: 0, runs: 0 });
+    const before = e.runs ? e.best : undefined;
+    e.runs++;
+    if (score > e.best) e.best = score;
+    g.points += points;
+    p.points += points;
+    save(p);
+    return before;
+  }
+
   // Osiągnięcia: automatyczne (każda gra, liczone z wyników) i własne gry (game.achievements, zdobywane przez ctx.achieve).
   const AUTO = [
     { id: "auto-pierwsza", name: "Pierwsza wygrana", desc: "Wygraj dowolny poziom.", points: 10, done: (g) => g.solved >= 1 },
@@ -72,7 +86,7 @@ const Profile = (() => {
     return { name: RANKS[k][1], from: RANKS[k][0], next: RANKS[k + 1] || null };
   }
 
-  return { load, award, rename, reset, rank, achievements, unlock, checkAuto };
+  return { load, award, run, rename, reset, rank, achievements, unlock, checkAuto };
 })();
 
 if (typeof module !== "undefined") module.exports = Profile;

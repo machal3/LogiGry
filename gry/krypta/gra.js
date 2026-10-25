@@ -94,7 +94,31 @@
     return [...c.relics, c.exit].every(([x, y]) => d2[y][x] >= 0);
   }
 
-  if (typeof module !== "undefined") module.exports = { generate, solvable, bfs, maze };
+  // Tryb bez końca: parametry piętra d (1, 2, ...). Piętro 1 jest lżejsze od łatwego poziomu,
+  // około 5. piętra upiory są jak na średnim, około 7. jak na trudnym; dalej rośnie do górnych granic.
+  function floorParams(d) {
+    const k = d - 1;
+    return {
+      n: Math.min(12, 5 + Math.floor(d / 2)),
+      loops: Math.min(0.16, 0.1 + 0.005 * k),
+      relics: Math.min(5, 2 + Math.floor(k / 3)),
+      gate: d >= 3,
+      ghosts: Math.min(7, 1 + Math.floor((k * 2) / 3)),
+      ghostSpeed: Math.min(2.1, 0.95 + 0.1 * k),
+      chase: Math.min(14, 6 + k),
+      regen: Math.max(4, 7 - 0.4 * k),
+    };
+  }
+  // Punkty za bieg z liczby ukończonych pięter. Piętra 1–2 trwają tyle co łatwy poziom (≈ 20 pkt),
+  // 3–4 tyle co średni (≈ 50), 5 tyle co trudny (≈ 100); dalej przyrosty rosną aż do limitu 300.
+  function endlessPoints(cleared) {
+    if (cleared <= 0) return 0;
+    if (cleared === 1) return 5;
+    const k = cleared - 2;
+    return Math.min(300, Math.round(20 + 13 * k + 4.5 * k * k));
+  }
+
+  if (typeof module !== "undefined") module.exports = { generate, solvable, bfs, maze, floorParams, endlessPoints };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "krypta",
@@ -111,13 +135,14 @@
       { key: "medium", name: "Średni", points: 50, n: 8, loops: 0.12, relics: 4, gate: true, ghosts: 3, ghostSpeed: 1.3, chase: 9, regen: 5.5, lives: 3 },
       { key: "hard", name: "Trudny", points: 100, n: 10, loops: 0.14, relics: 5, gate: true, ghosts: 5, ghostSpeed: 1.6, chase: 12, regen: 4.5, lives: 3 },
     ],
+    endless: { unit: ["piętro", "piętra", "pięter"], lives: 3, lifeEvery: 3 },
     rules: [
       "Chodzisz strzałkami albo WASD (A i D to krok w bok, strzałki w lewo i w prawo obracają). Myszą lub palcem przeciągnij po obrazie: w bok obraca, w górę idzie naprzód.",
       "Zbierz wszystkie złote relikwie. Wtedy portal na końcu krypty zaczyna świecić i można przez niego wyjść.",
       "Na średnim i trudnym poziomie drogę zamyka krata. Otwiera ją klucz ukryty w krypcie.",
       "Upiory krążą po korytarzach i gonią cię, gdy poczują. Dotyk upiora zabiera życie.",
       "Spacja albo przycisk Błysk wypuszcza błysk latarni: upiór przed tobą znika. Błysk zużywa światło, które powoli wraca.",
-      "Mapa w rogu pokazuje odkryte korytarze. Po utracie trzech żyć wyprawa się kończy.",
+      "Mapa w rogu pokazuje odkryte korytarze. Po utracie trzech żyć wyprawa się kończy. W trybie ∞ portal prowadzi niżej: krypty rosną, upiorów przybywa, co trzy piętra wraca życie.",
     ],
     achievements: [
       { id: "relikwia", name: "Pierwsza relikwia", desc: "Podnieś pierwszą relikwię.", points: 10 },
@@ -126,41 +151,52 @@
       { id: "nietkniety", name: "Nietknięty", desc: "Wyjdź ze średniej lub trudnej krypty bez utraty życia.", points: 25 },
       { id: "w-ciemnosci", name: "W ciemności", desc: "Wyjdź ze średniej lub trudnej krypty bez użycia błysku.", points: 25 },
       { id: "sprint", name: "Sprint w mroku", desc: "Wyjdź z trudnej krypty w mniej niż 6 minut.", points: 50 },
+      { id: "glebia", name: "Głębia", desc: "Dotrzyj do 6. piętra w trybie bez końca.", points: 25 },
+      { id: "otchlan", name: "Otchłań", desc: "Dotrzyj do 12. piętra w trybie bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
-      const L = ctx.level;
+      const L = ctx.level, endless = !!L.endless;
       const W = 160, H = 90, RW = 320, RH = 180, TEX = 64;
       const cv = canvasGame(board, ctx, W, H, { max: 120, cls: "space" });
       const { g } = cv;
-      const crypt = generate(L);
-      const { grid } = crypt;
-      const S = grid.length;
+      // P: parametry bieżącej krypty (zwykły poziom albo piętro trybu bez końca)
+      let depth = 1, P = endless ? { ...floorParams(1), lives: L.lives } : L;
       const s = {
-        x: crypt.start[0] + 0.5, y: crypt.start[1] + 0.5, a: 0, lives: L.lives, energy: 100, inv: 0, hurt: 0, flash: 0,
-        relics: 0, key: false, banished: 0, flashes: 0, bob: 0, seen: new Set(), msg: 0, ending: 0,
+        x: 0, y: 0, a: 0, lives: P.lives, energy: 100, inv: 0, hurt: 0, flash: 0,
+        relics: 0, key: false, banished: 0, flashes: 0, bob: 0, seen: new Set(), msg: 0, ending: 0, fade: 0,
       };
-      // pierwszy krok w stronę otwartego korytarza
-      s.a = grid[1][2] === 0 ? 0 : Math.PI / 2;
-      const items = [
-        ...crypt.relics.map(([x, y]) => ({ kind: "relic", x: x + 0.5, y: y + 0.5 })),
-        ...(crypt.key ? [{ kind: "key", x: crypt.key[0] + 0.5, y: crypt.key[1] + 0.5 }] : []),
-        { kind: "portal", x: crypt.exit[0] + 0.5, y: crypt.exit[1] + 0.5 },
-      ];
-      // ozdoby: świece i czaszki na podłodze
-      const floors = [];
-      grid.forEach((row, y) => row.forEach((v, x) => !v && floors.push([x, y])));
-      shuffle(floors.slice()).slice(0, Math.floor(floors.length / 9)).forEach(([x, y]) => {
-        if (items.some((it) => Math.floor(it.x) === x && Math.floor(it.y) === y) || (x === 1 && y === 1)) return;
-        items.push({ kind: Math.random() < 0.6 ? "candle" : "skull", x: x + 0.3 + Math.random() * 0.4, y: y + 0.3 + Math.random() * 0.4, deco: true });
-      });
-      const startDist = bfs(grid.map((r) => r.map((v) => (v === 2 ? 0 : v))), 1, 1).dist;
-      const farCells = () => floors.filter(([x, y]) => Math.hypot(x + 0.5 - s.x, y + 0.5 - s.y) > 7);
-      const ghosts = Array.from({ length: L.ghosts }, () => {
+      let crypt, grid, S, items, floors, startDist, ghosts;
+      function buildFloor() {
+        crypt = generate(P);
+        grid = crypt.grid;
+        S = grid.length;
+        s.x = crypt.start[0] + 0.5; s.y = crypt.start[1] + 0.5;
+        // pierwszy krok w stronę otwartego korytarza
+        s.a = grid[1][2] === 0 ? 0 : Math.PI / 2;
+        items = [
+          ...crypt.relics.map(([x, y]) => ({ kind: "relic", x: x + 0.5, y: y + 0.5 })),
+          ...(crypt.key ? [{ kind: "key", x: crypt.key[0] + 0.5, y: crypt.key[1] + 0.5 }] : []),
+          { kind: "portal", x: crypt.exit[0] + 0.5, y: crypt.exit[1] + 0.5 },
+        ];
+        // ozdoby: świece i czaszki na podłodze
+        floors = [];
+        grid.forEach((row, y) => row.forEach((v, x) => !v && floors.push([x, y])));
+        shuffle(floors.slice()).slice(0, Math.floor(floors.length / 9)).forEach(([x, y]) => {
+          if (items.some((it) => Math.floor(it.x) === x && Math.floor(it.y) === y) || (x === 1 && y === 1)) return;
+          items.push({ kind: Math.random() < 0.6 ? "candle" : "skull", x: x + 0.3 + Math.random() * 0.4, y: y + 0.3 + Math.random() * 0.4, deco: true });
+        });
+        startDist = bfs(grid.map((r) => r.map((v) => (v === 2 ? 0 : v))), 1, 1).dist;
+        // małe krypty: gdy nic nie leży daleko, upiory startują w najdalszej trzeciej części
         const far = floors.filter(([x, y]) => startDist[y][x] > 14 && Math.hypot(x - 1, y - 1) > 6);
-        const [x, y] = pick(far.length ? far : floors);
-        return { x: x + 0.5, y: y + 0.5, tx: x, ty: y, prev: null, away: 0, chasing: false, ph: Math.random() * 6 };
-      });
+        const spawn = far.length ? far : floors.slice().sort((a, b) => startDist[b[1]][b[0]] - startDist[a[1]][a[0]]).slice(0, Math.max(1, Math.floor(floors.length / 3)));
+        ghosts = Array.from({ length: P.ghosts }, () => {
+          const [x, y] = pick(spawn);
+          return { x: x + 0.5, y: y + 0.5, tx: x, ty: y, prev: null, away: 0, chasing: false, ph: Math.random() * 6 };
+        });
+      }
+      buildFloor();
+      const farCells = () => floors.filter(([x, y]) => Math.hypot(x + 0.5 - s.x, y + 0.5 - s.y) > 7);
 
       // --- Tekstury generowane w kodzie (64 × 64, piksele ABGR) ---
       const noise = () => Math.random();
@@ -253,7 +289,8 @@
       const keys = heldKeys(ctx, (k) => { if (k === " " || k === "f") flash(); if (k === "m") s.bigMap = !s.bigMap; });
       touchPad(ctx, keys, [["arrowleft", "Obróć w lewo", "i-ccw"], ["arrowup", "Naprzód", "i-up"], ["arrowdown", "Wstecz", "i-down"], ["arrowright", "Obróć w prawo", "i-cw"]]);
       const relicEl = statBlock(ctx, "Relikwie", { meter: true });
-      const lifeEl = statBlock(ctx, "Życia", { small: true });
+      const lifeEl = endless ? null : statBlock(ctx, "Życia", { small: true });
+      const runEl = endless ? statsBlock(ctx, "Wyprawa", ["Piętro", "Życia", "Za bieg"]) : null;
       const flashBtn = button("Błysk", "btn wide", () => flash());
       const lightNote = el("p", "panel-note");
       ctx.panel.append(panelBlock("Latarnia", lightNote, flashBtn));
@@ -297,7 +334,7 @@
       // --- Pętla ---
       cv.loop((dt, now) => {
         if (!ctx.done && !s.ending) update(dt);
-        else if (s.ending) { s.ending += dt; if (s.ending > 1.1 && !ctx.done) win(); }
+        else if (s.ending) { s.ending += dt; if (s.ending > 1.1 && !ctx.done) { if (endless) nextFloor(); else win(); } }
         renderScene(now / 1000);
         draw(dt, now / 1000);
       });
@@ -318,7 +355,7 @@
         if (!solid(s.x + mx + Math.sign(mx) * r, s.y)) s.x += mx;
         if (!solid(s.x, s.y + my + Math.sign(my) * r)) s.y += my;
         if (mx || my) s.bob += dt * 9;
-        s.energy = Math.min(100, s.energy + L.regen * dt);
+        s.energy = Math.min(100, s.energy + P.regen * dt);
         s.inv = Math.max(0, s.inv - dt);
         // przedmioty pod nogami
         for (const it of items) {
@@ -337,7 +374,7 @@
           } else if (it.kind === "portal") {
             if (s.relics < crypt.relics.length) {
               if (!s.portalMsg || performance.now() - s.portalMsg > 3000) { ctx.toast(`Portal śpi. Brakuje relikwii: ${crypt.relics.length - s.relics}`); s.portalMsg = performance.now(); }
-            } else { s.ending = 0.01; Sound.win(); }
+            } else { s.ending = 0.01; if (endless) Sound.line(); else Sound.win(); }
           }
         }
         moveGhosts(dt);
@@ -354,13 +391,13 @@
           }
           gh.ph += dt;
           const tx = gh.tx + 0.5, ty = gh.ty + 0.5, d = Math.hypot(tx - gh.x, ty - gh.y);
-          const speed = L.ghostSpeed * (gh.chasing ? 1 : 0.7);
+          const speed = P.ghostSpeed * (gh.chasing ? 1 : 0.7);
           if (d < 0.05) {
             // nowy cel: krok w stronę gracza (gdy go czuje) albo błądzenie
             const cur = [gh.tx, gh.ty];
             const route = bfs(grid.map((r) => r.map((v) => (v === 2 ? 0 : v))), pc[0], pc[1]).dist;
             const dd = route[cur[1]][cur[0]];
-            gh.chasing = dd >= 0 && dd <= L.chase;
+            gh.chasing = dd >= 0 && dd <= P.chase;
             const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [cur[0] + dx, cur[1] + dy]).filter(([x, y]) => grid[y][x] !== 1);
             let next;
             const closer = opts.filter(([x, y]) => route[y][x] >= 0).sort((a, b) => route[a[1]][a[0]] - route[b[1]][b[0]]);
@@ -382,10 +419,27 @@
             s.hurt = 0.6;
             Sound.error();
             gh.away = 4;
-            if (s.lives <= 0) return ctx.lose("Upiory cię dopadły", `Relikwie: ${s.relics} z ${crypt.relics.length}.`);
+            if (s.lives <= 0) {
+              if (endless) return ctx.over(depth, endlessPoints(depth - 1), `Osiągnięte piętro: ${depth}. Odpędzone upiory: ${s.banished}.`);
+              return ctx.lose("Upiory cię dopadły", `Relikwie: ${s.relics} z ${crypt.relics.length}.`);
+            }
             ctx.toast(s.lives === 1 ? "Ostatnie życie" : `Zostały ${s.lives} życia`);
           }
         }
+      }
+
+      // tryb bez końca: portal prowadzi na kolejne, trudniejsze piętro
+      function nextFloor() {
+        depth++;
+        P = { ...floorParams(depth), lives: L.lives };
+        buildFloor();
+        Object.assign(s, { relics: 0, key: false, seen: new Set(), energy: 100, ending: 0, fade: 1, inv: 1.5, portalMsg: 0 });
+        let msg = `Piętro ${depth}`;
+        if ((depth - 1) % L.lifeEvery === 0 && s.lives < L.lives) { s.lives++; msg += ". Wraca jedno życie"; }
+        if (depth >= 6) ctx.achieve("glebia");
+        if (depth >= 12) ctx.achieve("otchlan");
+        ctx.toast(msg);
+        render();
       }
 
       function win() {
@@ -514,6 +568,7 @@
         g.fillStyle = vg; g.fillRect(0, 0, W, H);
         minimap();
         if (s.ending) { g.fillStyle = `rgba(200,240,255,${Math.min(1, s.ending)})`; g.fillRect(0, 0, W, H); }
+        else if (s.fade > 0) { s.fade -= dt; g.fillStyle = `rgba(200,240,255,${Math.max(0, s.fade)})`; g.fillRect(0, 0, W, H); }
       }
 
       function hand(t) {
@@ -578,7 +633,11 @@
       function render() {
         const total = crypt.relics.length;
         relicEl.set(`${s.relics} z ${total}`, s.relics / total, crypt.gate ? (s.key ? "Klucz masz przy sobie." : "Krata zamknięta, szukaj klucza.") : "Potem idź do portalu.");
-        lifeEl.set(`${s.lives} z ${L.lives}`);
+        if (endless) {
+          runEl.set("Piętro", depth);
+          runEl.set("Życia", `${s.lives} z ${L.lives}`);
+          runEl.set("Za bieg", `${endlessPoints(depth - 1)} pkt`);
+        } else lifeEl.set(`${s.lives} z ${L.lives}`);
         lightNote.textContent = `Światło ${Math.round(s.energy)}%. Błysk kosztuje 30%. Klawisz M pokazuje całą mapę.`;
         flashBtn.disabled = s.energy < 30 || ctx.done;
         ctx.progress((s.relics + (s.ending ? 1 : 0)) / (total + 1));
@@ -590,6 +649,7 @@
         }
       }
       render();
+      if (endless) ctx.toast("Piętro 1");
     },
   });
 }

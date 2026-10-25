@@ -113,7 +113,31 @@
     return best;
   }
 
-  if (typeof module !== "undefined") module.exports = { rack, step, moving, simulate, bestShot, POCKETS, R, X0, X1, Y0, Y1 };
+  // Tryb bez końca: stół k (od 1). Start jak łatwy (5 bil, pełny celownik), od 6. stołu bez linii pomocniczych,
+  // od 9. pełny trójkąt; dalej maleje tylko uzupełnienie pudeł, więc bieg trudnieje bez ściany.
+  function stageCfg(k) {
+    return {
+      balls: Math.min(15, 4 + k + Math.floor(k / 4)),
+      eight: k >= 3,
+      guide: k <= 2 ? 2 : k <= 5 ? 1 : 0,
+      refill: Math.max(2, 7 - Math.floor((k - 1) / 2)),
+      hints: k <= 2 ? 2 : k <= 5 ? 1 : k % 3 === 0 ? 1 : 0,
+      back: k <= 5 ? 3 : 4,
+    };
+  }
+  const POOL0 = 12, POOL_MAX = 20;
+
+  // Punkty za bieg z liczby wbitych bil. Łatwy poziom to 6 bil (10 pkt), średni ≈ 3 stoły, 18 bil (25 pkt),
+  // trudny ≈ 5 stołów, 36 bil (50 pkt); potem przyrost rośnie. Platforma obcina do 150.
+  function runPoints(score) {
+    if (score < 6) return Math.max(0, score);
+    if (score < 18) return Math.round(10 + ((score - 6) * 15) / 12);
+    if (score < 36) return Math.round(25 + ((score - 18) * 25) / 18);
+    const d = score - 36;
+    return Math.min(150, Math.round(50 + d * 1.4 + d * d * 0.01));
+  }
+
+  if (typeof module !== "undefined") module.exports = { rack, step, moving, simulate, bestShot, stageCfg, runPoints, POOL0, POOL_MAX, POCKETS, R, X0, X1, Y0, Y1 };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "bilard",
@@ -129,11 +153,13 @@
       { key: "medium", name: "Średni", points: 25, balls: 10, shots: 12, eight: true, guide: 1, hints: 3 },
       { key: "hard", name: "Trudny", points: 50, balls: 15, shots: 10, eight: true, guide: 0, hints: 1 },
     ],
+    endless: { unit: ["bila", "bile", "bil"] },
     rules: [
       "Naciśnij na stole i odciągnij jak procę w stronę przeciwną do strzału. Im dalej, tym mocniej. Puść, żeby uderzyć.",
       "Wbij wszystkie bile. Masz zapas pudeł: uderzenie, po którym nic nie wpadło, zabiera jedno z zapasu.",
       "Wpadnięcie białej bili kosztuje dodatkowe uderzenie. Na średnim i trudnym czarna ósemka musi wpaść ostatnia.",
       "Klawiatura: strzałki w lewo i w prawo celują (z Shift dokładniej), w górę i w dół ustawiają siłę, spacja uderza.",
+      "Tryb ∞: stoły bez końca, z każdym więcej bil i krótszy celownik. Co kilka wbitych bil i każdy nowy stół oddają pudła, wynik to wbite bile.",
     ],
     achievements: [
       { id: "dublet", name: "Dublet", desc: "Wbij dwie bile jednym uderzeniem.", points: 10 },
@@ -141,20 +167,26 @@
       { id: "seria", name: "Seria", desc: "Wbij bile w pięciu uderzeniach z rzędu.", points: 25 },
       { id: "czysto", name: "Czysta gra", desc: "Wygraj średni lub trudny poziom, ani razu nie wbijając białej.", points: 25 },
       { id: "zapas", name: "Profesor", desc: "Wygraj trudny poziom, pudłując najwyżej trzy razy.", points: 50 },
+      { id: "maraton", name: "Maraton", desc: "W trybie bez końca wyczyść pięć stołów w jednym biegu.", points: 25 },
+      { id: "mistrz-sali", name: "Mistrz sali", desc: "W trybie bez końca wbij 75 bil w jednym biegu.", points: 50 },
     ],
 
     mount(board, ctx) {
       const L = ctx.level;
+      const E = !!L.endless;
+      // cfg: parametry bieżącego stołu (w trybie bez końca zmieniają się co stół)
+      const cfg = E ? stageCfg(1) : L;
       const portrait = board.parentElement.clientWidth < 640;
       const cv = canvasGame(board, ctx, portrait ? TH : TW, portrait ? TW : TH, { max: portrait ? 60 : 110 });
       const { g } = cv;
-      const balls = rack(L.balls, L.eight);
-      const s = { hints: L.hints, ang: 0, power: 0.5, aiming: null, shots: L.shots, misses: 0, streak: 0, scratches: 0, rolling: false, potted: [], cushioned: new Set(), cueHit: false, flash: [], hint: null };
+      const balls = rack(cfg.balls, cfg.eight);
+      const s = { hints: cfg.hints, ang: 0, power: 0.5, aiming: null, shots: E ? POOL0 : L.shots, stage: 1, score: 0, pots: 0, misses: 0, streak: 0, scratches: 0, rolling: false, potted: [], cushioned: new Set(), cueHit: false, flash: [], hint: null };
       s.ang = Math.atan2(balls[1].y - balls[0].y, balls[1].x - balls[0].x);
       const MAXP = 230;
 
       const leftEl = statBlock(ctx, "Bile na stole", { meter: true });
-      const shotsEl = statBlock(ctx, "Zapas pudeł", { small: true });
+      const shotsEl = E ? null : statBlock(ctx, "Zapas pudeł", { small: true });
+      const runEl = E ? statsBlock(ctx, "Bieg", ["Wbite", "Stół", "Pudła", "Za bieg"]) : null;
       const rackEl = el("div", "bl-rack");
       ctx.panel.append(panelBlock("Wbite", rackEl));
       const hintBtn = button("Podpowiedź", "btn-ghost wide", hint);
@@ -210,7 +242,7 @@
       function hint() {
         if (!still() || !s.hints) return;
         s.hints--;
-        const b = bestShot(balls, L.eight);
+        const b = bestShot(balls, cfg.eight);
         if (!b) return;
         s.ang = b.ang;
         s.power = Math.min(1, b.power / MAXP);
@@ -235,7 +267,23 @@
           // biała wraca na punkt startowy; gdy zajęty, przesuwa się w bok
           for (let k = 0; balls.some((b) => b !== cue && !b.in && Math.hypot(b.x - cue.x, b.y - cue.y) < 2 * R + 0.5); k++) cue.y = HEAD[1] + ((k % 2 ? 1 : -1) * Math.ceil(k / 2) * R * 2.2);
         }
-        if (L.eight && objs.includes(8) && left.length) return ctx.lose("Ósemka za wcześnie", "Czarna bila musiała wpaść jako ostatnia.");
+        if (cfg.eight && objs.includes(8) && left.length) {
+          if (!E) return ctx.lose("Ósemka za wcześnie", "Czarna bila musiała wpaść jako ostatnia.");
+          // w biegu: ósemka wraca na stół, kara dwóch pudeł
+          const b8 = balls.find((b) => b.n === 8);
+          Object.assign(b8, { in: false, vx: 0, vy: 0, x: 140, y: 55 });
+          for (let k = 0; balls.some((b) => b !== b8 && !b.in && Math.hypot(b.x - b8.x, b.y - b8.y) < 2 * R + 0.5); k++) b8.x = 140 + Math.ceil(k / 2) * R * 2.2 * (k % 2 ? 1 : -1);
+          objs.splice(objs.indexOf(8), 1);
+          left.push(b8);
+          s.shots -= 2;
+          ctx.toast("Ósemka za wcześnie: wraca, minus 2 pudła");
+          Sound.error();
+        }
+        if (E && objs.length) {
+          s.score += objs.length;
+          for (let k = 0; k < objs.length; k++) if (++s.pots % cfg.back === 0 && s.shots < POOL_MAX) s.shots++;
+          if (s.score >= 75) ctx.achieve("mistrz-sali");
+        }
         if (objs.length) {
           s.streak++;
           if (objs.length >= 2) ctx.achieve("dublet");
@@ -247,12 +295,34 @@
           s.misses++;
         }
         render();
+        if (E && !left.length) return nextTable();
+        if (E && s.shots <= 0) return endRun();
         if (!left.length) {
           if (L.key !== "easy" && !s.scratches) ctx.achieve("czysto");
           if (L.key === "hard" && s.misses <= 3) ctx.achieve("zapas");
           return ctx.win(`Pudła: ${s.misses}, w zapasie ${s.shots}.`);
         }
         if (s.shots <= 0) ctx.lose("Koniec zapasu", `Na stole ${plural(left.length, "została", "zostały", "zostało")} ${left.length} ${plural(left.length, "bila", "bile", "bil")}.`);
+      }
+
+      // Bieg: nowy stół po wyczyszczeniu poprzedniego.
+      function nextTable() {
+        if (s.stage >= 5) ctx.achieve("maraton");
+        s.stage++;
+        Object.assign(cfg, stageCfg(s.stage));
+        balls.splice(0, balls.length, ...rack(cfg.balls, cfg.eight));
+        const before = s.shots;
+        s.shots = Math.min(POOL_MAX, s.shots + cfg.refill);
+        s.hints = Math.min(3, s.hints + cfg.hints);
+        s.ang = Math.atan2(balls[1].y - balls[0].y, balls[1].x - balls[0].x);
+        Sound.line();
+        const add = s.shots - before;
+        ctx.toast(`Stół ${s.stage}: ${cfg.balls} bil, +${add} ${plural(add, "pudło", "pudła", "pudeł")}`);
+        render();
+      }
+      function endRun() {
+        const done = s.stage - 1;
+        ctx.over(s.score, runPoints(s.score), `Wyczyszczone stoły: ${done}, koniec na stole ${s.stage}.`);
       }
 
       const events = {
@@ -371,13 +441,13 @@
         g.setLineDash([]);
         g.strokeStyle = "rgba(255,255,255,0.7)";
         g.beginPath(); g.arc(gx, gy, R, 0, 7); g.stroke();
-        if (target && L.guide) {
+        if (target && cfg.guide) {
           // kierunek bili po zderzeniu: wzdłuż linii środków
           const nx = target.x - gx, ny = target.y - gy, nl = Math.hypot(nx, ny);
-          const len = L.guide === 2 ? 40 : 14;
+          const len = cfg.guide === 2 ? 40 : 14;
           g.strokeStyle = "rgba(255,230,150,0.75)";
           g.beginPath(); g.moveTo(target.x, target.y); g.lineTo(target.x + (nx / nl) * len, target.y + (ny / nl) * len); g.stroke();
-          if (L.guide === 2) {
+          if (cfg.guide === 2) {
             // biała odbija się prostopadle
             const px = dx - (nx / nl) * (dx * nx + dy * ny) / nl, py = dy - (ny / nl) * (dx * nx + dy * ny) / nl, pl = Math.hypot(px, py);
             if (pl > 0.05) { g.strokeStyle = "rgba(255,255,255,0.3)"; g.beginPath(); g.moveTo(gx, gy); g.lineTo(gx + (px / pl) * 18, gy + (py / pl) * 18); g.stroke(); }
@@ -407,17 +477,22 @@
 
       function render() {
         const left = balls.filter((b) => b.n && !b.in);
-        leftEl.set(left.length, 1 - left.length / L.balls, s.streak > 1 ? `Seria: ${s.streak}` : L.eight ? "Ósemka na końcu" : "");
-        shotsEl.set(`${Math.max(0, s.shots)} z ${L.shots}`);
+        leftEl.set(left.length, 1 - left.length / cfg.balls, s.streak > 1 ? `Seria: ${s.streak}` : cfg.eight ? "Ósemka na końcu" : "");
+        if (E) {
+          runEl.set("Wbite", s.score);
+          runEl.set("Stół", s.stage);
+          runEl.set("Pudła", Math.max(0, s.shots));
+          runEl.set("Za bieg", `${runPoints(s.score)} pkt`);
+        } else shotsEl.set(`${Math.max(0, s.shots)} z ${L.shots}`);
         hintBtn.disabled = !still() || !s.hints;
-        hintBtn.textContent = L.hints < 99 ? `Podpowiedź (${s.hints})` : "Podpowiedź";
+        hintBtn.textContent = cfg.hints < 99 ? `Podpowiedź (${s.hints})` : "Podpowiedź";
         rackEl.replaceChildren(...balls.filter((b) => b.n && b.in).map((b) => {
           const d = el("span", `bl-ball${b.n > 8 ? " stripe" : ""}`, b.n);
           d.style.setProperty("--bc", COLORS[b.n % 8 || 8]);
           return d;
         }));
         if (!rackEl.children.length) rackEl.append(el("p", "bl-empty", "Jeszcze nic."));
-        ctx.progress(1 - left.length / L.balls);
+        ctx.progress(1 - left.length / cfg.balls);
       }
       render();
     },

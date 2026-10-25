@@ -39,3 +39,32 @@ test("odwrócenie stosu ruchów zawsze układa kostkę (to robi podpowiedź)", (
 test("pomieszana kostka nigdy nie jest od razu ułożona", () => {
   for (let k = 0; k < 100; k++) { const c = makeCube(2); scramble(c, 3); assert.ok(!solved(c)); }
 });
+
+const { cubeSpec, cubeBonus, runPoints, END } = require("./gra.js");
+
+test("tryb bez końca: mieszanie rośnie, nie przekracza 20, a dodany czas nie spada poniżej 120 s przy pełnym", () => {
+  assert.deepStrictEqual(cubeSpec(0), { size: 2, mix: 2 });
+  assert.deepStrictEqual(cubeSpec(3), { size: 3, mix: 3 });
+  let prev = 0;
+  for (let i = 0; i < 60; i++) {
+    const sp = cubeSpec(i);
+    if (i !== 3) assert.ok(sp.mix >= prev, `mieszanie nie maleje (${i})`);
+    assert.ok(sp.mix <= 20);
+    assert.ok(cubeBonus(i) >= 46 && cubeBonus(i) <= 180);
+    if (sp.mix >= 15) assert.ok(cubeBonus(i) >= 120);
+    prev = sp.mix;
+  }
+  // podpowiedź nie może się opłacać: od 4 ruchów mieszania same podpowiedzi kosztują więcej niż premia
+  for (let i = 0; i < 60; i++) if (cubeSpec(i).mix >= 4) assert.ok(cubeSpec(i).mix * (END.hintCost + 1.5) > cubeBonus(i));
+});
+
+test("tryb bez końca: punkty jak poziomy, rosną coraz szybciej, do limitu 150", () => {
+  assert.strictEqual(runPoints(0), 0);
+  assert.ok(runPoints(2) <= 5);
+  assert.strictEqual(runPoints(3), 10);
+  assert.strictEqual(runPoints(6), 25);
+  assert.strictEqual(runPoints(10), 50);
+  for (let n = 1; n < 40; n++) assert.ok(runPoints(n) >= runPoints(n - 1) && runPoints(n) <= 150);
+  assert.ok(runPoints(12) - runPoints(11) > runPoints(11) - runPoints(10));
+  assert.strictEqual(runPoints(30), 150);
+});

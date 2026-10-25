@@ -105,7 +105,27 @@
     return null;
   }
 
-  if (typeof module !== "undefined") module.exports = { roll, cells, step, solve, generate, DIRS };
+  // Tryb bez końca: parametry etapu n (od 0). Start jak łatwy, etap 3 jak średni, 6 jak trudny, potem dłuższe trasy aż do pułapu.
+  function endlessParams(n) {
+    return {
+      walk: Math.min(28, 9 + Math.round(n * 1.6)),
+      minOpt: Math.min(23, 6 + Math.round(n * 1.3)),
+      fragile: n < 2 ? 0 : Math.min(0.28, 0.04 + 0.025 * n),
+      bridge: n >= 5 && (n >= 8 || n % 2 === 1),
+    };
+  }
+  // Zapas upadków po ukończeniu etapu n: +2 na początku, +1 od etapu 8, najwyżej 10.
+  const refill = (n) => (n < 8 ? 2 : 1);
+  // Punkty za bieg z liczby ukończonych plansz: 3 ≈ łatwy (10), 6 ≈ średni (25), 9 ≈ trudny (50), dalej coraz szybciej (platforma tnie do 150).
+  function runPoints(n) {
+    if (n < 3) return n * 2;
+    if (n <= 6) return 10 + 5 * (n - 3);
+    if (n <= 9) return Math.round(25 + (25 * (n - 6)) / 3);
+    const k = n - 9;
+    return Math.min(150, 50 + 10 * k + (k * (k - 1)) / 2);
+  }
+
+  if (typeof module !== "undefined") module.exports = { roll, cells, step, solve, generate, DIRS, endlessParams, runPoints, refill };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "bryla",
@@ -121,12 +141,13 @@
       { key: "medium", name: "Średni", points: 25, stages: 3, walk: 15, minOpt: 11, fragile: 0.18, bridge: false, falls: 10 },
       { key: "hard", name: "Trudny", points: 50, stages: 3, walk: 20, minOpt: 15, fragile: 0.2, bridge: true, falls: 6 },
     ],
+    endless: { unit: ["plansza", "plansze", "plansz"], falls: 8, maxFalls: 10 },
     rules: [
       "Strzałki albo WASD toczą bryłę. Myszą lub palcem kliknij obok bryły, po stronie, w którą ma się przetoczyć.",
       "Bryła stojąca zajmuje jedno pole, leżąca dwa. Nie może wystawać poza kafelki, bo spadnie.",
       "Etap kończy się, gdy bryła stanie pionowo nad otworem. Przejdź trzy etapy.",
       "Pomarańczowe kafle nie utrzymają stojącej bryły. Fioletowy przełącznik wysuwa i chowa most.",
-      "Każdy poziom ma limit upadków.",
+      "Każdy poziom ma limit upadków. W trybie ∞ plansze są coraz trudniejsze, a każda ukończona dokłada upadków do zapasu.",
     ],
     achievements: [
       { id: "trasa", name: "Najkrótsza trasa", desc: "Przejdź etap w najmniejszej możliwej liczbie ruchów.", points: 10 },
@@ -134,21 +155,35 @@
       { id: "bez-cofania", name: "Bez cofania", desc: "Przejdź średni lub trudny poziom bez cofania ruchów.", points: 10 },
       { id: "szybko", name: "Wartki nurt", desc: "Przejdź trudny poziom w mniej niż 4 minuty.", points: 25 },
       { id: "mistrz", name: "Geometra", desc: "Przejdź każdy etap trudnego poziomu najkrótszą trasą.", points: 50 },
+      { id: "wedrowiec", name: "Wędrowiec", desc: "Ukończ 10 plansz w jednym biegu trybu bez końca.", points: 25 },
+      { id: "nieskonczonosc", name: "Bez dna", desc: "Ukończ 16 plansz w jednym biegu trybu bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
       const L = ctx.level;
       const cv = canvasGame(board, ctx, 120, 90, { max: 90, cls: "space" });
       const { g } = cv;
-      const s = { stage: 0, lv: null, st: null, moves: 0, falls: 0, allOpt: true, anim: null, fx: [], pulse: 0 };
+      const E = !!L.endless;
+      // w trybie bez końca: pool = zapas upadków
+      const s = { stage: 0, lv: null, st: null, moves: 0, falls: 0, pool: L.falls, allOpt: true, anim: null, fx: [], pulse: 0 };
 
-      const stageEl = statBlock(ctx, "Etap", { meter: true });
+      const stageEl = E ? null : statBlock(ctx, "Etap", { meter: true });
+      const runEl = E ? statsBlock(ctx, "Bieg", ["Plansze", "Za bieg"]) : null;
       const movesEl = statBlock(ctx, "Ruchy", { small: true });
-      const fallEl = statBlock(ctx, "Upadki", { small: true });
+      const fallEl = statBlock(ctx, E ? "Zapas upadków" : "Upadki", { small: true });
+      if (E) ctx.panel.append(panelBlock("", button("Zakończ bieg", "btn-ghost wide", () => endRun("Bieg zakończony."))));
+      function endRun(text) {
+        if (ctx.done) return;
+        ctx.over(s.stage, runPoints(s.stage), `${text} Plansze: ${s.stage}, upadki: ${s.falls}.`);
+      }
       const save = ctx.undoable((snap) => { if (s.anim) return; s.st = snap.st; s.moves = snap.moves; render(); });
 
       function loadStage() {
-        s.lv = generate({ walk: L.walk, minOpt: L.minOpt, fragile: L.fragile, bridge: L.bridge });
+        if (E) {
+          // generator prawie zawsze trafia; awaryjnie skraca wymaganą trasę
+          const p = endlessParams(s.stage);
+          do { s.lv = generate(p); p.minOpt -= 2; } while (!s.lv);
+        } else s.lv = generate({ walk: L.walk, minOpt: L.minOpt, fragile: L.fragile, bridge: L.bridge });
         s.st = { ...s.lv.start };
         s.moves = 0;
         s.anim = { kind: "drop", t: 0 };
@@ -199,6 +234,15 @@
       }
       function stageDone() {
         s.stage++;
+        if (E) {
+          if (s.stage >= 10) ctx.achieve("wedrowiec");
+          if (s.stage >= 16) ctx.achieve("nieskonczonosc");
+          const add = Math.min(refill(s.stage - 1), L.maxFalls - s.pool);
+          s.pool += add;
+          ctx.toast(`Plansza ${s.stage + 1}` + (add ? `, zapas upadków +${add}` : ""));
+          s.prevOn = false;
+          return loadStage();
+        }
         if (s.stage >= L.stages) {
           if (L.key !== "easy" && !s.falls) ctx.achieve("pewny-krok");
           if (L.key !== "easy" && !ctx.undos) ctx.achieve("bez-cofania");
@@ -244,8 +288,14 @@
             a.vz += 30 * dt; a.z -= a.vz * dt; a.tilt += dt * 3;
             if (a.t > 1.1) {
               s.anim = null;
-              if (s.falls >= L.falls) return ctx.lose("Za dużo upadków", `Etap ${s.stage + 1} z ${L.stages}.`);
-              ctx.toast(`Upadek. Zostało prób: ${L.falls - s.falls}`);
+              if (E) {
+                s.pool--;
+                if (s.pool <= 0) return endRun("Zapas upadków się skończył.");
+                ctx.toast(`Upadek. Zapas: ${s.pool}`);
+              } else {
+                if (s.falls >= L.falls) return ctx.lose("Za dużo upadków", `Etap ${s.stage + 1} z ${L.stages}.`);
+                ctx.toast(`Upadek. Zostało prób: ${L.falls - s.falls}`);
+              }
               s.st = { ...s.lv.start };
               s.prevOn = false;
               s.anim = { kind: "drop", t: 0 };
@@ -393,8 +443,18 @@
       }
 
       function render() {
-        stageEl.set(`${s.stage + 1} z ${L.stages}`, s.stage / L.stages);
         movesEl.set(s.moves, null, s.lv ? `Najkrótsza trasa: ${s.lv.opt}` : "");
+        if (E) {
+          runEl.set("Plansze", s.stage);
+          runEl.set("Za bieg", `${runPoints(s.stage)} pkt`);
+          fallEl.set(s.pool, null, `Upadki: ${s.falls}`);
+          // postęp na planszy: ile brakuje do otworu najkrótszą trasą
+          const st = s.anim?.kind === "roll" ? s.anim.to : s.st;
+          const left = st && !st.fall && !st.win ? solve(s.lv, st)?.length : st?.win ? 0 : null;
+          if (left != null) ctx.progress(1 - Math.min(1, left / s.lv.opt));
+          return;
+        }
+        stageEl.set(`${s.stage + 1} z ${L.stages}`, s.stage / L.stages);
         fallEl.set(`${s.falls} z ${L.falls}`);
         ctx.progress(s.stage / L.stages);
       }

@@ -1,115 +1,812 @@
-/* Lodowisko: śliskie pole z połyskiem, ściany, kryształy i wyjście. Sanki ślizgają się
-   od ściany do ściany, więc plansza jest czytelna także bez podpisów. */
+/* Lodowisko: tafla lodu z aurorą, sanki z chustą, kryształy, zaspy i lodowe bramy.
+   Wszystkie wymiary na planszy liczone z var(--s), kolory z tokenów motywu. */
 [data-gra="lodowisko"] {
-  --ld-ice: color-mix(in srgb, #6cc6f0 16%, var(--surface));
-  --ld-ice-hi: #cfefff;
-  --ld-wall: color-mix(in srgb, var(--text) 26%, var(--bg));
-  --ld-gem-a: #c8f7ff;
-  --ld-gem-b: #0e93b4;
-  --ld-gem-glow: #4dd0e1;
   --ld-shine: #ffffff;
-  --ld-shade: #000000;
+  --ld-shade: #06283c;
+  --ld-flake: color-mix(in srgb, var(--text) 30%, transparent);
+  --ld-ice-a: color-mix(in srgb, #cbeafe 46%, var(--surface));
+  --ld-ice-b: color-mix(in srgb, #8fd3f4 34%, var(--surface));
+  --ld-line: color-mix(in srgb, #2c7ea3 34%, transparent);
+  --ld-snow: color-mix(in srgb, #ffffff 86%, var(--surface));
+  --ld-gem-a: #a5f3fc;
+  --ld-gem-b: #0e94b8;
+  --ld-gem-2: #67e8f9;
+  --ld-gem-glow: #22d3ee;
+  --ld-gold: #f2c14e;
+  --ld-wood-a: color-mix(in srgb, var(--brown) 58%, var(--surface));
+  --ld-wood-b: color-mix(in srgb, var(--brown) 88%, var(--ld-shade));
+  --ld-aurora-a: #7dd3fc;
+  --ld-aurora-b: #a7f3d0;
+  --ld-mask-on: #000000;
 }
 
+/* --- Tafla --- */
 [data-gra="lodowisko"] .ld {
   position: relative;
-  border-radius: calc(var(--cr) + var(--g));
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: calc(var(--s) * 0.5);
   background:
-    radial-gradient(135% 120% at 50% -10%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%),
-    var(--bg);
+    radial-gradient(115% 85% at 16% -14%, color-mix(in srgb, var(--ld-aurora-a) 34%, transparent), transparent 62%),
+    radial-gradient(85% 70% at 96% 2%, color-mix(in srgb, var(--ld-aurora-b) 26%, transparent), transparent 58%),
+    repeating-linear-gradient(116deg, color-mix(in srgb, var(--ld-shine) 4%, transparent) 0 calc(var(--s) * 0.42), transparent calc(var(--s) * 0.42) calc(var(--s) * 0.95)),
+    linear-gradient(168deg, var(--ld-ice-a), var(--ld-ice-b));
   box-shadow:
-    inset 0 0 0 1px var(--line),
-    inset 0 1px 0 color-mix(in srgb, var(--ld-shine) 9%, transparent),
-    0 36px 64px -40px var(--shadow);
+    inset 0 0 0 1px color-mix(in srgb, var(--ld-line) 62%, transparent),
+    inset 0 calc(var(--s) * 0.12) calc(var(--s) * 0.5) color-mix(in srgb, var(--ld-shine) 24%, transparent),
+    inset 0 calc(var(--s) * -0.2) calc(var(--s) * 0.55) color-mix(in srgb, var(--ld-shade) 20%, transparent),
+    0 calc(var(--s) * 0.42) calc(var(--s) * 1.1) calc(var(--s) * -0.62) var(--shadow);
+}
+/* Szron przy krawędziach tafli: dodaje głębi bez zasłaniania pól. */
+[data-gra="lodowisko"] .ld::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 94% at 50% 50%, transparent 54%, color-mix(in srgb, var(--ld-shade) 15%, transparent) 100%),
+    radial-gradient(74% 54% at 50% -12%, color-mix(in srgb, var(--ld-shine) 26%, transparent), transparent 72%);
+}
+[data-gra="lodowisko"] .ld.ld-medium {
+  --ld-ice-a: color-mix(in srgb, #dbeafe 40%, var(--surface));
+  --ld-ice-b: color-mix(in srgb, #bfd4fb 30%, var(--surface));
+  --ld-aurora-a: #f0abfc;
+  --ld-aurora-b: #fbcfe8;
+}
+[data-gra="lodowisko"] .ld.ld-hard {
+  --ld-ice-a: color-mix(in srgb, #a9cdf5 40%, var(--surface));
+  --ld-ice-b: color-mix(in srgb, #8fa8ea 30%, var(--surface));
+  --ld-aurora-a: #34d399;
+  --ld-aurora-b: #818cf8;
 }
 
+[data-gra="lodowisko"] .ld-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 34% at 24% 16%, color-mix(in srgb, var(--ld-aurora-a) 46%, transparent), transparent 72%),
+    radial-gradient(34% 30% at 76% 24%, color-mix(in srgb, var(--ld-aurora-b) 38%, transparent), transparent 74%),
+    radial-gradient(38% 30% at 52% 92%, color-mix(in srgb, var(--ld-aurora-a) 22%, transparent), transparent 76%);
+  background-size: 130% 126%, 124% 122%, 136% 130%;
+  background-position: 12% 8%, 84% 16%, 50% 88%;
+  animation: lodowisko-aurora 17s ease-in-out infinite alternate;
+}
+
+[data-gra="lodowisko"] .ld-probe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  background: var(--ld-flake);
+}
+
+[data-gra="lodowisko"] .ld-rim {  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.05) color-mix(in srgb, var(--ld-shine) 20%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--ld-line) 70%, transparent);
+}
+
+[data-gra="lodowisko"] .ld-snow {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* --- Pola --- */
 [data-gra="lodowisko"] .ld .gb-cell {
   position: relative;
-  background:
-    linear-gradient(150deg, color-mix(in srgb, var(--ld-ice-hi) 32%, transparent), transparent 46%),
-    var(--ld-ice);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
-  cursor: default;
-  transition: background-color 200ms, box-shadow 200ms;
+  z-index: 1;
+  background: color-mix(in srgb, var(--ld-shine) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ld-line) 26%, transparent);
+  cursor: pointer;
+  animation: lodowisko-cell-in 460ms var(--ease) backwards;
+  animation-delay: calc(var(--k) * 16ms);
+  transition: background-color 220ms, box-shadow 220ms, filter 220ms;
 }
-[data-gra="lodowisko"] .ld .gb-cell::before,
-[data-gra="lodowisko"] .ld .gb-cell::after {
+[data-gra="lodowisko"] .ld .gb-cell:hover {
+  background: color-mix(in srgb, var(--ld-shine) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ld-line) 62%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.wall {
+  z-index: 2;
+  cursor: default;
+  border-radius: calc(var(--s) * 0.26);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ld-shine) 24%, transparent), transparent 42%),
+    linear-gradient(168deg, color-mix(in srgb, var(--blue) 12%, color-mix(in srgb, var(--text) 14%, var(--surface))), color-mix(in srgb, var(--text) 48%, var(--bg)));
+  box-shadow:
+    inset 0 calc(var(--s) * 0.06) 0 color-mix(in srgb, var(--ld-snow) 66%, transparent),
+    inset 0 calc(var(--s) * -0.08) 0 color-mix(in srgb, var(--ld-shade) 34%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent),
+    0 calc(var(--s) * 0.09) calc(var(--s) * 0.2) calc(var(--s) * -0.08) color-mix(in srgb, var(--ld-shade) 54%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.wall::after {
   content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: -8%;
+  height: 48%;
+  border-radius: 46% 54% 66% 34% / 70% 62% 38% 30%;
+  background:
+    radial-gradient(70% 90% at 34% 20%, var(--ld-shine), transparent 62%),
+    linear-gradient(180deg, var(--ld-snow), color-mix(in srgb, var(--ld-snow) 66%, var(--ld-line)));
+  opacity: 0.94;
+  transform: translateX(calc((var(--v, 0.5) - 0.5) * 14%)) rotate(calc((var(--v, 0.5) - 0.5) * 7deg));
+}
+/* Cień pod skalną bryłą i smugę zimnego blasku po jej boku. */
+[data-gra="lodowisko"] .ld .gb-cell.wall::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -6%;
+  height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--ld-shade) 42%, transparent), transparent 70%);
+}
+[data-gra="lodowisko"] .ld .gb-cell.exit {
+  background: color-mix(in srgb, var(--ld-gold) 12%, transparent);
+}
+
+/* --- Kryształ --- */
+[data-gra="lodowisko"] .ld-gem {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 0;
-  height: 0;
-  transform: translate(-50%, -50%);
-}
-
-/* ściana: sanki się o nią zatrzymują */
-[data-gra="lodowisko"] .ld .gb-cell.wall {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--ld-shine) 12%, transparent), transparent 40%),
-    var(--ld-wall);
-  box-shadow:
-    inset 0 calc(var(--s) * 0.07) 0 color-mix(in srgb, var(--ld-shine) 16%, transparent),
-    inset 0 calc(var(--s) * -0.05) 0 color-mix(in srgb, var(--ld-shade) 22%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--text) 20%, transparent);
-}
-/* ślad przejazdu */
-[data-gra="lodowisko"] .ld .gb-cell.trail {
-  background:
-    linear-gradient(150deg, color-mix(in srgb, var(--ld-ice-hi) 26%, transparent), transparent 50%),
-    color-mix(in srgb, var(--gold) 16%, var(--ld-ice));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent);
-}
-
-/* kryształ: obracany kwadrat z połyskiem i poświatą */
-[data-gra="lodowisko"] .ld .gb-cell.gem::after {
-  width: 46%;
-  height: 46%;
-  border-radius: 22%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background:
-    linear-gradient(140deg, var(--ld-shine) 4%, var(--ld-gem-a) 34%, var(--ld-gem-b) 84%);
+  z-index: 2;
+  width: calc(var(--s) * 0.42);
+  height: calc(var(--s) * 0.42);
+  margin: calc(var(--s) * -0.21) 0 0 calc(var(--s) * -0.21);
+  border-radius: 20%;
+  transform: rotate(45deg);
+  background: linear-gradient(140deg, var(--ld-shine) 4%, var(--ld-gem-a) 34%, var(--ld-gem-b) 88%);
   box-shadow:
     inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 55%, transparent),
-    0 0 calc(var(--s) * 0.34) color-mix(in srgb, var(--ld-gem-glow) 78%, transparent);
-  animation: lodowisko-gem 1900ms ease-in-out infinite;
+    0 0 calc(var(--s) * 0.34) color-mix(in srgb, var(--ld-gem-glow) 72%, transparent);
+  animation: lodowisko-gem 2400ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-gem::after {
+  content: "";
+  position: absolute;
+  inset: 16% 16% 52% 16%;
+  border-radius: 24%;
+  background: color-mix(in srgb, var(--ld-shine) 74%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.taken .ld-gem {
+  animation: lodowisko-gem-pop 360ms var(--ease) forwards;
 }
 
-/* wyjście: świecący portal */
-[data-gra="lodowisko"] .ld .gb-cell.exit {
-  background: color-mix(in srgb, var(--text) 10%, var(--ld-ice));
-}
-[data-gra="lodowisko"] .ld .gb-cell.exit::after {
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  border: calc(var(--s) * 0.055) solid color-mix(in srgb, var(--text) 48%, transparent);
-  background:
-    radial-gradient(circle, color-mix(in srgb, var(--gold) 24%, transparent), transparent 68%),
-    color-mix(in srgb, var(--text) 7%, transparent);
-  box-shadow: inset 0 0 0 calc(var(--s) * 0.028) color-mix(in srgb, var(--text) 14%, transparent);
-}
-
-/* sanki */
-[data-gra="lodowisko"] .ld .gb-cell.sled::before {
-  width: 56%;
-  height: 56%;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 28%, var(--ld-shine), var(--gold) 42%, color-mix(in srgb, var(--gold) 55%, var(--ld-shade)));
-  box-shadow:
-    0 0 0 calc(var(--s) * 0.04) color-mix(in srgb, var(--ld-shine) 76%, transparent),
-    0 0 calc(var(--s) * 0.24) color-mix(in srgb, var(--gold) 45%, transparent),
-    0 calc(var(--s) * 0.06) calc(var(--s) * 0.2) color-mix(in srgb, var(--ld-shade) 32%, transparent);
+/* --- Zaspa --- */
+[data-gra="lodowisko"] .ld-drift {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 8%;
   z-index: 2;
+  height: 56%;
+  border-radius: 54% 46% 40% 44% / 76% 72% 32% 28%;
+  background:
+    radial-gradient(76% 86% at 34% 16%, var(--ld-shine), transparent 58%),
+    radial-gradient(120% 140% at 62% 122%, color-mix(in srgb, var(--ld-line) 42%, transparent), transparent 62%),
+    linear-gradient(184deg, var(--ld-snow), color-mix(in srgb, var(--ld-snow) 62%, var(--ld-line)));
+  box-shadow:
+    0 calc(var(--s) * 0.07) calc(var(--s) * 0.18) color-mix(in srgb, var(--ld-shade) 30%, transparent),
+    inset 0 calc(var(--s) * -0.07) calc(var(--s) * 0.12) color-mix(in srgb, var(--ld-line) 36%, transparent);
+  animation: lodowisko-drift 4400ms ease-in-out infinite;
+  animation-delay: calc(var(--v, 0.5) * -3200ms);
+}
+[data-gra="lodowisko"] .ld-drift::before,
+[data-gra="lodowisko"] .ld-drift::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--ld-snow);
+  box-shadow: inset 0 calc(var(--s) * -0.02) calc(var(--s) * 0.04) color-mix(in srgb, var(--ld-line) 24%, transparent);
+}
+[data-gra="lodowisko"] .ld-drift::before {
+  left: 14%;
+  bottom: 58%;
+  width: 32%;
+  height: 25%;
+  opacity: 0.94;
+}
+[data-gra="lodowisko"] .ld-drift::after {
+  right: 13%;
+  bottom: 64%;
+  width: 22%;
+  height: 18%;
+  opacity: 0.82;
 }
 
-[data-gra="lodowisko"] .ld .gb-cell.hint { animation: lodowisko-hint 620ms ease-out; }
+/* --- Lodowa brama --- */
+/* Pierścień i jądro to osobne warstwy, żeby maska nie wycinała środka bramy. */
+[data-gra="lodowisko"] .ld-gate {
+  position: absolute;
+  inset: 4%;
+  z-index: 2;
+  border-radius: 50%;
+  pointer-events: none;
+}
+[data-gra="lodowisko"] .ld-gate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 0 45%, color-mix(in srgb, var(--gc) 42%, transparent) 52% 62%, transparent 69%);
+  box-shadow: 0 0 calc(var(--s) * 0.2) color-mix(in srgb, var(--gc) 30%, transparent);
+  animation: lodowisko-gate-halo 3000ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-gate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 58%,
+    color-mix(in srgb, var(--gc) 34%, transparent) 70%,
+    color-mix(in srgb, var(--gc) 82%, var(--ld-shine)) 86%,
+    var(--ld-shine) 91%,
+    color-mix(in srgb, var(--gc) 70%, transparent) 95%,
+    transparent 100%
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0 47%, var(--ld-mask-on) 50% 61%, transparent 64%);
+  mask: radial-gradient(circle, transparent 0 47%, var(--ld-mask-on) 50% 61%, transparent 64%);
+  filter: drop-shadow(0 0 calc(var(--s) * 0.12) color-mix(in srgb, var(--gc) 72%, transparent));
+  animation: lodowisko-gate 2800ms linear infinite;
+}
+[data-gra="lodowisko"] .ld-gate-core {
+  position: absolute;
+  inset: 26%;
+  display: block;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ld-shine) 0 15%, color-mix(in srgb, var(--gc) 82%, transparent) 46%, transparent 76%);
+  animation: lodowisko-gate-core 2000ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-gate-core::after {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  border-radius: 22%;
+  transform: rotate(45deg);
+  background: linear-gradient(140deg, var(--ld-shine), color-mix(in srgb, var(--gc) 72%, var(--ld-shine)));
+  box-shadow: 0 0 calc(var(--s) * 0.14) color-mix(in srgb, var(--gc) 92%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.gate.ld-gate-live {
+  background: color-mix(in srgb, var(--gc) 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gc) 55%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.gate.ld-gate-live .ld-gate::after {
+  animation-duration: 700ms;
+  filter: drop-shadow(0 0 calc(var(--s) * 0.3) color-mix(in srgb, var(--gc) 95%, transparent));
+}
 
-@keyframes lodowisko-gem { 50% { box-shadow: inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 55%, transparent), 0 0 calc(var(--s) * 0.5) color-mix(in srgb, var(--ld-gem-glow) 90%, transparent); } }
-@keyframes lodowisko-hint { 0% { background: color-mix(in srgb, var(--gold) 72%, var(--ld-ice)); } }
+/* --- Wyjście --- */
+[data-gra="lodowisko"] .ld-exit {
+  position: absolute;
+  inset: 5%;
+  z-index: 2;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--ld-shade) 58%, transparent) 0 42%,
+    color-mix(in srgb, var(--ld-shade) 30%, transparent) 64%,
+    transparent 76%
+  );
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.04) color-mix(in srgb, var(--ld-gold) 68%, transparent),
+    inset 0 0 calc(var(--s) * 0.24) color-mix(in srgb, var(--ld-gold) 20%, transparent);
+  opacity: 0.82;
+  transition: opacity 420ms var(--ease), box-shadow 420ms var(--ease);
+}
+/* Złota gwiazda w środku wyjścia i obracająca się przerywana obręcz. */
+[data-gra="lodowisko"] .ld-exit::before {
+  content: "";
+  position: absolute;
+  inset: 31%;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: linear-gradient(180deg, var(--ld-shine), var(--ld-gold) 58%, color-mix(in srgb, var(--ld-gold) 52%, var(--orange)));
+  filter: drop-shadow(0 0 calc(var(--s) * 0.12) color-mix(in srgb, var(--ld-gold) 72%, transparent));
+  opacity: 0.85;
+  animation: lodowisko-exit-core 3000ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-exit::after {
+  content: "";
+  position: absolute;
+  inset: -11%;
+  border-radius: 50%;
+  border: calc(var(--s) * 0.025) dashed color-mix(in srgb, var(--ld-gold) 66%, transparent);
+  opacity: 0.7;
+  animation: lodowisko-exit-spin 18s linear infinite reverse;
+}
+[data-gra="lodowisko"] .ld .gb-cell.exit.open .ld-exit {
+  opacity: 1;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--ld-gold) 40%, transparent) 0 54%, transparent 72%),
+    radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--ld-shine) 44%, transparent) 0 10%, transparent 34%);
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.05) var(--ld-gold),
+    0 0 calc(var(--s) * 0.46) color-mix(in srgb, var(--ld-gold) 62%, transparent);
+  animation: lodowisko-exit-glow 2100ms ease-in-out infinite;
+}
+/* Otwarte wyjście wysyła wokół złote promienie. */
+[data-gra="lodowisko"] .ld .gb-cell.exit.open::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--ld-gold) 36%, transparent) 0 2.6%,
+    transparent 2.6% 12.5%
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0 26%, var(--ld-mask-on) 40% 66%, transparent 72%);
+  mask: radial-gradient(circle, transparent 0 26%, var(--ld-mask-on) 40% 66%, transparent 72%);
+  animation: lodowisko-exit-spin 13s linear infinite;
+}
+[data-gra="lodowisko"] .ld .gb-cell.exit.open .ld-exit::before {
+  opacity: 1;
+  background: linear-gradient(180deg, var(--ld-shine), color-mix(in srgb, var(--ld-gold) 74%, var(--ld-shine)));
+  filter: drop-shadow(0 0 calc(var(--s) * 0.26) color-mix(in srgb, var(--ld-gold) 88%, transparent)) brightness(1.08);
+}
+[data-gra="lodowisko"] .ld .gb-cell.exit.open .ld-exit::after { opacity: 1; animation-duration: 9s; }
+[data-gra="lodowisko"] .ld .gb-cell.exit.ld-done .ld-exit::after {
+  animation-duration: 1600ms;
+}
+
+/* --- Sanki --- */
+[data-gra="lodowisko"] .ld-sled {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: calc(var(--s) * 0.84);
+  height: calc(var(--s) * 0.84);
+  pointer-events: none;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.24, 0.66, 0.28, 1);
+  will-change: transform;
+}
+/* Miękki cień pod sankami, osobno, żeby nie obracał się razem z płozami. */
+[data-gra="lodowisko"] .ld-shadow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 18%;
+  bottom: 10%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 56%, color-mix(in srgb, var(--ld-shade) 42%, transparent), transparent 68%);
+  filter: blur(calc(var(--s) * 0.03));
+  opacity: 0.8;
+  transition: transform 280ms var(--ease), opacity 280ms var(--ease);
+}
+[data-gra="lodowisko"] .ld-move .ld-shadow {
+  transform: scale(1.13, 0.9);
+  opacity: 0.6;
+}
+[data-gra="lodowisko"] .ld-rot {
+  position: absolute;
+  inset: 0;
+  transition: transform 190ms var(--ease-pop);
+}
+[data-gra="lodowisko"] .ld-art {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 calc(var(--s) * 0.05) calc(var(--s) * 0.08) color-mix(in srgb, var(--ld-shade) 34%, transparent));
+  transition: transform 150ms var(--ease), opacity 150ms var(--ease);
+  animation: lodowisko-sled-in 640ms var(--ease-pop) 280ms backwards;
+}
+[data-gra="lodowisko"] .ld-sled.ld-warp .ld-art {
+  transform: scale(0.12) rotate(30deg);
+  opacity: 0;
+}
+[data-gra="lodowisko"] .ld-sled.ld-enter .ld-art {
+  transform: scale(0.1) rotate(-40deg);
+  opacity: 0;
+  transition-duration: 380ms;
+}
+[data-gra="lodowisko"] .ld-sled.ld-stop .ld-art {
+  animation: lodowisko-sled-stop 280ms var(--ease);
+}
+
+/* Płozy: dwie deski z podgiętymi dziobami, spięte poprzeczkami. */
+[data-gra="lodowisko"] .ld-run {
+  position: absolute;
+  top: 9%;
+  bottom: 7%;
+  width: 8.5%;
+  z-index: 1;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ld-wood-b), color-mix(in srgb, var(--ld-wood-b) 68%, var(--ld-shade)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ld-shine) 24%, transparent);
+}
+[data-gra="lodowisko"] .ld-run-a { left: 8%; }
+[data-gra="lodowisko"] .ld-run-b { right: 8%; }
+[data-gra="lodowisko"] .ld-run::before {
+  content: "";
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  top: -12%;
+  height: 28%;
+  border-radius: 60% 60% 26% 26% / 86% 86% 14% 14%;
+  background: inherit;
+  box-shadow: inherit;
+}
+[data-gra="lodowisko"] .ld-art::before,
+[data-gra="lodowisko"] .ld-art::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 5%;
+  z-index: 1;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--ld-wood-a), var(--ld-wood-b));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ld-shade) 40%, transparent);
+}
+[data-gra="lodowisko"] .ld-art::before { top: 8%; }
+[data-gra="lodowisko"] .ld-art::after { bottom: 6%; }
+
+/* Pokład z desek, czerwona poduszka, rączka i latarenka. */
+[data-gra="lodowisko"] .ld-deck {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 13%;
+  bottom: 17%;
+  z-index: 2;
+  border-radius: 38% 38% 26% 26% / 20% 20% 14% 14%;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 19%, color-mix(in srgb, var(--ld-shade) 18%, transparent) 19% 22%),
+    linear-gradient(102deg, var(--ld-wood-a), color-mix(in srgb, var(--ld-wood-b) 74%, var(--ld-wood-a)));
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.015) color-mix(in srgb, var(--ld-shade) 30%, transparent),
+    inset 0 calc(var(--s) * 0.06) calc(var(--s) * 0.08) color-mix(in srgb, var(--ld-shine) 22%, transparent);
+}
+[data-gra="lodowisko"] .ld-seat {
+  position: absolute;
+  left: 33%;
+  right: 33%;
+  top: 41%;
+  height: 27%;
+  z-index: 3;
+  border-radius: 44% 44% 34% 34% / 38% 38% 28% 28%;
+  background: linear-gradient(178deg, color-mix(in srgb, var(--red) 74%, var(--ld-shine)), color-mix(in srgb, var(--red) 76%, var(--ld-shade)));
+  box-shadow:
+    inset 0 calc(var(--s) * 0.02) calc(var(--s) * 0.035) color-mix(in srgb, var(--ld-shine) 30%, transparent),
+    0 calc(var(--s) * 0.02) calc(var(--s) * 0.04) color-mix(in srgb, var(--ld-shade) 32%, transparent);
+}
+[data-gra="lodowisko"] .ld-grip {
+  position: absolute;
+  left: 31%;
+  right: 31%;
+  top: 25%;
+  height: 4.5%;
+  z-index: 4;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ld-shade) 46%, var(--brown));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ld-shine) 26%, transparent);
+}
+[data-gra="lodowisko"] .ld-lamp {
+  position: absolute;
+  left: 50%;
+  top: 1.5%;
+  width: 9%;
+  height: 9%;
+  margin-left: -4.5%;
+  z-index: 5;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 34%, var(--ld-shine), var(--ld-gold) 58%, color-mix(in srgb, var(--orange) 74%, var(--ld-gold)));
+  box-shadow:
+    0 0 calc(var(--s) * 0.12) color-mix(in srgb, var(--ld-gold) 78%, transparent),
+    0 0 calc(var(--s) * 0.24) color-mix(in srgb, var(--orange) 42%, transparent);
+  animation: lodowisko-lamp 2600ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-glint {
+  position: absolute;
+  left: 27%;
+  top: 20%;
+  width: 5%;
+  height: 30%;
+  z-index: 6;
+  border-radius: 999px;
+  transform: rotate(6deg);
+  background: linear-gradient(180deg, transparent, var(--ld-shine), transparent);
+  opacity: 0.5;
+  animation: lodowisko-glint 2500ms ease-in-out infinite;
+}
+/* Szalik: dwa powiewające końce za siedzeniem. */
+[data-gra="lodowisko"] .ld-scarf {
+  position: absolute;
+  left: 46.5%;
+  top: 60%;
+  width: 7%;
+  height: 27%;
+  z-index: 3;
+  border-radius: 40% 40% 70% 70%;
+  background: linear-gradient(180deg, var(--red), color-mix(in srgb, var(--red) 58%, var(--ld-shade)));
+  box-shadow: 0 0 calc(var(--s) * 0.1) color-mix(in srgb, var(--red) 42%, transparent);
+  transform-origin: 50% 6%;
+  animation: lodowisko-scarf 1800ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-scarf::after {
+  content: "";
+  position: absolute;
+  left: 62%;
+  top: 12%;
+  width: 82%;
+  height: 54%;
+  border-radius: 30% 70% 72% 30%;
+  background: inherit;
+  transform-origin: 0 10%;
+  animation: lodowisko-scarf-tail 1400ms ease-in-out infinite;
+}
+[data-gra="lodowisko"] .ld-scarf::before {
+  content: "";
+  position: absolute;
+  left: -12%;
+  bottom: -12%;
+  width: 52%;
+  height: 34%;
+  border-radius: 50%;
+  background: var(--ld-snow);
+  box-shadow: 0 0 calc(var(--s) * 0.06) color-mix(in srgb, var(--ld-shine) 60%, transparent);
+}
+
+/* --- Ślad płóz --- */
+[data-gra="lodowisko"] .ld-groove {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--s) * 0.92);
+  height: calc(var(--s) * 0.07);
+  margin: calc(var(--s) * -0.035) 0 0 calc(var(--s) * -0.46);
+  border-radius: 999px;
+  transform: rotate(var(--td, 0deg));
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--ld-shade) 15%, transparent) 14% 86%, transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--ld-shine) 34%, transparent), transparent 65%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+[data-gra="lodowisko"] .ld-groove-new {
+  animation: lodowisko-groove 380ms var(--ease) backwards;
+}
+
+/* --- Iskry i tumany --- */
+[data-gra="lodowisko"] .ld-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+[data-gra="lodowisko"] .ld-bit {
+  position: absolute;
+  width: calc(var(--s) * 0.14);
+  height: calc(var(--s) * 0.14);
+  border-radius: 50%;
+  background: var(--bc, var(--ld-snow));
+  opacity: 0;
+  pointer-events: none;
+}
+[data-gra="lodowisko"] .ld-spark {
+  width: calc(var(--s) * 0.1);
+  height: calc(var(--s) * 0.1);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: lodowisko-spark 660ms var(--ease) forwards;
+}
+[data-gra="lodowisko"] .ld-puff {
+  animation: lodowisko-puff 760ms var(--ease) forwards;
+}
+[data-gra="lodowisko"] .ld-puff-cool {
+  background: color-mix(in srgb, var(--ld-gem-2) 70%, var(--ld-snow));
+}
+/* Fala po przejściu bramy albo na wyjściu. */
+[data-gra="lodowisko"] .ld-shock {
+  position: absolute;
+  width: calc(var(--s) * 0.8);
+  height: calc(var(--s) * 0.8);
+  margin: calc(var(--s) * -0.4) 0 0 calc(var(--s) * -0.4);
+  border-radius: 50%;
+  border: calc(var(--s) * 0.045) solid var(--rc, var(--ld-gem-2));
+  opacity: 0;
+  animation: lodowisko-shock 620ms var(--ease) forwards;
+}
+[data-gra="lodowisko"] .ld-shock-big {
+  width: calc(var(--s) * 1.35);
+  height: calc(var(--s) * 1.35);
+  margin: calc(var(--s) * -0.675) 0 0 calc(var(--s) * -0.675);
+  border-width: calc(var(--s) * 0.06);
+  animation-duration: 900ms;
+}
+/* Zapowiedź drogi: pola, przez które przejadą sanki. */
+[data-gra="lodowisko"] .ld .gb-cell.ld-aim {
+  background: color-mix(in srgb, var(--ld-gem-2) 20%, transparent);
+}
+[data-gra="lodowisko"] .ld .gb-cell.ld-aim::before {
+  content: "";
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ld-gem-2) 62%, transparent), transparent 72%);
+  animation: lodowisko-aim 520ms var(--ease) backwards;
+}
+[data-gra="lodowisko"] .ld .gb-cell.ld-aim-stop {
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.05) color-mix(in srgb, var(--ld-gem-2) 72%, transparent),
+    inset 0 0 calc(var(--s) * 0.34) color-mix(in srgb, var(--ld-gem-2) 28%, transparent);
+}
+/* Złota obwódka tafli po wygranej. */
+[data-gra="lodowisko"] .ld.ld-win .ld-rim {
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.06) color-mix(in srgb, var(--ld-gold) 74%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--ld-gold) 88%, transparent),
+    inset 0 0 calc(var(--s) * 0.5) color-mix(in srgb, var(--ld-gold) 30%, transparent);
+  animation: lodowisko-win 1500ms var(--ease) 2;
+}
+
+/* --- Podpowiedź --- */
+[data-gra="lodowisko"] .ld .gb-cell.ld-hintpath {
+  background: color-mix(in srgb, var(--ld-gold) 20%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ld-gold) 55%, transparent);
+  animation: lodowisko-hint 900ms var(--ease) backwards;
+  animation-delay: calc(var(--hi, 0) * 65ms);
+}
+
+/* --- Panel --- */
+[data-gra="lodowisko"] .ld-note.ld-low { color: var(--danger); font-weight: 600; }
+[data-gra="lodowisko"] .ld-legend { font-size: var(--fs-xs); line-height: 1.45; }
+
+/* --- Animacje --- */
+@keyframes lodowisko-aurora {
+  from { background-position: 12% 8%, 84% 16%, 50% 88%; opacity: 0.8; }
+  to { background-position: 34% 24%, 62% 34%, 36% 68%; opacity: 1; }
+}
+@keyframes lodowisko-cell-in {
+  from { opacity: 0; transform: scale(0.86); }
+  60% { opacity: 1; }
+}
+@keyframes lodowisko-gem {
+  0%, 100% {
+    box-shadow: inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 55%, transparent), 0 0 calc(var(--s) * 0.28) color-mix(in srgb, var(--ld-gem-glow) 62%, transparent);
+  }
+  50% {
+    box-shadow: inset 0 0 0 calc(var(--s) * 0.03) color-mix(in srgb, var(--ld-shine) 70%, transparent), 0 0 calc(var(--s) * 0.52) color-mix(in srgb, var(--ld-gem-glow) 92%, transparent);
+  }
+}
+@keyframes lodowisko-gem-pop {
+  30% { transform: rotate(45deg) scale(1.3); opacity: 1; }
+  100% { transform: rotate(160deg) scale(0); opacity: 0; }
+}
+@keyframes lodowisko-drift {
+  0%, 100% { transform: rotate(calc((var(--v, 0.5) - 0.5) * 9deg)) scale(1, 1); }
+  50% { transform: rotate(calc((var(--v, 0.5) - 0.5) * 9deg)) scale(1.045, 0.955); }
+}
+@keyframes lodowisko-gate {
+  to { transform: rotate(360deg); }
+}
+@keyframes lodowisko-gate-halo {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes lodowisko-exit-core {
+  0%, 100% { transform: scale(0.94); opacity: 0.76; }
+  50% { transform: scale(1.05); opacity: 0.96; }
+}
+@keyframes lodowisko-gate-core {
+  0%, 100% { transform: scale(0.62); opacity: 0.55; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes lodowisko-exit-spin {
+  to { transform: rotate(-360deg); }
+}
+@keyframes lodowisko-exit-glow {
+  0%, 100% { box-shadow: inset 0 0 0 calc(var(--s) * 0.06) var(--ld-gold), 0 0 calc(var(--s) * 0.32) color-mix(in srgb, var(--ld-gold) 55%, transparent); }
+  50% { box-shadow: inset 0 0 0 calc(var(--s) * 0.06) var(--ld-gold), 0 0 calc(var(--s) * 0.6) color-mix(in srgb, var(--ld-gold) 85%, transparent); }
+}
+@keyframes lodowisko-sled-in {
+  from { opacity: 0; transform: translateY(calc(var(--s) * -2.4)) scale(0.45) rotate(-20deg); }
+  70% { opacity: 1; transform: translateY(0) scale(1.07) rotate(2deg); }
+}
+@keyframes lodowisko-sled-stop {
+  40% { transform: scale(1.12, 0.86) translateY(calc(var(--s) * 0.04)); }
+  70% { transform: scale(0.96, 1.04); }
+}
+@keyframes lodowisko-glint {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.75; }
+}
+@keyframes lodowisko-scarf {
+  0%, 100% { transform: rotate(-9deg) scaleY(0.94); }
+  50% { transform: rotate(11deg) scaleY(1.06); }
+}
+@keyframes lodowisko-scarf-tail {
+  0%, 100% { transform: rotate(-18deg) scaleX(0.88); }
+  50% { transform: rotate(16deg) scaleX(1.12); }
+}
+@keyframes lodowisko-lamp {
+  0%, 100% { opacity: 0.72; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes lodowisko-shock {
+  0% { opacity: 0; transform: scale(0.35); }
+  22% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.65); }
+}
+@keyframes lodowisko-aim {
+  from { opacity: 0; transform: scale(0.4); }
+}
+@keyframes lodowisko-win {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+@keyframes lodowisko-groove {
+  from { opacity: 0; transform: rotate(var(--td, 0deg)) scaleX(0.2); }
+}
+@keyframes lodowisko-spark {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4) rotate(0deg); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--s) * var(--dx)), calc(var(--s) * var(--dy))) scale(1.1) rotate(var(--rot)); }
+}
+@keyframes lodowisko-puff {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  25% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(calc(var(--s) * var(--dx)), calc(var(--s) * var(--dy))) scale(1.6); }
+}
+@keyframes lodowisko-hint {
+  0% { opacity: 0; transform: scale(0.9); }
+  40% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  [data-gra="lodowisko"] .ld .gb-cell.hint,
-  [data-gra="lodowisko"] .ld .gb-cell.gem::after { animation: none; }
+  [data-gra="lodowisko"] .ld-aurora,
+  [data-gra="lodowisko"] .ld-gem,
+  [data-gra="lodowisko"] .ld-drift,
+  [data-gra="lodowisko"] .ld-gate::before,
+  [data-gra="lodowisko"] .ld-gate::after,
+  [data-gra="lodowisko"] .ld-gate-core,
+  [data-gra="lodowisko"] .ld-exit::before,
+  [data-gra="lodowisko"] .ld-exit::after,
+  [data-gra="lodowisko"] .ld .gb-cell.exit.open .ld-exit,
+  [data-gra="lodowisko"] .ld .gb-cell.exit.open::after,
+  [data-gra="lodowisko"] .ld-glint,
+  [data-gra="lodowisko"] .ld-lamp,
+  [data-gra="lodowisko"] .ld-scarf,
+  [data-gra="lodowisko"] .ld-scarf::after,
+  [data-gra="lodowisko"] .ld .gb-cell,
+  [data-gra="lodowisko"] .ld .gb-cell.ld-aim::before,
+  [data-gra="lodowisko"] .ld-art,
+  [data-gra="lodowisko"] .ld-bit,
+  [data-gra="lodowisko"] .ld.ld-win .ld-rim {
+    animation: none !important;
+  }
+  [data-gra="lodowisko"] .ld-sled,
+  [data-gra="lodowisko"] .ld-rot,
+  [data-gra="lodowisko"] .ld-art,
+  [data-gra="lodowisko"] .ld-shadow,
+  [data-gra="lodowisko"] .ld-exit,
+  [data-gra="lodowisko"] .ld .gb-cell {
+    transition: none !important;
+  }
 }

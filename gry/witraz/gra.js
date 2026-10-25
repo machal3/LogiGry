@@ -152,7 +152,7 @@
     id: "witraz",
     cat: "planszowe",
     name: "Witraż",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Dobieraj kolorowe szkiełka z warsztatu i układaj mozaikę w oknie katedry zgodnie ze wzorami i sąsiedztwem.",
     color: "#4338ca",
     ink: "#ffffff",

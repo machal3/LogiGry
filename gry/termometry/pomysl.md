@@ -11,6 +11,7 @@
 3. Kliknięcie pola napełnia termometr do tego pola; kliknięcie ostatniego pełnego pola obniża poziom o jedno.
 4. Wygrywasz, gdy wszystkie liczby się zgadzają. Każda plansza ma dokładnie jedno rozwiązanie.
 5. Łatwy: 5 × 5 i proste termometry; średni: 6 × 6 z zakrętami; trudny: 8 × 8 z długimi, krętymi termometrami.
+6. Tryb ∞: kolejne plansze na czas (5 × 5 → 6 × 6 → 7 × 7 → 8 × 8). Start 2:30, każda rozwiązana plansza dodaje czas (z czasem coraz mniej), podpowiedź zabiera 20 s. Wynik to liczba rozwiązanych plansz; bieg można zakończyć przyciskiem.
 
 ## Czym różni się od podobnych gier
 Statki, Namioty i Magnesy też mają liczby przy brzegach, ale tu nie rozstawia się obiektów: ustala się poziom napełnienia każdego termometru, a ciągłość od bańki jest główną regułą wnioskowania.

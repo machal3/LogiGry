@@ -2,7 +2,7 @@
 
 - id: regaty
 - opis: Żegluj po wzburzonym morzu, ustawiaj żagle pod wiatr, omijaj wiry oraz skały i opływaj boje przed rywalami.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: zrecznosciowe
 
 ## Zasady

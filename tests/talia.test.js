@@ -135,3 +135,82 @@ test("talia: każdy poziom da się przejść, a trudniejszy jest trudniejszy", (
   assert.ok(rate[1] > 0.2 && rate[1] < rate[0], `średni: ${rate[1]}`);
   assert.ok(rate[2] > 0.02 && rate[2] < rate[1], `trudny: ${rate[2]}`);
 });
+
+test("talia: punkty trybu bez końca rosną coraz szybciej do limitu", () => {
+  const P = D.endlessPoints;
+  assert.equal(P(0), 0);
+  assert.ok(P(7) <= 5, "przed pierwszym smokiem najwyżej 5");
+  assert.equal(P(8), 20); // jak łatwy poziom gry rozbudowanej
+  assert.equal(P(16), 50); // jak średni
+  assert.equal(P(24), 100); // jak trudny
+  for (let f = 1; f < 80; f++) assert.ok(P(f) >= P(f - 1), `nie maleje: ${f}`);
+  assert.ok(P(32) - P(24) > P(24) - P(16), "dalej rośnie szybciej");
+  assert.equal(P(200), 300);
+});
+
+test("talia: akty trybu bez końca coraz trudniejsze, pierwszy jak łatwy, drugi jak trudny", () => {
+  const [easy, , hard] = D.LEVELS;
+  const a0 = D.actLevel(0), a1 = D.actLevel(1), a2 = D.actLevel(2);
+  assert.equal(a0.scale, easy.scale);
+  assert.equal(a0.hp, easy.hp);
+  assert.equal(a0.boss, easy.boss);
+  assert.equal(a0.str, 0);
+  assert.equal(a1.scale, hard.scale);
+  assert.equal(a1.boss, hard.boss);
+  for (let a = 1; a < 12; a++) {
+    const p = D.actLevel(a - 1), q = D.actLevel(a);
+    assert.ok(q.scale > p.scale && q.boss > p.boss && q.str >= p.str, `akt ${a + 1}`);
+    assert.deepEqual(D.map(q.len).at(-1), ["boss"]);
+  }
+  // wrogowie dalszych aktów mają siłę od początku walki, zwykłe poziomy nie
+  const s = D.newRun(a2);
+  assert.equal(D.fight(s, ["slime"], a2).enemies[0].str, 2);
+  assert.equal(D.fight(D.newRun(hard), ["slime"], hard).enemies[0].str, 0);
+});
+
+// bieg bez końca botem: akty po kolei, między aktami leczenie jak w grze
+function endlessRun() {
+  let act = 0, floors = 0, lv = D.actLevel(0);
+  const s = D.newRun(lv);
+  for (;;) {
+    for (s.step = 0; s.step < lv.len; s.step++) {
+      const opts = s.map[s.step];
+      const o = opts.includes("boss") ? "boss" : s.hp < s.max * 0.5 && opts.includes("rest") ? "rest" : opts.includes("chest") ? "chest" : s.hp > s.max * 0.7 && opts.includes("elite") ? "elite" : opts.includes("fight") ? "fight" : opts.includes("rest") ? "rest" : opts[0];
+      if (["fight", "elite", "boss"].includes(o)) {
+        const list = o === "fight" ? D.encounter(s.step) : o === "elite" ? [Math.random() < 0.5 ? "golem" : "witch"] : ["dragon"];
+        if (battle(s, list, lv, o !== "fight") !== "win") return floors;
+        if (s.relics.includes("vial")) s.hp = Math.min(s.max, s.hp + 6);
+        if (o !== "fight") { const left = Object.keys(D.RELICS).filter((r) => !s.relics.includes(r)); if (left.length) s.relics.push(left[0]); }
+        const offer = D.REWARD_POOL.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+        const pick = PRI.find((p) => offer.includes(p));
+        if (pick && s.deck.length < 18) s.deck.push(o === "fight" ? pick : `${pick}+`);
+      } else if (o === "rest") {
+        if (s.hp < s.max * 0.7) s.hp = Math.min(s.max, s.hp + Math.round(s.max * 0.3));
+        else { const k = s.deck.findIndex((c) => !c.endsWith("+")); if (k >= 0) s.deck[k] += "+"; }
+      } else if (o === "chest") {
+        const left = Object.keys(D.RELICS).filter((r) => !s.relics.includes(r));
+        if (left.length) s.relics.push(left[Math.floor(Math.random() * left.length)]);
+      }
+      floors++;
+    }
+    act++;
+    lv = D.actLevel(act);
+    Object.assign(s, { map: D.map(lv.len), step: 0 });
+    s.max += 5;
+    s.hp = Math.min(s.max, s.hp + 5 + Math.round(s.max * 0.35));
+    if (act > 40) return floors;
+  }
+}
+
+test("talia: bieg bez końca kończy się, ale nie od razu", () => {
+  const N = 200, res = [];
+  for (let k = 0; k < N; k++) res.push(endlessRun());
+  res.sort((a, b) => a - b);
+  const share = (f) => res.filter((x) => x >= f).length / N;
+  // bot gra słabiej od człowieka: zwykle przechodzi pierwszy akt, czasem trzeci, nigdy bez końca
+  assert.ok(share(8) > 0.4, `po 1. smoku: ${share(8)}`);
+  assert.ok(share(24) < share(8), `po 3. smoku: ${share(24)}`);
+  assert.ok(share(40) < 0.2, `po 5. smoku: ${share(40)}`);
+  assert.ok(res[N - 1] < 41 * 8, `najdłuższy bieg: ${res[N - 1]}`);
+  if (process.env.TALIA_STATS) console.log("piętra:", res.filter((_, i) => i % 20 === 0).join(" "), "max", res[N - 1], "≥8", share(8), "≥16", share(16), "≥24", share(24), "≥40", share(40));
+});

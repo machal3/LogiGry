@@ -89,7 +89,27 @@
   }
   const barrel = (tk, ang) => [tk.x + Math.cos(ang) * 5, tk.y - 3.2 - Math.sin(ang) * 5];
 
-  if (typeof module !== "undefined") module.exports = { makeTerrain, ground, crater, flight, blast, aim, barrel, flatten, AMMO, W, H, MAXP };
+  // Parametry komputera dla zwykłego poziomu (jak dotąd).
+  const levelParams = (L) => ({
+    enemies: L.enemies, wind: L.wind, err: L.err, errP: L.errP, learn: L.learn,
+    floor: L.key === "easy" ? 0.04 : 0.015, heavy: L.key === "hard" ? 0.3 : 0, split: L.key !== "easy" ? 0.2 : 0,
+  });
+  // Tryb bez końca: fala 1 jak poziom łatwy, fala 5 jak trudny, do fali 11 jeszcze celniej i z silniejszym wiatrem.
+  function waveParams(w) {
+    const t = Math.min(1, (w - 1) / 4), e = Math.max(0, Math.min(1, (w - 5) / 6));
+    const mix = (a, b) => a + (b - a) * t;
+    return {
+      enemies: w >= 8 || (w >= 4 && w % 2 === 0) ? 2 : 1,
+      wind: Math.round(mix(3, 11) + 4 * e),
+      err: mix(0.16, 0.07) - 0.025 * e, errP: mix(0.16, 0.07) - 0.025 * e,
+      learn: mix(0.75, 0.55) - 0.05 * e, floor: mix(0.04, 0.015),
+      heavy: t >= 1 ? 0.3 + 0.1 * e : 0, split: t >= 0.5 ? 0.2 : 0,
+    };
+  }
+  // Punkty za bieg: 1 czołg ≈ łatwy poziom (10), 2 ≈ średni (22), 4 ≈ trudny (52), potem coraz szybciej (limit platformy 150).
+  const runPoints = (kills) => Math.min(150, 10 * kills + kills * (kills - 1));
+
+  if (typeof module !== "undefined") module.exports = { makeTerrain, ground, crater, flight, blast, aim, barrel, flatten, levelParams, waveParams, runPoints, AMMO, W, H, MAXP };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "artyleria",
@@ -111,38 +131,48 @@
       "Wiatr (strzałka u góry) znosi pociski. Wybuchy drążą teren, a czołg spada w powstałe doły i traci pancerz.",
       "Pociski: zwykły bez limitu, ciężki z dużym wybuchem, rozprysk dzielący się na trzy i kopacz, który podkopuje rywala.",
       "Wygrywasz, gdy pancerz wszystkich rywali spadnie do zera. Komputer z każdą turą strzela celniej.",
+      "Tryb ∞: kolejne fale rywali na nowym terenie, coraz celniejszych i przy silniejszym wietrze. Po fali naprawiasz część pancerza i dostajesz pociski.",
     ],
+    endless: { unit: ["czołg", "czołgi", "czołgów"] },
     achievements: [
       { id: "w-cel", name: "Prosto w cel", desc: "Traf czołg rywala bezpośrednio pociskiem.", points: 10 },
       { id: "pierwszy", name: "Pierwsza salwa", desc: "Traf rywala już pierwszym strzałem partii.", points: 25 },
       { id: "grawitacja", name: "Grawitacja", desc: "Pokonaj rywala obrażeniami od upadku.", points: 25 },
       { id: "nietkniety", name: "Nietknięty", desc: "Wygraj średni lub trudny poziom bez utraty pancerza.", points: 25 },
       { id: "artylerzysta", name: "Artylerzysta", desc: "Wygraj trudny poziom, oddając najwyżej 8 strzałów.", points: 50 },
+      { id: "obrona", name: "Linia obrony", desc: "Zniszcz 5 czołgów w jednym biegu trybu bez końca.", points: 25 },
+      { id: "weteran", name: "Weteran", desc: "Zniszcz 10 czołgów w jednym biegu trybu bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
-      const L = ctx.level;
+      const L = ctx.level, E = !!L.endless;
+      // bieg trybu bez końca: numer fali i zniszczone czołgi
+      let wave = 1, kills = 0, P = E ? waveParams(1) : levelParams(L);
       const cv = canvasGame(board, ctx, W, H, { max: 100 });
       const { g } = cv;
       const h = makeTerrain();
       const place = (x) => { flatten(h, x, 4.5); return { x, y: ground(h, x), hp: 100, fall: 0 }; };
       const tanks = [place(14 + Math.random() * 26)];
       tanks[0].color = "#3b82c4"; tanks[0].name = "Ty"; tanks[0].ang = Math.PI / 4; tanks[0].pow = 70;
-      const spots = L.enemies === 1 ? [160 + Math.random() * 26] : [120 + Math.random() * 18, 168 + Math.random() * 20];
-      spots.forEach((x, k) => {
-        const tk = place(x);
-        Object.assign(tk, { color: ["#c0392b", "#d68910"][k], name: ["Rywal", "Drugi rywal"][k], ang: (Math.PI * 3) / 4, pow: 70, err: L.err, errP: L.errP });
-        tanks.push(tk);
-      });
+      const spawnFoes = () => {
+        const spots = P.enemies === 1 ? [160 + Math.random() * 26] : [120 + Math.random() * 18, 168 + Math.random() * 20];
+        spots.forEach((x, k) => {
+          const tk = place(x);
+          Object.assign(tk, { color: ["#c0392b", "#d68910"][k], name: ["Rywal", "Drugi rywal"][k], ang: (Math.PI * 3) / 4, pow: 70, err: P.err, errP: P.errP });
+          tanks.push(tk);
+        });
+      };
+      spawnFoes();
       const s = { turn: 0, busy: false, wind: 0, ammo: "zwykly", left: { ciezki: 2, rozprysk: 3, kopacz: 2 }, shots: 0, firstHit: null, hurt: 0, shells: [], parts: [], smoke: [], booms: [], trail: null, shake: 0, msg: "" };
-      const newWind = () => { s.wind = Math.round((Math.random() * 2 - 1) * L.wind * 10) / 10; };
+      const newWind = () => { s.wind = Math.round((Math.random() * 2 - 1) * P.wind * 10) / 10; };
       newWind();
       const clouds = Array.from({ length: 6 }, (_, k) => ({ x: Math.random() * W, y: 6 + Math.random() * 22, s: 0.6 + Math.random() * 0.8, k }));
       const hills = [0, 1].map((layer) => Array.from({ length: 41 }, (_, i) => 50 + layer * 8 - Math.sin(i * 0.5 + layer * 2 + Math.random() * 0.3) * (6 - layer * 2) - Math.random() * 3));
 
       // --- Panel ---
       const youEl = statBlock(ctx, "Twój pancerz", { meter: true });
-      const foeEl = statBlock(ctx, L.enemies > 1 ? "Rywale" : "Rywal", { meter: true });
+      const foeEl = E ? null : statBlock(ctx, L.enemies > 1 ? "Rywale" : "Rywal", { meter: true });
+      const runEl = E ? statsBlock(ctx, "Bieg", ["Fala", "Zniszczone", "Rywale", "Za bieg"]) : null;
       const ammoKeys = Object.keys(AMMO);
       const ammoName = el("p", "panel-stat");
       const ammoNote = el("p", "panel-note");
@@ -259,9 +289,26 @@
       }
 
       function nextTurn() {
-        for (const tk of tanks) if (tk.hp <= 0 && !tk.dead) { tk.dead = true; s.booms.push({ x: tk.x, y: tk.y - 2, r: 9, t: 0 }); Sound.lose(); }
+        for (const tk of tanks) if (tk.hp <= 0 && !tk.dead) {
+          tk.dead = true; s.booms.push({ x: tk.x, y: tk.y - 2, r: 9, t: 0 }); Sound.lose();
+          if (tk !== me) kills++;
+        }
+        if (E && kills >= 5) ctx.achieve("obrona");
+        if (E && kills >= 10) ctx.achieve("weteran");
         render();
+        if (me.hp <= 0 && E) return setTimeout(() => alive && ctx.over(kills, runPoints(kills), `Fala ${wave}. Strzały: ${s.shots}.`), 900);
         if (me.hp <= 0) return setTimeout(() => alive && ctx.lose("Czołg zniszczony", `Strzały: ${s.shots}.`), 900);
+        if (E && tanks.slice(1).every((t) => t.hp <= 0)) {
+          // oddech między falami: naprawa, uzupełnienie pocisków, nowy teren
+          const fix = Math.min(40, 100 - me.hp);
+          me.hp += fix;
+          for (const [k, max] of [["ciezki", 3], ["rozprysk", 4], ["kopacz", 3]]) s.left[k] = Math.min(max, s.left[k] + 1);
+          wave++;
+          P = waveParams(wave);
+          ctx.toast(`Fala ${wave}${P.enemies > 1 ? ", dwóch rywali" : ""}. Naprawa +${fix}`);
+          render();
+          return setTimeout(() => alive && !ctx.done && newWave(), 1600);
+        }
         if (tanks.slice(1).every((t) => t.hp <= 0)) {
           if (L.key !== "easy" && !s.hurt) ctx.achieve("nietkniety");
           if (L.key === "hard" && s.shots <= 8) ctx.achieve("artylerzysta");
@@ -279,6 +326,18 @@
         }
       }
 
+      function newWave() {
+        h.splice(0, h.length, ...makeTerrain());
+        me.x = 14 + Math.random() * 26;
+        flatten(h, me.x, 4.5);
+        Object.assign(me, { y: ground(h, me.x), fall: 0, vy: 0, ang: Math.PI / 4 });
+        tanks.length = 1;
+        spawnFoes();
+        Object.assign(s, { turn: 0, trail: null, shells: [], parts: [], booms: [], busy: false });
+        newWind();
+        render();
+      }
+
       function aiShot() {
         s.waitAi = false;
         if (ctx.done || !alive) return;
@@ -287,10 +346,10 @@
         // błąd celowania maleje z każdą turą: komputer się wstrzeliwuje
         const ang = best.ang + (Math.random() * 2 - 1) * tk.err;
         const pow = Math.max(20, Math.min(MAXP, best.p * (1 + (Math.random() * 2 - 1) * tk.errP)));
-        tk.err *= L.learn; tk.errP *= L.learn;
-        tk.err = Math.max(tk.err, L.key === "easy" ? 0.04 : 0.015);
-        tk.errP = Math.max(tk.errP, L.key === "easy" ? 0.04 : 0.015);
-        const ammo = L.key === "hard" && Math.random() < 0.3 ? "ciezki" : L.key !== "easy" && Math.random() < 0.2 ? "rozprysk" : "zwykly";
+        tk.err *= P.learn; tk.errP *= P.learn;
+        tk.err = Math.max(tk.err, P.floor);
+        tk.errP = Math.max(tk.errP, P.floor);
+        const ammo = Math.random() < P.heavy ? "ciezki" : Math.random() < P.split ? "rozprysk" : "zwykly";
         // obrót lufy przed strzałem
         s.aiTurn = { k, from: tk.ang, to: ang, t: 0, pow, ammo };
       }
@@ -484,7 +543,13 @@
         youEl.set(`${me.hp}`, me.hp / 100, myTurn() ? "Twoja tura" : s.turn ? `Strzela: ${tanks[s.turn].name.toLowerCase()}` : "Pocisk w powietrzu");
         const foes = tanks.slice(1);
         const sum = foes.reduce((a, t) => a + t.hp, 0);
-        foeEl.set(foes.map((t) => t.hp).join(" · "), sum / (100 * foes.length));
+        if (foeEl) foeEl.set(foes.map((t) => t.hp).join(" · "), sum / (100 * foes.length));
+        if (runEl) {
+          runEl.set("Fala", wave);
+          runEl.set("Zniszczone", kills);
+          runEl.set("Rywale", foes.map((t) => t.hp).join(" · "));
+          runEl.set("Za bieg", `${runPoints(kills)} pkt`);
+        }
         const deg = Math.round((me.ang * 180) / Math.PI);
         aimNote.textContent = `Kąt ${deg > 90 ? 180 - deg : deg}° ${deg > 90 ? "w lewo" : "w prawo"}, siła ${Math.round(me.pow)}`;
         fireBtn.disabled = !myTurn();

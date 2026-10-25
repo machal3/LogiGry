@@ -198,7 +198,7 @@
     cat: "symulacje",
     big: true,
     name: "Kolejka",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Projektuj trójwymiarowy tor kolejki górskiej z pętlami i wzniesieniami tak, by wagonik bezpiecznie dojechał.",
     color: "#db2777",
     ink: "#ffffff",

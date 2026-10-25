@@ -2,7 +2,7 @@
 
 - id: wykopaliska
 - opis: Kieruj łazikiem górniczym, wierć tunele w czterech kierunkach, wysadzaj skały dynamitem i wydobądź skamieliny.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: przygodowe
 
 ## Zasady

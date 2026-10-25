@@ -2,7 +2,7 @@
 
 - id: lasery
 - opis: Ustawiaj zwierciadła, pryzmaty i rozdzielacze, aby kolorowe wiązki światła oświetliły wszystkie detektory.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: logiczne
 
 ## Zasady

@@ -138,7 +138,7 @@
     cat: "akcja",
     big: true,
     name: "Kurier",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Dostarczaj paczki dronem nad trójwymiarowym miastem, omijaj wieżowce i zarządzaj energią baterii.",
     color: "#ff6d00",
     ink: "#1f0b00",

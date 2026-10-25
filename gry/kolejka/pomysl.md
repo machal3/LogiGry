@@ -2,7 +2,7 @@
 
 - id: kolejka
 - opis: Projektuj trójwymiarowy tor kolejki górskiej z pętlami i wzniesieniami tak, by wagonik bezpiecznie dojechał.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: symulacje
 
 ## Zasady

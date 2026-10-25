@@ -100,6 +100,7 @@ Z tego samego powodu klucze `localStorage` zaczynaj od `logigra.<id>.`, a nazwy 
 | `glyph` | ikona: 5 napisów po 5 znaków, `#` = zamalowane pole, `.` = puste |
 | `big` | `true` tylko dla gier rozbudowanych (wiele mechanik, partia ponad 10 minut); zmienia punkty i pokazuje zasady w oknie |
 | `levels` | dokładnie 3 poziomy: łatwy, średni, trudny (patrz punkty niżej). Oprócz `key`, `name`, `points` możesz dodać własne parametry poziomu (rozmiar, czas itd.), dostaniesz je w `ctx.level` |
+| `endless` | opcjonalny tryb bez końca (punkt 5): obiekt z parametrami trybu, np. `{ unit: "m", speed: 12 }`; pomiń, jeśli gra się do niego nie nadaje |
 | `rules` | 2–6 krótkich zdań zasad, w tym sterowanie (mysz, klawiatura, dotyk) |
 | `achievements` | 3–8 własnych osiągnięć (patrz niżej) |
 | `mount(board, ctx)` | uruchamia jedną partię; wywoływana od nowa przy każdej nowej grze i zmianie poziomu |
@@ -149,6 +150,20 @@ achievements: [
 - Sprawdzenie w pętli animacji wołaj raz, np. z flagą: `if (!s.got && s.dist >= 300) { s.got = true; ctx.achieve("rozbieg"); }`.
 - Dobre wzory: bez cofania (`ctx.undos === 0`), czas (`ctx.level.key === "hard" && ctx.time < 300`), bez utraty życia, rekordowa seria, najkrótsze rozwiązanie. Przykłady w `games/*.js` (szukaj `achievements:`).
 
+### Tryb bez końca (opcjonalny)
+
+Gra, w której da się grać bez końca przy rosnącej trudności (zręcznościowe, kolejne plansze, fale przeciwników), może dodać pole `endless`.
+Przełącznik poziomów dostaje wtedy czwartą pozycję „∞”. W tym trybie `ctx.level` to `{ key: "endless", name: "Bez końca", points: 0, endless: true, ...endless }`.
+
+- Trudność rośnie płynnie od poziomu łatwego do wyraźnie trudniejszego niż trzeci, tak by dobry gracz kończył bieg po kilku–kilkunastu minutach.
+- Bieg kończysz **tylko** przez `ctx.over(wynik, punkty, tekst)`, nie przez `ctx.win` ani `ctx.lose`. `wynik` to liczba gry (metry, poziomy, punkty stołu;
+  większa = lepsza; jednostka w `endless.unit`: `"m"` albo odmiana `["plansza", "plansze", "plansz"]`), z niej platforma zapisuje rekord. `punkty` to punkty profilu za bieg, liczone przez grę z wyniku.
+- Punkty mają odpowiadać temu, ile gracz zdobyłby w tym czasie na poziomach: bieg na miarę łatwego poziomu ≈ 10, średniego ≈ 25, trudnego ≈ 50,
+  dalej rosną z każdym etapem coraz szybciej. Platforma obcina punkty do `ENDLESS_CAP` × punkty trudnego poziomu (150, w grach `big` 300).
+  Za bieg krótszy niż łatwy poziom daj 0–5. Pokazuj w panelu, ile punktów bieg jest już wart (np. `statsBlock` z wierszem „Za bieg”).
+- Gdy bieg może trwać bez ryzyka (łamigłówki), daj limit (czas, ruchy, życia uzupełniane za etapy) albo przycisk „Zakończ bieg” (`btn-ghost`).
+- Osiągnięcia trybu bez końca zgłaszasz jak zwykle przez `ctx.achieve` (przed `ctx.over`, żeby były na ekranie wyniku).
+
 Gracz widzi wszystkie osiągnięcia na stronie `#/osiagniecia` (link „Osiągnięcia” w nawigacji) i w panelu gry.
 
 Rangi gracza zależą od sumy punktów ze wszystkich gier; nie zmieniasz ich.
@@ -193,6 +208,7 @@ Pola planszy to przyciski z `gridCells` (mają `aria-label`), nie `div` z `oncli
 | `ctx.panel` | panel; dodawaj do niego `panelBlock(...)` albo użyj `statBlock(ctx, ...)` |
 | `ctx.win(tekst?)` | wygrana: punkty, osiągnięcia automatyczne, ekran wyniku. Tekst = jedno zdanie podsumowania |
 | `ctx.lose(tytuł, tekst)` | przegrana, np. `ctx.lose("Koniec czasu", "Trafienia: 12 z 20.")` |
+| `ctx.over(wynik, punkty, tekst?)` | koniec biegu w trybie bez końca (punkt 5); tylko gdy `ctx.level.endless` |
 | `ctx.done` | `true` po wygranej/przegranej; wtedy ignoruj ruchy gracza |
 | `ctx.achieve(id)` | zdobycie własnego osiągnięcia; `id` zawsze jako dosłowny napis, np. `ctx.achieve("bez-bledu")` |
 | `ctx.time` | sekundy od początku partii (do osiągnięć „w mniej niż…”) |
@@ -200,6 +216,7 @@ Pola planszy to przyciski z `gridCells` (mają `aria-label`), nie `div` z `oncli
 | `ctx.progress(0..1)` | postęp partii na pasku pod nagłówkiem |
 | `ctx.toast(tekst)` | krótki dymek na dole planszy |
 | `ctx.undoable(przywróć)` | włącza „Cofnij”; zwraca `zapisz(stan)`, które wołasz przed każdym ruchem |
+| `ctx.clearUndo()` | czyści historię „Cofnij”, np. przy nowej planszy w trybie bez końca |
 | `ctx.on(cel, zdarzenie, fn)` | nasłuch, który platforma sama zdejmie po partii. Do `document` i `window` używaj tylko tego |
 | `ctx.onStop(fn)` | sprzątanie po partii (`cancelAnimationFrame`, `clearInterval`) |
 

@@ -222,7 +222,10 @@ function segmented(label, options, onPick) {
     thumb.style.transform = `translateX(${b.offsetLeft}px)`;
     if (first) { void thumb.offsetWidth; thumb.style.transition = ""; }
   };
-  new ResizeObserver(place).observe(seg);
+  // także przyciski: ich szerokość zmienia się np. po wczytaniu czcionki
+  const ro = new ResizeObserver(place);
+  ro.observe(seg);
+  btns.forEach((b) => ro.observe(b));
   const set = (k) => {
     cur = k;
     btns.forEach((b, j) => b.setAttribute("aria-pressed", String(j === k)));
@@ -483,9 +486,18 @@ const plural = (n, one, few, many) => {
   return d >= 2 && d <= 4 && (h < 12 || h > 14) ? few : many;
 };
 
+// Wynik trybu bez końca z jednostką: "m" albo odmiana ["czołg", "czołgi", "czołgów"].
+const unitText = (unit, n) => (!unit ? String(n) : Array.isArray(unit) ? `${n} ${plural(n, ...unit)}` : `${n} ${unit}`);
+
 // Rama gry: nagłówek z poziomem, czasem, cofaniem i nową grą; plansza; panel; ekran wyniku.
 function playGame(game, tools, root) {
-  const levelSeg = segmented("Poziom trudności", game.levels.map((l) => l.name), (k) => { game.levelIdx = k; start(); });
+  const levelSeg = segmented("Poziom trudności", [...game.levels.map((l) => l.name), ...(game.endless ? ["∞"] : [])], (k) => { game.levelIdx = k; start(); });
+  if (game.endless) {
+    const inf = levelSeg.el.lastElementChild;
+    inf.classList.add("seg-inf");
+    inf.setAttribute("aria-label", "Bez końca");
+    inf.title = "Tryb bez końca";
+  }
   const clock = el("span", "clock", "0:00");
   clock.setAttribute("aria-label", "Czas gry");
   const undoBtn = iconButton("Cofnij", ICONS.undo, "btn-ghost t-undo", () => undo());
@@ -551,8 +563,9 @@ function playGame(game, tools, root) {
 
   function start() {
     stop();
-    const idx = game.levelIdx || 0;
-    const level = game.levels[idx];
+    const idx = game.endless ? game.levelIdx || 0 : Math.min(game.levelIdx || 0, game.levels.length - 1);
+    // tryb bez końca to czwarta pozycja przełącznika; gra rozpoznaje go po ctx.level.endless
+    const level = game.levels[idx] || { key: "endless", name: "Bez końca", points: 0, ...game.endless, endless: true };
     levelSeg.set(idx);
     let seconds = 0;
     clock.textContent = fmt(0);
@@ -577,6 +590,15 @@ function playGame(game, tools, root) {
       achBox.replaceChildren(sum, list);
     };
     setTimeout(() => area.classList.remove("intro"), 1200);
+
+    // punkty w nawigacji doliczają się po chwili, z podskokiem
+    const celebrate = (prev) => {
+      const gained = Profile.load().points - prev.points;
+      const pill = document.querySelector(".nav-points");
+      const anim = ++navAnim;
+      countUp(document.getElementById("nav-points"), gained, (v) => `${prev.points + v} pkt`, 1000, 900, () => anim === navAnim);
+      setTimeout(() => replay(pill, "bump"), 1000);
+    };
 
     const finish = (won, title, lines, actions, message) => {
       ctx.done = true;
@@ -642,6 +664,11 @@ function playGame(game, tools, root) {
           undoBtn.disabled = false;
         };
       },
+      // Czyści historię cofania, np. przy nowej planszy w trybie bez końca.
+      clearUndo() {
+        history = [];
+        undoBtn.disabled = true;
+      },
       // Postęp partii od 0 do 1, pokazywany cienkim paskiem pod nagłówkiem.
       progress(f) {
         progressFill.style.transform = `scaleX(${Math.max(0, Math.min(1, f))})`;
@@ -662,20 +689,16 @@ function playGame(game, tools, root) {
       // message: opcjonalny tekst pod tytułem ekranu wyniku
       win(message) {
         if (ctx.done) return;
+        if (level.endless) return ctx.over(0, 0, message);
         const prev = Profile.load();
         const before = prev.games[game.id]?.best?.[level.key];
         Profile.award(game.id, level.key, level.points, seconds);
         earned.push(...Profile.checkAuto(game));
         fillAch();
-        const gained = Profile.load().points - prev.points;
         ctx.progress(1);
         Sound.win();
         confetti(area, [game.color, game.color, game.color, ...GAMES.map((g) => g.color)]);
-        // punkty w nawigacji doliczają się po chwili, z podskokiem
-        const pill = document.querySelector(".nav-points");
-        const anim = ++navAnim;
-        countUp(document.getElementById("nav-points"), gained, (v) => `${prev.points + v} pkt`, 1000, 900, () => anim === navAnim);
-        setTimeout(() => replay(pill, "bump"), 1000);
+        celebrate(prev);
         const record = before == null || seconds < before;
         const next = game.levels[idx + 1];
         finish(true, "Rozwiązane", [
@@ -685,7 +708,29 @@ function playGame(game, tools, root) {
         ], [
           next ? button(`Następny poziom: ${next.name}`, "btn", () => { game.levelIdx = idx + 1; start(); }) : button("Zagraj jeszcze raz", "btn", () => start()),
           ...(next ? [button("Jeszcze raz", "btn-ghost", () => start())] : []),
+          ...(!next && game.endless ? [button("Tryb bez końca", "btn-ghost", () => { game.levelIdx = game.levels.length; start(); })] : []),
         ], message);
+      },
+      // Koniec biegu w trybie bez końca: wynik gry (rekord to największy), punkty liczone przez grę z wyniku.
+      over(score, points, message) {
+        if (ctx.done) return;
+        score = Math.max(0, Math.round(Number(score) || 0));
+        points = Math.max(0, Math.min(ENDLESS_CAP * game.levels.at(-1).points, Math.round(Number(points) || 0)));
+        const prev = Profile.load();
+        const before = Profile.run(game.id, score, points);
+        const record = score > 0 && (before == null || score > before);
+        const unit = (n) => unitText(level.unit, n);
+        if (points || record) {
+          Sound.win();
+          if (record) confetti(area, [game.color, game.color, game.color, ...GAMES.map((g) => g.color)]);
+          celebrate(prev);
+        } else Sound.lose();
+        finish(points > 0 || record, "Koniec biegu", [
+          ["Wynik", unit(score), score, unit],
+          ["Punkty", `+${points}`, points, (v) => `+${v}`],
+          ["Rekord", record ? "Nowy" : unit(before ?? 0), null, null, record ? "record" : ""],
+          ["Czas", fmt(seconds)],
+        ], [button("Jeszcze raz", "btn", () => start())], message);
       },
       lose(title, text) {
         if (ctx.done) return;
@@ -938,6 +983,7 @@ function renderProfile() {
       if (g.best[lv.key] == null) return;
       best.append(el("dt", "", lv.name), el("dd", "", fmt(g.best[lv.key])));
     });
+    if (game.endless && g.endless?.best) best.append(el("dt", "", "Bez końca"), el("dd", "", unitText(game.endless.unit, g.endless.best)));
     li.append(icon, info, best, el("span", "pf-pts", `${g.points} pkt`));
     list.append(li);
   });

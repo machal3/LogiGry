@@ -31,3 +31,32 @@ LEVELS.forEach((L, i) => test(`poziom ${i + 1}: każdy etap ma rozwiązanie o d�
     });
   }
 }));
+
+const { endlessParams, runPoints } = require("./gra.js");
+
+test("bez końca: punkty za bieg pasują do poziomów i rosną coraz szybciej", () => {
+  assert.ok(runPoints(0) === 0 && runPoints(2) <= 5);
+  assert.strictEqual(runPoints(3), 10);
+  assert.strictEqual(runPoints(6), 25);
+  assert.strictEqual(runPoints(9), 50);
+  for (let n = 1; n < 40; n++) assert.ok(runPoints(n) >= runPoints(n - 1));
+  assert.ok(runPoints(12) - runPoints(11) > runPoints(10) - runPoints(9));
+  assert.strictEqual(runPoints(100), 150);
+});
+
+test("bez końca: trudność rośnie, a każda plansza ma rozwiązanie", () => {
+  for (let n = 1; n < 30; n++) {
+    const a = endlessParams(n - 1), b = endlessParams(n);
+    assert.ok(b.walk >= a.walk && b.minOpt >= a.minOpt && b.fragile >= a.fragile);
+  }
+  for (const n of [0, 3, 6, 9, 12, 20]) for (let k = 0; k < 15; k++) {
+    // jak w grze: generator rzadko (ok. 0,5% na etapie 20) nie trafia i wtedy skraca wymaganą trasę
+    const p = endlessParams(n), need = p.minOpt;
+    let lv;
+    do { lv = generate(p); p.minOpt -= 2; } while (!lv);
+    assert.ok(lv.opt >= need - 4, `etap ${n}: za krótka plansza`);
+    let st = lv.start;
+    for (const d of lv.sol) { st = step(lv, st, d); assert.ok(!st.fall); }
+    assert.ok(st.win);
+  }
+});

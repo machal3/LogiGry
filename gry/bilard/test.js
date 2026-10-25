@@ -38,3 +38,29 @@ test("łatwy poziom: podpowiedzi czyszczą stół w limicie pudeł", () => {
   }
   assert.ok(wins >= 3, `wygrane: ${wins} z 4`);
 });
+
+test("bez końca: stoły trudnieją płynnie, bez ściany", () => {
+  const { stageCfg } = require("./gra.js");
+  let prev = stageCfg(1);
+  assert.strictEqual(prev.balls, 5);
+  assert.strictEqual(prev.guide, 2);
+  for (let k = 2; k <= 40; k++) {
+    const c = stageCfg(k);
+    assert.ok(c.balls >= prev.balls && c.balls - prev.balls <= 2 && c.balls <= 15);
+    assert.ok(c.guide <= prev.guide && c.refill <= prev.refill && c.refill >= 2);
+    prev = c;
+  }
+  assert.strictEqual(stageCfg(6).guide, 0);
+  assert.strictEqual(stageCfg(9).balls, 15);
+});
+
+test("bez końca: punkty za bieg", () => {
+  const { runPoints } = require("./gra.js");
+  assert.ok(runPoints(5) <= 5);
+  assert.strictEqual(runPoints(6), 10);
+  assert.strictEqual(runPoints(18), 25);
+  assert.strictEqual(runPoints(36), 50);
+  for (let n = 1; n < 300; n++) assert.ok(runPoints(n) >= runPoints(n - 1) && runPoints(n) <= 150);
+  // po trudnym przyrost rośnie
+  assert.ok(runPoints(60) - runPoints(50) > runPoints(46) - runPoints(36));
+});

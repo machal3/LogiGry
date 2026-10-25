@@ -2,7 +2,7 @@
 
 - id: akwarium
 - opis: Hoduj kolorowe ryby w rafie koralowej, dbaj o czystość wody, karm ławice i chroń je przed drapieżnikami.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: symulacje
 
 ## Zasady

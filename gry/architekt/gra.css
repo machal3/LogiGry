@@ -1,1 +1,55 @@
 /* Style dla gry Architekt */
+
+[data-gra="architekt"] .arch-mat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-1);
+}
+
+[data-gra="architekt"] .arch-mat-btn {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-xs);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-gra="architekt"] .arch-mat-btn.is-on {
+  background: var(--c);
+  color: var(--on);
+  border-color: var(--c);
+}
+
+[data-gra="architekt"] .arch-mat-info {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--c) 10%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--c) 28%, var(--line));
+  font-size: var(--fs-xs);
+  line-height: 1.38;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+[data-gra="architekt"] .arch-mat-badge {
+  align-self: flex-start;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  max-width: 100%;
+}
+
+[data-gra="architekt"] .arch-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}

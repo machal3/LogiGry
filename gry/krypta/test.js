@@ -26,3 +26,33 @@ LEVELS.forEach((L, i) => test(`poziom ${i + 1}: każda krypta jest do przejścia
     for (let j = 0; j < S; j++) assert.ok(c.grid[0][j] === 1 && c.grid[S - 1][j] === 1 && c.grid[j][0] === 1 && c.grid[j][S - 1] === 1);
   }
 }));
+
+const { floorParams, endlessPoints } = require("./gra.js");
+
+test("bez końca: każde piętro 1–30 daje kryptę do przejścia, trudność rośnie do granic", () => {
+  let prev = null;
+  for (let d = 1; d <= 30; d++) {
+    const P = floorParams(d);
+    assert.ok(P.n <= 12 && P.ghosts <= 7 && P.ghostSpeed <= 2.1 && P.regen >= 4);
+    if (prev) for (const k of ["n", "relics", "ghosts", "ghostSpeed", "chase"]) assert.ok(P[k] >= prev[k], `${k} maleje na piętrze ${d}`);
+    for (let k = 0; k < 15; k++) {
+      const c = generate(P);
+      assert.ok(c, `brak krypty na piętrze ${d}`);
+      assert.ok(solvable(c));
+    }
+    prev = P;
+  }
+});
+
+test("bez końca: punkty za bieg", () => {
+  assert.strictEqual(endlessPoints(0), 0);
+  assert.ok(endlessPoints(1) <= 5);
+  assert.strictEqual(endlessPoints(2), 20); // jak łatwy poziom
+  assert.ok(Math.abs(endlessPoints(4) - 50) <= 15); // jak średni
+  assert.ok(Math.abs(endlessPoints(5) - 100) <= 5); // jak trudny
+  for (let c = 2; c < 40; c++) {
+    assert.ok(endlessPoints(c + 1) >= endlessPoints(c));
+    assert.ok(endlessPoints(c) <= 300);
+  }
+  assert.strictEqual(endlessPoints(40), 300);
+});

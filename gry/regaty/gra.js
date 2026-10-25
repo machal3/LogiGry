@@ -207,7 +207,7 @@
     id: "regaty",
     cat: "zrecznosciowe",
     name: "Regaty",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Żegluj po wzburzonym morzu, ustawiaj żagle pod wiatr, omijaj wiry oraz skały i opływaj boje przed rywalami.",
     color: "#0284c7",
     ink: "#ffffff",

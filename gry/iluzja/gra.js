@@ -307,7 +307,7 @@
     id: "iluzja",
     cat: "lamiglowki",
     name: "Iluzja",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Obracaj niemożliwe budowle, łącz ścieżki złudzeniem perspektywy i prowadź wędrowca do portalu.",
     color: "#0e7490",
     ink: "#ffffff",

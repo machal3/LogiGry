@@ -49,3 +49,33 @@ LEVELS.forEach((L, i) => test(`poziom ${i + 1}: autopilot ląduje wszędzie w li
   assert.ok(avg > 0.2, `autopilot zostawia średnio ${Math.round(avg * 100)}% paliwa`);
   console.log(`poziom ${i + 1}: paliwo zostaje średnio ${Math.round(avg * 100)}%`);
 }));
+
+const { stage, runPoints, PER, TANK } = require("./gra.js");
+
+test("bez końca: trudność rośnie płynnie, bez ściany", () => {
+  let prev = stage(0);
+  assert.deepStrictEqual([prev.g, prev.wind, prev.padW], [7, 0, 18]);
+  for (let k = 1; k < 40; k++) {
+    const p = stage(k);
+    assert.ok(p.g >= prev.g && p.wind >= prev.wind && p.padW <= prev.padW && p.refill <= prev.refill);
+    assert.ok(p.g - prev.g <= 1.5 && prev.padW - p.padW <= 2.5, `skok trudności na etapie ${k}`);
+    prev = p;
+  }
+  // etap 3 mniej więcej jak poziom trudny, potem granice: lądowisko nie węższe niż na trudnym
+  assert.ok(stage(3).g >= 10 && stage(3).wind >= 2 && stage(3).padW <= 12);
+  assert.ok(stage(99).padW >= 11 && stage(99).wind <= 3.5 && stage(99).refill > 0);
+});
+
+[0, 3, 6, 10].forEach((k) => test(`bez końca: etap ${k + 1} do przejścia przez autopilota w zasięgu dolewek`, () => {
+  const P = stage(k);
+  const res = Array.from({ length: 20 }, () => run({ ...P, fuel: TANK }));
+  const ok = res.filter((r) => r.ok);
+  assert.ok(ok.length >= 17, `udane: ${ok.length} z 20`);
+  // zużycie na lądowanie autopilota nie przekracza zbiornika z dolewką
+  for (const r of ok) assert.ok((1 - r.fuel) * TANK / PER < TANK / PER + P.refill);
+}));
+
+test("bez końca: punkty za bieg", () => {
+  assert.deepStrictEqual([0, 1, 2, 5, 10, 15, 20, 30].map(runPoints), [0, 5, 10, 25, 50, 85, 140, 150]);
+  for (let n = 1; n < 60; n++) assert.ok(runPoints(n) >= runPoints(n - 1) && runPoints(n) <= 150);
+});

@@ -99,7 +99,22 @@
     return { left: s.a > wantA + 0.03, right: s.a < wantA - 0.03, thrust: s.vy > wantVy };
   }
 
-  if (typeof module !== "undefined") module.exports = { terrain, fly, groundAt, autopilot, points, W, H };
+  // Tryb bez końca: etapy po PER lądowań na nowym terenie. Etap 0 jak poziom łatwy, etap 3 jak trudny, potem dalej, do granic.
+  const PER = 3, TANK = 40;
+  function stage(k) {
+    return {
+      g: Math.min(15, 7 + 1.25 * k),
+      wind: Math.min(3.5, Math.max(0, k - 1) * 1.25),
+      padW: Math.max(11, 18 - 2.2 * k),
+      pads: PER,
+      // paliwo dolewane po każdym lądowaniu: coraz mniej, ale pod koniec mniej, niż zużywa przelot
+      refill: Math.max(8, 18 - 1.5 * k),
+    };
+  }
+  // Punkty profilu za bieg: 2 lądowania (łatwy) ≈ 10, 5 (średni) ≈ 25, 10 (trudny) ≈ 50, potem coraz szybciej.
+  const runPoints = (n) => Math.min(150, Math.round(5 * n + 0.4 * Math.max(0, n - 10) ** 2));
+
+  if (typeof module !== "undefined") module.exports = { terrain, fly, groundAt, autopilot, points, stage, runPoints, PER, TANK, W, H };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "ladownik",
@@ -115,12 +130,14 @@
       { key: "medium", name: "Średni", points: 25, g: 9, wind: 0, pads: 3, padW: 13, fuel: 50, lives: 3 },
       { key: "hard", name: "Trudny", points: 50, g: 11, wind: 3, pads: 4, padW: 11, fuel: 56, lives: 2 },
     ],
+    endless: { unit: ["lądowanie", "lądowania", "lądowań"], fuel: TANK, lives: 3 },
     rules: [
       "Strzałka w górę (albo W) włącza silnik, strzałki w lewo i w prawo obracają lądownik.",
       "Myszą albo palcem: przytrzymaj na planszy, a silnik zacznie pracować i lądownik pochyli się w stronę wskaźnika.",
       "Siadaj na wskazanym lądowisku prosto i powoli. Wskaźniki prędkości robią się zielone, gdy lądowanie będzie bezpieczne.",
       "Po wylądowaniu startujesz do kolejnego lądowiska. Paliwo jest wspólne na cały lot.",
       "Rozbicie kosztuje życie i wraca lądownik na ostatnie lądowisko. Na trudnym poziomie wieje wiatr.",
+      "W trybie ∞ lądujesz bez końca: każde lądowanie dolewa trochę paliwa, a co trzy lądowania przychodzi trudniejszy teren i życie.",
     ],
     achievements: [
       { id: "piorko", name: "Piórko", desc: "Wyląduj z prędkością opadania mniejszą niż 3.", points: 10 },
@@ -128,22 +145,28 @@
       { id: "oszczednie", name: "Oszczędny pilot", desc: "Wygraj, zostawiając co najmniej 40% paliwa.", points: 25 },
       { id: "bez-strat", name: "Bez strat", desc: "Wygraj średni lub trudny poziom bez rozbicia.", points: 25 },
       { id: "as", name: "As pilotażu", desc: "Wygraj trudny poziom bez rozbicia, mając co najmniej 30% paliwa.", points: 50 },
+      { id: "dlugi-lot", name: "Długi lot", desc: "W trybie bez końca wyląduj 12 razy w jednym biegu.", points: 25 },
+      { id: "weteran", name: "Weteran", desc: "W trybie bez końca ukończ 6 etapów, czyli 18 lądowań.", points: 50 },
     ],
 
     mount(board, ctx) {
       const L = ctx.level;
+      // P: parametry bieżącego terenu (poziom albo etap biegu bez końca)
+      const E = !!L.endless;
+      let stg = 0, P = E ? stage(0) : L;
       const cv = canvasGame(board, ctx, W, H, { max: 90, cls: "space" });
       const { g } = cv;
-      const t = terrain(L.pads, L.padW);
-      const env = { g: L.g, wind: 0 };
+      let t = terrain(P.pads, P.padW);
+      const env = { g: P.g, wind: 0 };
       const ship = { x: 40, y: 10, vx: 7, vy: 0, a: 0.4, fuel: L.fuel, burn: false };
-      const s = { target: 0, lives: L.lives, crashes: 0, landed: -1, from: null, boom: null, parts: [], wind: 0, windT: 0, msgT: 0, done: false };
+      const s = { target: 0, lives: L.lives, crashes: 0, landed: -1, from: null, boom: null, parts: [], wind: 0, windT: 0, msgT: 0, done: false, total: 0, pause: 0, spawn: null };
       const stars = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H * 0.7, Math.random()]);
       const craters = Array.from({ length: 26 }, () => [Math.random() * W, Math.random(), 1 + Math.random() * 3.5]);
 
       const fuelEl = statBlock(ctx, "Paliwo", { meter: true });
-      const padEl = statBlock(ctx, "Lądowania", { small: true });
-      const liveEl = statBlock(ctx, "Życia", { small: true });
+      const padEl = E ? null : statBlock(ctx, "Lądowania", { small: true });
+      const liveEl = E ? null : statBlock(ctx, "Życia", { small: true });
+      const runEl = E ? statsBlock(ctx, "Bieg", ["Lądowania", "Etap", "Życia", "Za bieg"]) : null;
       const keys = heldKeys(ctx);
       touchPad(ctx, keys, [["arrowleft", "Obróć w lewo", "i-ccw"], ["arrowup", "Silnik", "i-up"], ["arrowright", "Obróć w prawo", "i-cw"]]);
 
@@ -174,6 +197,7 @@
           s.parts.push({ x: ship.x, y: ship.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 10, life: 0.6 + Math.random() * 0.9, c: pick(["#ffd43b", "#ff922b", "#fa5252", "#adb5bd"]), r: 0.3 + Math.random() * 0.8, grav: 1 });
         }
         render();
+        if (E && (s.lives <= 0 || ship.fuel <= 0)) { setTimeout(() => !ctx.done && alive && endRun(ship.fuel <= 0 ? "Skończyło się paliwo" : "Lądownik rozbity"), 900); return; }
         if (s.lives <= 0 || ship.fuel <= 0) { setTimeout(() => !ctx.done && alive && ctx.lose(ship.fuel <= 0 ? "Brak paliwa" : "Lądownik rozbity", `Wylądowano ${s.target} z ${L.pads} razy.`), 900); return; }
         ctx.toast(`Rozbicie. ${s.lives === 1 ? "Zostało ostatnie życie" : `Zostały ${s.lives} życia`}`);
       }
@@ -183,15 +207,36 @@
           const p = t.pads[s.from];
           Object.assign(ship, { x: (p.x0 + p.x1) / 2, y: p.y - 3, vx: 0, vy: 0, a: 0 });
           s.landed = s.from;
-        } else Object.assign(ship, { x: 40, y: 10, vx: 7, vy: 0, a: 0.4 });
+        } else Object.assign(ship, s.spawn || { x: 40, y: 10, vx: 7, vy: 0, a: 0.4 });
+      }
+      // Bieg bez końca: nowy, trudniejszy teren; lądownik startuje nad nim z miejsca, gdzie stał.
+      function nextStage() {
+        stg++;
+        P = stage(stg);
+        t = terrain(P.pads, P.padW);
+        env.g = P.g;
+        env.wind = 0; s.windT = 0;
+        s.spawn = { x: Math.max(20, Math.min(W - 20, ship.x)), y: 8, vx: 0, vy: 0, a: 0 };
+        Object.assign(ship, s.spawn);
+        Object.assign(s, { target: 0, from: null, wrong: undefined, landed: -1 });
+        ctx.toast(`Etap ${stg + 1}${P.wind ? ", uwaga na wiatr" : ""}`);
+        render();
+      }
+      function endRun(why) {
+        ctx.over(s.total, runPoints(s.total), `${why} na etapie ${stg + 1}. Paliwa zostało ${Math.round((ship.fuel / L.fuel) * 100)}%.`);
       }
 
       cv.loop((dt) => {
-        if (!ctx.done && !s.boom) {
+        if (s.pause > 0 && !ctx.done) {
+          // oddech po etapie, potem nowy teren
+          s.pause -= dt;
+          ship.burn = false;
+          if (s.pause <= 0) nextStage();
+        } else if (!ctx.done && !s.boom) {
           // wiatr zmienia się powoli
-          if (L.wind) {
+          if (P.wind) {
             s.windT -= dt;
-            if (s.windT <= 0) { s.windTarget = (Math.random() * 2 - 1) * L.wind; s.windT = 3 + Math.random() * 3; }
+            if (s.windT <= 0) { s.windTarget = (Math.random() * 2 - 1) * P.wind; s.windT = 3 + Math.random() * 3; }
             env.wind += ((s.windTarget || 0) - env.wind) * dt * 0.6;
           }
           const inp = input();
@@ -236,6 +281,7 @@
         s.from = r.pad;
         s.wrong = r.pad;
         s.target++;
+        if (E) return landEndless(r);
         render();
         if (s.target >= L.pads) {
           const left = ship.fuel / L.fuel;
@@ -246,6 +292,22 @@
         }
         ctx.toast(r.vy < 3 ? "Miękkie lądowanie" : "Lądowanie udane");
         if (ship.fuel <= 0) ctx.lose("Brak paliwa", "Nie da się wystartować do kolejnego lądowiska.");
+      }
+
+      function landEndless(r) {
+        s.total++;
+        const add = Math.min(L.fuel - ship.fuel, P.refill);
+        ship.fuel += add;
+        if (s.total >= 12) ctx.achieve("dlugi-lot");
+        if (s.total >= 18) ctx.achieve("weteran");
+        if (s.target >= P.pads) {
+          // etap ukończony: życie w nagrodę i chwila przerwy
+          const gain = s.lives < L.lives;
+          if (gain) s.lives++;
+          s.pause = 1.6;
+          ctx.toast(gain ? "Etap ukończony, życie odzyskane" : "Etap ukończony");
+        } else ctx.toast(`${r.vy < 3 ? "Miękkie lądowanie" : "Lądowanie udane"}, paliwo +${Math.round((add / L.fuel) * 100)}%`);
+        render();
       }
 
       // --- Rysowanie ---
@@ -370,7 +432,7 @@
           g.fillStyle = "rgba(220,225,240,0.8)"; g.fillText(k, 4, 6 + i * 4);
           g.fillStyle = ok(good); g.textAlign = "right"; g.fillText(v, 30, 6 + i * 4); g.textAlign = "left";
         });
-        if (L.wind) {
+        if (P.wind) {
           g.fillStyle = "rgba(220,225,240,0.8)";
           g.fillText("Wiatr", 4, 20);
           const wx = 22, len = env.wind * 2.4;
@@ -388,9 +450,16 @@
 
       function render() {
         fuelEl.set(`${Math.round((ship.fuel / L.fuel) * 100)}%`, ship.fuel / L.fuel, ship.burn ? "Silnik pracuje" : "");
+        ctx.progress(s.target / P.pads);
+        if (E) {
+          runEl.set("Lądowania", s.total);
+          runEl.set("Etap", stg + 1);
+          runEl.set("Życia", `${s.lives} z ${L.lives}`);
+          runEl.set("Za bieg", `${runPoints(s.total)} pkt`);
+          return;
+        }
         padEl.set(`${s.target} z ${L.pads}`);
         liveEl.set(`${s.lives} z ${L.lives}`);
-        ctx.progress(s.target / L.pads);
       }
       render();
     },

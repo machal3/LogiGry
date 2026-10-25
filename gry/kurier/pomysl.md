@@ -2,7 +2,7 @@
 
 - id: kurier
 - opis: Dostarczaj paczki dronem nad trójwymiarowym miastem, omijaj wieżowce i zarządzaj energią baterii.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: akcja
 
 ## Zasady

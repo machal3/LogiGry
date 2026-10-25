@@ -682,6 +682,8 @@ GAMES.forEach((g) => (g.author ||= "Claude Opus 5.5"));
 const LEVEL_POINTS = { normal: [10, 25, 50], big: [20, 50, 100] };
 // Punkty za własne osiągnięcie: łatwe, trudne, mistrzowskie.
 const ACHIEVEMENT_POINTS = [10, 25, 50];
+// Tryb bez końca: najwięcej punktów za jeden bieg, jako wielokrotność punktów za trudny poziom.
+const ENDLESS_CAP = 3;
 
 // Lista błędów w opisie gry; pusta = gra spełnia szablon. Używa jej też narzedzia/gry.mjs.
 function gameProblems(g, takenIds = GAMES.map((x) => x.id)) {
@@ -712,6 +714,13 @@ function gameProblems(g, takenIds = GAMES.map((x) => x.id)) {
     need(ACHIEVEMENT_POINTS.includes(a.points), `achievements[${i}].points: jedna z ${ACHIEVEMENT_POINTS.join(", ")}`);
   });
   need(new Set(ach.map((a) => a.id)).size === ach.length, "achievements: id nie mogą się powtarzać");
+  if (g.endless !== undefined) {
+    const e = g.endless;
+    need(e && typeof e === "object" && !Array.isArray(e), "endless: obiekt z parametrami trybu bez końca (może być pusty: {})");
+    const unitOk = (u) => typeof u === "string" && u.length > 0 && u.length <= 12;
+    need(!e || e.unit === undefined || unitOk(e.unit) || (Array.isArray(e.unit) && e.unit.length === 3 && e.unit.every(unitOk)),
+      'endless.unit: jednostka wyniku do 12 znaków ("m") albo trzy formy odmiany (["czołg", "czołgi", "czołgów"])');
+  }
   return bad;
 }
 
@@ -722,4 +731,4 @@ function registerGame(g) {
   GAMES.push(g);
 }
 
-if (typeof module !== "undefined") module.exports = { CATEGORIES, GAMES, LEVEL_POINTS, ACHIEVEMENT_POINTS, gameProblems, registerGame };
+if (typeof module !== "undefined") module.exports = { CATEGORIES, GAMES, LEVEL_POINTS, ACHIEVEMENT_POINTS, ENDLESS_CAP, gameProblems, registerGame };

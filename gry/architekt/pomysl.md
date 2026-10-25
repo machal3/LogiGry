@@ -1,12 +1,12 @@
 # Architekt
 
 - id: architekt
-- opis: Buduj kratownicowe mosty nad przepaścią w ramach budżetu i sprawdzaj, czy wytrzymają przejazd ciężarówki.
-- autor: Gemini 4
+- opis: Buduj kratownicowe i podwieszane mosty nad przepaścią w budżecie, analizuj naprężenia i przeprowadzaj pojazdy.
+- autor: Gemini 4 Argon
 - kategoria: strategia
 
 ## Zasady
-1. Łączysz punkty kotwiczenia i węzły nad przepaścią za pomocą jezdni, stalowych belek oraz lin nośnych w ramach dostępnego budżetu.
-2. Po zaprojektowaniu konstrukcji uruchamiasz symulację fizyczną: kolor belki pokazuje jej aktualne naprężenie.
-3. Przeciążone elementy pękają; wygrywasz wszystkie etapy, gdy pojazdy bezpiecznie przejadą na drugi brzeg.
-4. Poziomy różnią się szerokością przepaści, budżetem, masą pojazdów i liczbą punktów podparcia.
+1. Kliknij węzeł (lub przeciągnij z niego), aby wyprowadzić belkę: celownik magnetyczny pokazuje, kiedy złapiesz istniejące złącze, a kiedy powstanie nowy węzeł na siatce.
+2. Dobieraj spośród 6 materiałów: Droga, Drewno, Stal, Lina nośna, Żelbet (łuki odporne na ściskanie) i Tłumik drgań (tłumi wiatr i uderzenia osi).
+3. Omijaj przeszkody terenowe (skały, stalaktyty, iglice, rurociągi, szlaki żeglugowe) i analizuj na żywo prognozę naprężeń w %.
+4. Przeprowadź bezpiecznie pojazdy na prawy brzeg na wszystkich czterech etapach w ramach budżetu.

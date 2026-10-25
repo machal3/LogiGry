@@ -85,7 +85,7 @@ for (const id of ids) {
     return run(`!!GAMES.find((g) => g.id === ${JSON.stringify(id)}) || ${JSON.stringify(id)} === "zestaw"`);
   })();
   if (!exists) { console.log(`BŁĄD ${id}: gry nie ma na stronie (najpierw node narzedzia/gry.mjs sprawdz ${id} musi pokazać OK)`); failed++; continue; }
-  const levels = id === "zestaw" ? 3 : await run(`GAMES.find((g) => g.id === ${JSON.stringify(id)}).levels.length`);
+  const levels = id === "zestaw" ? 3 : await run(`((g) => g.levels.length + (g.endless ? 1 : 0))(GAMES.find((g) => g.id === ${JSON.stringify(id)}))`);
   const found = new Map();
   const note = (lvl, what, where) => { const k = `${lvl} ${what}`; found.set(k, [...(found.get(k) || []), where]); };
   for (const [view, w, h] of VIEWS) {

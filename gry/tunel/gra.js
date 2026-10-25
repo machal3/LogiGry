@@ -6,27 +6,58 @@
   const wrap = (k) => ((k % N) + N) % N;
 
   // Rzędy: z (pozycja w tunelu), blocked (tablica N wartości), crystals (pasy). Bezpieczna ścieżka przechodzi przez wszystkie.
+  // Jeden rząd: sp = odstęp do poprzedniego rzędu, gw = szerokość przejścia.
+  function makeRow(prevSafe, z, sp, gw, maxSpeed, extra) {
+    // zasięg skrętu między rzędami przy najwyższej prędkości, z zapasem
+    const reach = Math.max(1, Math.floor(((TURN * sp) / maxSpeed / LANE) * 0.6));
+    const safe = wrap(prevSafe + rnd(reach * 2 + 1) - reach);
+    const blocked = new Array(N).fill(1);
+    for (let k = 0; k < gw; k++) blocked[wrap(safe + k - Math.floor(gw / 2))] = 0;
+    // dodatkowe dziury, żeby rzędy wyglądały różnie
+    for (let k = 0; k < N; k++) if (Math.random() < extra) blocked[k] = 0;
+    // rząd w kształcie pojedynczych bloków zamiast pełnej ściany
+    if (Math.random() < 0.3) for (let k = 0; k < N; k++) if (k % 2 && blocked[k] && wrap(k - safe) > 1 && wrap(safe - k) > 1) blocked[k] = 0;
+    const crystals = Math.random() < 0.6 ? [safe] : [];
+    return { z, blocked, crystals, safe };
+  }
   function generate({ length, spacing, gap, maxSpeed, extra }) {
     const rows = [];
     let safe = rnd(N);
     for (let z = 30; z < length - 10; ) {
       const prog = z / length;
       const sp = spacing * (1 - 0.3 * prog);
-      // zasięg skrętu między rzędami przy najwyższej prędkości, z zapasem
-      const reach = Math.max(1, Math.floor(((TURN * sp) / maxSpeed / LANE) * 0.6));
-      safe = wrap(safe + rnd(reach * 2 + 1) - reach);
-      const blocked = new Array(N).fill(1);
-      const gw = Math.max(1, gap - (prog > 0.6 ? 1 : 0));
-      for (let k = 0; k < gw; k++) blocked[wrap(safe + k - Math.floor(gw / 2))] = 0;
-      // dodatkowe dziury, żeby rzędy wyglądały różnie
-      for (let k = 0; k < N; k++) if (Math.random() < extra) blocked[k] = 0;
-      // rząd w kształcie pojedynczych bloków zamiast pełnej ściany
-      if (Math.random() < 0.3) for (let k = 0; k < N; k++) if (k % 2 && blocked[k] && wrap(k - safe) > 1 && wrap(safe - k) > 1) blocked[k] = 0;
-      const crystals = Math.random() < 0.6 ? [safe] : [];
-      rows.push({ z, blocked, crystals, safe });
+      const row = makeRow(safe, z, sp, Math.max(1, gap - (prog > 0.6 ? 1 : 0)), maxSpeed, extra);
+      rows.push(row);
+      safe = row.safe;
       z += sp;
     }
     return rows;
+  }
+
+  // --- Tryb bez końca: trudność zależy od przebytych metrów ---
+  // 0 m jak łatwy, 3000 m jak trudny (ok. 3 minut), do 7000 m jeszcze trudniej, potem stałe.
+  const STAGE = 500;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function endlessParams(z) {
+    const x = Math.max(0, z) / 1000, k = Math.min(1, x / 3), e = Math.min(1, Math.max(0, (x - 3) / 4));
+    return {
+      speed: lerp(10, 25, k) + 6 * e,
+      spacing: lerp(8, 5.4, k) - 0.8 * e,
+      gap: x >= 4 ? 1 : Math.round(lerp(4, 2, k)),
+      extra: lerp(0.15, 0.06, k) - 0.03 * e,
+    };
+  }
+  // Następny rząd biegu bez końca po rzędzie prev (albo pierwszy, gdy prev brak).
+  function endlessRow(prev) {
+    const z = prev ? prev.z + endlessParams(prev.z).spacing : 30;
+    const p = endlessParams(z);
+    return makeRow(prev ? prev.safe : rnd(N), z, prev ? z - prev.z : p.spacing, p.gap, p.speed + 1, p.extra);
+  }
+  // Punkty za bieg: 800 m (jak łatwy poziom) = 10, ok. 1800 m = 25, 3000 m (trudność trudnego) = 50, dalej coraz szybciej.
+  // Krótszy bieg daje 0–5 pkt. Platforma obcina wynik do 150.
+  function runPoints(m) {
+    if (m < 800) return Math.floor((5 * Math.max(0, m)) / 800);
+    return Math.min(150, Math.round(10 * Math.pow(m / 800, 1.22)));
   }
   // Czy statek o szerokości kątowej hw na kącie a zahacza zablokowany pas.
   function hits(row, a, hw) {
@@ -39,7 +70,7 @@
     return false;
   }
 
-  if (typeof module !== "undefined") module.exports = { generate, hits, N, LANE, TURN, wrap };
+  if (typeof module !== "undefined") module.exports = { generate, hits, N, LANE, TURN, wrap, endlessParams, endlessRow, runPoints, STAGE };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "tunel",
@@ -55,31 +86,40 @@
       { key: "medium", name: "Średni", points: 25, length: 1200, spacing: 7, gap: 3, speed: 12, maxSpeed: 21, accel: 0.2, extra: 0.1, shields: 3 },
       { key: "hard", name: "Trudny", points: 50, length: 1600, spacing: 6.2, gap: 2, speed: 14, maxSpeed: 25, accel: 0.22, extra: 0.06, shields: 2 },
     ],
+    endless: { unit: "m", shields: 3 },
     rules: [
       "Strzałki w lewo i w prawo (albo A i D) obracają cię wokół ścian tunelu. Na ekranie dotykowym trzymaj lewą lub prawą połowę planszy.",
       "Omijaj ściany i bloki. Zderzenie zabiera osłonę, a bez osłon lot się kończy.",
       "Zbieraj kryształy. Każde 10 kryształów odnawia jedną osłonę.",
       "Wygrywasz, gdy dolecisz do końca tunelu. Prędkość rośnie z każdą sekundą.",
+      "W trybie ∞ tunel nie ma końca: co 500 m zaczyna się szybszy etap i wraca jedna osłona, a wynik to przebyte metry.",
     ],
     achievements: [
       { id: "zbieracz", name: "Zbieracz", desc: "Zbierz 20 kryształów w jednym locie.", points: 10 },
       { id: "seria", name: "Kryształowa ścieżka", desc: "Zbierz 12 kryształów z rzędu, nie omijając żadnego.", points: 25 },
       { id: "czysto", name: "Bez zadrapania", desc: "Ukończ średni lub trudny poziom bez utraty osłony.", points: 25 },
       { id: "hiper", name: "Hiperprędkość", desc: "Ukończ trudny poziom bez utraty osłony.", points: 50 },
+      { id: "daleko", name: "Daleki lot", desc: "Przeleć 3000 m w trybie bez końca.", points: 25 },
+      { id: "bezkres", name: "Bezkres", desc: "Przeleć 6000 m w trybie bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
       const L = ctx.level;
       const cv = canvasGame(board, ctx, 100, 100, { max: 80, cls: "neon" });
       const { g } = cv;
-      const rows = generate(L);
+      const E = !!L.endless;
+      const rows = E ? [endlessRow()] : generate(L);
+      // bieg bez końca: rzędy dobudowywane na bieżąco przed statkiem
+      const fill = () => { while (rows.at(-1).z < s.pos + 60) rows.push(endlessRow(rows.at(-1))); };
       // gracz zaczyna nad bezpiecznym pasem pierwszego rzędu
-      const s = { a: (rows[0].safe + 0.5) * LANE, pos: 0, speed: L.speed, shields: L.shields, lost: 0, crystals: 0, streak: 0, inv: 0, flash: 0, t: 0, parts: [], finished: 0, next: 0 };
+      const s = { a: (rows[0].safe + 0.5) * LANE, pos: 0, speed: E ? endlessParams(0).speed : L.speed, shields: L.shields, lost: 0, crystals: 0, streak: 0, inv: 0, flash: 0, t: 0, parts: [], finished: 0, next: 0, stage: 0 };
+      if (E) fill();
       const HW = 0.12;
 
       const distEl = statBlock(ctx, "Dystans", { meter: true });
-      const shieldEl = statBlock(ctx, "Osłony", { small: true });
-      const crystalEl = statBlock(ctx, "Kryształy", { small: true });
+      const shieldEl = E ? null : statBlock(ctx, "Osłony", { small: true });
+      const crystalEl = E ? null : statBlock(ctx, "Kryształy", { small: true });
+      const runEl = E ? statsBlock(ctx, "Lot", ["Osłony", "Kryształy", "Za bieg"]) : null;
       const keys = heldKeys(ctx);
       let touch = 0;
       ctx.on(cv.cv, "pointerdown", (e) => { e.preventDefault(); cv.cv.setPointerCapture?.(e.pointerId); touch = cv.at(e)[0] < 50 ? -1 : 1; });
@@ -97,7 +137,11 @@
         const dir = (keys.arrowleft || keys.a ? -1 : 0) + (keys.arrowright || keys.d ? 1 : 0) || touch;
         s.vel = (s.vel || 0) + (dir * TURN - (s.vel || 0)) * Math.min(1, dt * 14);
         s.a += s.vel * dt;
-        s.speed = Math.min(L.maxSpeed, s.speed + L.accel * dt);
+        if (E) {
+          // prędkość dąży do tempa etapu; po zderzeniu wraca w kilka sekund
+          const v = endlessParams(s.pos).speed;
+          s.speed = s.speed < v ? Math.min(v, s.speed + 1.2 * dt) : v;
+        } else s.speed = Math.min(L.maxSpeed, s.speed + L.accel * dt);
         const before = s.pos;
         s.pos += s.speed * dt;
         s.inv = Math.max(0, s.inv - dt);
@@ -123,14 +167,35 @@
             s.lost++;
             s.inv = 1.2;
             s.flash = 0.4;
-            s.speed = Math.max(L.speed, s.speed * 0.8);
+            s.speed = Math.max(E ? 10 : L.speed, s.speed * 0.8);
             Sound.error();
             burst("#ff4fd8", 26);
+            if (s.shields <= 0 && E) return endRun();
             if (s.shields <= 0) return ctx.lose("Rozbity statek", `Przeleciano ${Math.round((s.pos / L.length) * 100)}% tunelu.`);
           }
         }
-        if (s.pos >= L.length) { s.finished = 0.01; Sound.line(); }
+        if (E) endlessStep();
+        else if (s.pos >= L.length) { s.finished = 0.01; Sound.line(); }
         render();
+      }
+      function endlessStep() {
+        fill();
+        // usuwanie minionych rzędów, żeby tablica nie rosła
+        if (s.next > 40) { rows.splice(0, s.next - 2); s.next = 2; }
+        const st = Math.floor(s.pos / STAGE);
+        if (st > s.stage) {
+          s.stage = st;
+          const back = s.shields < L.shields;
+          if (back) s.shields++;
+          ctx.toast(`Etap ${st + 1}${back ? ", osłona odnowiona" : ""}`);
+          Sound.line();
+        }
+        if (!s.far && s.pos >= 3000) { s.far = 1; ctx.achieve("daleko"); }
+        if (!s.vast && s.pos >= 6000) { s.vast = 1; ctx.achieve("bezkres"); }
+      }
+      function endRun() {
+        const m = Math.floor(s.pos);
+        ctx.over(m, runPoints(m), `Etap ${s.stage + 1}, kryształy: ${s.crystals}.`);
       }
       function win() {
         if (!s.lost && L.key !== "easy") ctx.achieve("czysto");
@@ -223,7 +288,7 @@
           }
         }
         // meta
-        const zEnd = L.length - s.pos;
+        const zEnd = E ? Infinity : L.length - s.pos;
         if (zEnd < far && zEnd > 0.7) {
           g.strokeStyle = `rgba(255,255,255,${1 - zEnd / far})`; g.lineWidth = Math.max(0.5, 3 / zEnd);
           g.beginPath(); for (let k = 0; k <= 40; k++) { const [x, y] = proj((k / 40) * Math.PI * 2, 1, zEnd); k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
@@ -271,6 +336,14 @@
       }
 
       function render() {
+        if (E) {
+          const m = Math.floor(s.pos), f = (s.pos % STAGE) / STAGE;
+          distEl.set(`${m} m`, f, `Etap ${s.stage + 1}, prędkość ${Math.round(s.speed * 10)}`);
+          runEl.set("Osłony", `${s.shields} z ${L.shields}`);
+          runEl.set("Kryształy", s.crystals);
+          runEl.set("Za bieg", `${runPoints(m)} pkt`);
+          return ctx.progress(f);
+        }
         const f = Math.min(1, s.pos / L.length);
         distEl.set(`${Math.round(f * 100)}%`, f, `Prędkość ${Math.round(s.speed * 10)}`);
         shieldEl.set(`${s.shields} z ${L.shields}`);

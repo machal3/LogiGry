@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 Object.assign(globalThis, require("../../lib.js"));
-const { makeTable, newBall, step, bot, W } = require("./gra.js");
+const { makeTable, newBall, step, bot, W, endlessStage, endlessG, endlessSave, endlessExtraBall, endlessPoints } = require("./gra.js");
 
 // wystrzał jak w grze: kulka, która wróciła na sprężynę, leci jeszcze raz
 function run(g, useBot, seconds) {
@@ -29,4 +29,38 @@ test("bez flipperów kulka zawsze w końcu spada (nigdzie się nie zatrzymuje)",
 
 test("z automatem kulka nie wylatuje ze stołu ani nie utyka", () => {
   for (const g of [120, 160]) for (let k = 0; k < 10; k++) run(g, true, 120);
+});
+
+test("tryb bez końca: punkty za bieg odpowiadają celom poziomów i rosną coraz szybciej", () => {
+  assert.strictEqual(endlessPoints(0), 0);
+  assert.ok(endlessPoints(9999) <= 5);
+  assert.strictEqual(endlessPoints(10000), 10);
+  assert.strictEqual(endlessPoints(25000), 25);
+  assert.strictEqual(endlessPoints(50000), 50);
+  assert.strictEqual(endlessPoints(1e7), 150);
+  let prev = 0, prevGain = 0;
+  for (let sc = 50000; sc <= 100000; sc += 10000) {
+    const p = endlessPoints(sc);
+    assert.ok(p >= prev);
+    if (sc > 50000) { assert.ok(p - prev >= prevGain - 1); prevGain = p - prev; }
+    prev = p;
+  }
+});
+
+test("tryb bez końca: etapy i trudność rosną płynnie bez ściany", () => {
+  assert.deepStrictEqual(endlessStage(0), { n: 1, from: 0, to: 5000 });
+  assert.strictEqual(endlessStage(5000).n, 2);
+  assert.strictEqual(endlessStage(32000).n, 5);
+  assert.strictEqual(endlessStage(117000).n, 10);
+  assert.strictEqual(endlessG(1), 120);
+  assert.ok(Math.abs(endlessG(endlessStage(25000).n) - 140) <= 8);
+  assert.ok(Math.abs(endlessG(endlessStage(50000).n) - 160) <= 8);
+  assert.ok(endlessG(100) <= 210);
+  assert.strictEqual(endlessSave(1), 8);
+  assert.strictEqual(endlessSave(20), 0);
+  assert.deepStrictEqual([1, 2, 3, 4, 5, 6, 7].filter(endlessExtraBall), [4, 7]);
+});
+
+test("przy największej grawitacji trybu ∞ kulka nie wylatuje ani nie utyka", () => {
+  for (let k = 0; k < 10; k++) run(210, true, 60);
 });

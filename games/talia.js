@@ -129,7 +129,8 @@ const Deck = (() => {
       const e = ENEMIES[id];
       // smok ma stałe zdrowie z poziomu, reszta rośnie z krokiem wyprawy
       const hp = e.boss ? lv.boss : Math.round((e.hp[0] + R(e.hp[1] - e.hp[0] + 1)) * lv.scale * (1 + s.step * 0.035));
-      return { id, ...e, ...STATUS(), hp, max: hp, turn: e.boss ? 0 : R(e.moves.length) };
+      // str: siła wrogów od początku walki (tylko tryb bez końca, w dalszych aktach)
+      return { id, ...e, ...STATUS(), str: lv.str || 0, hp, max: hp, turn: e.boss ? 0 : R(e.moves.length) };
     });
     const f = { enemies, big, me: STATUS(), draw: mix(s.deck.slice()), hand: [], huid: [], discard: [], exhaust: [], energy: 3, turn: 0, uid: 0, kills: 0 };
     if (s.relics.includes("stone")) f.me.str = 1;
@@ -259,7 +260,18 @@ const Deck = (() => {
     { key: "hard", name: "Trudny", points: 100, len: 11, hp: 65, scale: 1.15, boss: 145 },
   ];
 
-  const api = { LEVELS, CARDS, BASE, card, REWARD_POOL, ENEMIES, RELICS, map, describe, plainText, summary, needsTarget, fight, drawCards, startTurn, dealt, play, canPlay, endPlayerTurn, intent, enemyAct, endRound, outcome, alive, encounter, newRun, last: null };
+  // tryb bez końca: kolejne akty po 8 kroków ze smokiem na końcu; akt 1 ma liczby łatwego poziomu, akt 2 trudnego,
+  // potem co akt zdrowie wrogów +30%, smok +45 zdrowia, wrogowie zaczynają z siłą 2, 3, 5, 6... (rośnie liniowo, bez ściany)
+  const ACT_LEN = 8;
+  const actLevel = (a) => ({ len: ACT_LEN, hp: 80, scale: Math.round((0.85 + 0.3 * a) * 100) / 100, boss: 100 + 45 * a, str: Math.max(0, Math.round(1.5 * (a - 1))) });
+  // punkty za bieg z liczby przebytych pięter: przed pierwszym smokiem 0–4, po 1. smoku 20 (jak łatwy), po 2. 50 (średni),
+  // po 3. 100 (trudny), dalej coraz szybciej: 10·x² + 10, gdzie x = przebyte akty; platforma obcina do 300
+  function endlessPoints(floors) {
+    const x = Math.max(0, floors) / ACT_LEN;
+    return Math.min(300, x < 1 ? Math.floor(5 * x) : Math.round(10 * x * x + 10));
+  }
+
+  const api = { LEVELS, ACT_LEN, actLevel, endlessPoints, CARDS, BASE, card, REWARD_POOL, ENEMIES, RELICS, map, describe, plainText, summary, needsTarget, fight, drawCards, startTurn, dealt, play, canPlay, endPlayerTurn, intent, enemyAct, endRound, outcome, alive, encounter, newRun, last: null };
   return api;
 })();
 
@@ -268,8 +280,9 @@ if (typeof module !== "undefined") module.exports = Deck;
 if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "talia"), {
   author: "Claude Opus 5.5",
   levels: Deck.LEVELS,
+  endless: { unit: ["piętro", "piętra", "pięter"] },
   rules: [
-    "Wędruj po mapie, wybierając kolejne pola: walki, elity z artefaktami, ogniska, skarby i sklepy. Na końcu czeka smok.",
+    "Wędruj po mapie, wybierając kolejne pola: walki, elity z artefaktami, ogniska, skarby i sklepy. Na końcu czeka smok, a w trybie ∞ po każdym smoku zaczyna się kolejny, silniejszy akt.",
     "W walce masz co turę 3 energii i 5 kart. Kliknij kartę, a gdy wrogów jest kilku, także cel. Na telefonie pierwsze stuknięcie pokazuje opis karty, drugie ją zagrywa.",
     "Znak nad wrogiem zdradza, co zrobi w swojej turze: miecz to atak, tarcza to blok. Kliknij wroga, żeby przeczytać jego zamiar.",
     "Blok chroni do początku Twojej następnej tury. Siła zwiększa ataki, osłabienie je zmniejsza, podatność zwiększa otrzymane obrażenia, trucizna rani co turę, kolce oddają atakującemu.",
@@ -284,11 +297,16 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
     { id: "kolekcjoner", name: "Kolekcjoner", desc: "Zbierz 4 artefakty w jednej wyprawie.", points: 25 },
     { id: "smukla-talia", name: "Smukła talia", desc: "Pokonaj smoka talią z najwyżej 15 kart.", points: 25 },
     { id: "pogromca-smokow", name: "Pogromca smoków", desc: "Pokonaj smoka na trudnym poziomie, mając co najmniej połowę zdrowia.", points: 50 },
+    { id: "wspinacz", name: "Wspinacz", desc: "W trybie bez końca pokonaj trzeciego smoka (24 piętra).", points: 25 },
   ],
   mount(board, ctx) {
     const { card, RELICS } = Deck;
     const lv = ctx.level;
-    const s = Deck.newRun(lv);
+    // tryb bez końca: L to parametry bieżącego aktu, floors to przebyte piętra (wynik biegu)
+    const endless = !!lv.endless;
+    let act = 0, floors = 0;
+    let L = endless ? Deck.actLevel(0) : lv;
+    const s = Deck.newRun(L);
     s.upgrades = 0;
     Deck.last = s;
     board.classList.add("dk");
@@ -348,15 +366,20 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
 
     // --- panel ---
     const hpStat = statBlock(ctx, "Zdrowie", { meter: true });
-    const runStats = statsBlock(ctx, "Wyprawa", ["Złoto", "Karty", "Pokonani"]);
+    const runStats = statsBlock(ctx, "Wyprawa", endless ? ["Piętra", "Za bieg", "Złoto", "Karty"] : ["Złoto", "Karty", "Pokonani"]);
+    const endRun = (why) => ctx.over(floors, Deck.endlessPoints(floors), `${why} Akt ${act + 1}, ${floors} ${plural(floors, "piętro", "piętra", "pięter")}, pokonani: ${s.kills}.`);
+    if (endless) runStats.block.append(button("Zakończ bieg", "btn-ghost wide", () => { if (!ctx.done) endRun("Bieg zakończony."); }));
     const relEl = el("div", "dk-relics");
     const deckEl = el("div", "dk-decklist");
     ctx.panel.append(panelBlock("Artefakty", relEl), panelBlock("Talia", deckEl));
     function renderRun() {
-      hpStat.set(`${Math.max(0, s.hp)} / ${s.max}`, Math.max(0, s.hp) / s.max, `Krok ${Math.min(s.step + 1, lv.len)} z ${lv.len}`);
+      hpStat.set(`${Math.max(0, s.hp)} / ${s.max}`, Math.max(0, s.hp) / s.max, `${endless ? `Akt ${act + 1}, krok` : "Krok"} ${Math.min(s.step + 1, L.len)} z ${L.len}`);
       runStats.set("Złoto", `${s.gold} zł`);
       runStats.set("Karty", s.deck.length);
-      runStats.set("Pokonani", s.kills);
+      if (endless) {
+        runStats.set("Piętra", floors);
+        runStats.set("Za bieg", `${Deck.endlessPoints(floors)} pkt`);
+      } else runStats.set("Pokonani", s.kills);
       relEl.replaceChildren(...(s.relics.length ? s.relics.map((r) => { const p = el("p", "dk-relic"); p.append(el("b", "", RELICS[r].name), el("span", "", RELICS[r].text)); return p; }) : [el("p", "dk-none", "Jeszcze żadnych. Szukaj ich w skarbach i u elit.")]));
       const counts = {};
       s.deck.forEach((c) => (counts[c] = (counts[c] || 0) + 1));
@@ -365,7 +388,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
         d.title = Deck.plainText(c);
         return d;
       }));
-      ctx.progress(s.step / lv.len);
+      ctx.progress(s.step / L.len);
     }
     function scene(cls, ...kids) {
       const w = el("div", `dk-scene ${cls}`);
@@ -408,7 +431,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
         opts.forEach((o, j) => {
           const b = button("", `dk-node ${o}${s.path[k] === o ? " taken" : ""}`, () => { if (k === s.step && !ctx.done) enterNode(o); });
           b.disabled = k !== s.step;
-          b.setAttribute("aria-label", `${NODE[o][0]}, krok ${k + 1} z ${lv.len}`);
+          b.setAttribute("aria-label", `${NODE[o][0]}, krok ${k + 1} z ${L.len}`);
           if (k === s.step) b.style.setProperty("--d", `${j * 80}ms`);
           const ic = el("span", "dk-nic");
           ic.append(icon(NODE[o][1]));
@@ -418,7 +441,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
         row.append(el("span", "dk-step", k + 1), nodes);
         wrap.append(row);
       });
-      scene(`dk-s-map${lv.len > 7 ? " long" : ""}`, title(s.step ? "Dokąd dalej?" : "Wyrusz na wyprawę"), wrap);
+      const head = s.step ? "Dokąd dalej?" : act ? `Akt ${act + 1}: silniejsi wrogowie` : "Wyrusz na wyprawę";
+      scene(`dk-s-map${L.len > 7 ? " long" : ""}`, title(endless && s.step ? `Akt ${act + 1}. ${head}` : head), wrap);
       // bieżący krok na środku mapy (mapa przewija się w sobie, nie strona)
       const now = wrap.querySelector(".dk-row.now");
       if (now) wrap.scrollTop = now.offsetTop - wrap.clientHeight / 2 + now.offsetHeight / 2;
@@ -433,7 +457,22 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
       if (o === "chest") return showChest();
       if (o === "shop") return showShop();
     }
-    const advance = () => { s.step++; showMap(); };
+    const advance = () => {
+      s.step++;
+      if (endless) { floors++; if (s.step >= L.len) return nextAct(); }
+      showMap();
+    };
+    // nowy akt: nowa mapa, silniejsi wrogowie; oddech: +5 do zdrowia maksymalnego i leczenie o 35%
+    function nextAct() {
+      act++;
+      L = Deck.actLevel(act);
+      Object.assign(s, { map: Deck.map(L.len), step: 0, path: [] });
+      s.max += 5;
+      s.hp = Math.min(s.max, s.hp + 5 + Math.round(s.max * 0.35));
+      Sound.line();
+      ctx.toast(`Akt ${act + 1}. Odpoczynek leczy rany`);
+      showMap();
+    }
     function gainRelic(r) {
       if (!r) return;
       s.relics.push(r);
@@ -599,7 +638,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
       return { box, body, spr, blk, hp, st };
     }
     function startFight(list, kind) {
-      const f = Deck.fight(s, list, lv, kind !== "fight");
+      const f = Deck.fight(s, list, L, kind !== "fight");
       Object.assign(f, { kind, sel: -1, aim: -1, busy: false, over: false, taken: 0 });
       s.fight = f;
       s.scene = "fight";
@@ -928,7 +967,8 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
         sync();
         F.hero.box.classList.add("dead");
         const foes = Deck.alive(f).map((e) => e.name).join(" i ");
-        wait(() => ctx.lose("Porażka", `${foes} ${Deck.alive(f).length > 1 ? "okazali się silniejsi" : "okazał się silniejszy"}. Krok ${s.step + 1} z ${lv.len}.`), still() ? 0 : 900);
+        const why = `${foes} ${Deck.alive(f).length > 1 ? "okazali się silniejsi" : "okazał się silniejszy"}.`;
+        wait(() => (endless ? endRun(why) : ctx.lose("Porażka", `${why} Krok ${s.step + 1} z ${L.len}.`)), still() ? 0 : 900);
         return true;
       }
       s.kills += f.enemies.length;
@@ -938,7 +978,12 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "tali
       if (f.kind === "elite" && f.taken === 0) ctx.achieve("bez-ran");
       wait(() => {
         if (ctx.done) return;
-        if (boss) {
+        if (boss && endless) {
+          // w trybie bez końca smok kończy akt: nagroda jak za elitę, potem kolejny akt
+          if (s.hp <= 10) ctx.achieve("na-wlosku");
+          if (s.deck.length <= 15) ctx.achieve("smukla-talia");
+          if (act >= 2) ctx.achieve("wspinacz");
+        } else if (boss) {
           if (s.hp <= 10) ctx.achieve("na-wlosku");
           if (s.deck.length <= 15) ctx.achieve("smukla-talia");
           if (lv.key === "hard" && s.hp * 2 >= s.max) ctx.achieve("pogromca-smokow");

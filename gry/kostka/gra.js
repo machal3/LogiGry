@@ -63,7 +63,29 @@
     return moves;
   }
 
-  if (typeof module !== "undefined") module.exports = { makeCube, applyMove, solved, scramble, pushMove, inverse, rot90 };
+  // --- Tryb bez końca ---
+  // Kostka nr i (od 0): trzy małe (2–4 ruchy mieszania), trzy duże (3–5), potem coraz głębiej, do pełnego mieszania (20).
+  function cubeSpec(i) {
+    if (i < 3) return { size: 2, mix: 2 + i };
+    if (i < 6) return { size: 3, mix: i };
+    return { size: 3, mix: Math.min(20, 5 + 2 * (i - 5)) };
+  }
+  // Sekundy dopisywane za ułożoną kostkę nr i: rosną z mieszaniem, przy pełnym powoli maleją (najmniej 120 s).
+  function cubeBonus(i) {
+    const b = Math.min(180, 30 + 8 * cubeSpec(i).mix);
+    return i < 13 ? b : Math.max(120, 180 - 5 * (i - 13));
+  }
+  // Punkty za bieg z liczby ułożonych kostek: 3 ≈ łatwy (10), 6 ≈ średni (25), 10 ≈ trudny (50), dalej coraz szybciej.
+  const RUN_POINTS = [0, 2, 5, 10, 15, 20, 25, 31, 37, 43, 50];
+  function runPoints(n) {
+    if (n <= 10) return RUN_POINTS[Math.max(0, n)];
+    let p = 50;
+    for (let k = 1; k <= n - 10; k++) p += 6 + k;
+    return Math.min(150, p);
+  }
+  const END = { start: 120, hintCost: 15 };
+
+  if (typeof module !== "undefined") module.exports = { makeCube, applyMove, solved, scramble, pushMove, inverse, rot90, cubeSpec, cubeBonus, runPoints, END };
 
   if (typeof registerGame !== "undefined") registerGame({
     id: "kostka",
@@ -79,35 +101,60 @@
       { key: "medium", name: "3 × 3", points: 25, size: 3, mix: 5, hints: true },
       { key: "hard", name: "Pełna", points: 50, size: 3, mix: 24, hints: false },
     ],
+    endless: { unit: ["kostka", "kostki", "kostek"] },
     rules: [
       "Przeciągnij po naklejce w stronę, w którą ma się obrócić jej warstwa. Przeciągnięcie po tle obraca całą kostkę.",
       "Ułóż kostkę tak, żeby każda ściana miała jeden kolor.",
       "Łatwy: mała kostka pomieszana trzema ruchami. Średni: duża kostka, pięć ruchów. Trudny: duża kostka pomieszana całkowicie.",
       "Klawiatura: U, D, L, R, F, B obracają ściany (z Shift w drugą stronę), strzałki obracają widok.",
+      "Tryb ∞: kolejne, coraz mocniej pomieszane kostki na czas; ułożona kostka dodaje sekundy, podpowiedź zabiera 15 s.",
     ],
     achievements: [
       { id: "samodzielnie", name: "Samodzielnie", desc: "Ułóż kostkę 3 × 3 bez podpowiedzi i bez cofania.", points: 10 },
       { id: "najkrotsza", name: "Najkrótsza droga", desc: "Ułóż kostkę w tylu ruchach, ile było mieszania.", points: 25 },
       { id: "sprinter", name: "Sprinter", desc: "Ułóż kostkę 3 × 3 pomieszaną pięcioma ruchami w mniej niż minutę.", points: 25 },
       { id: "speedcuber", name: "Speedcuber", desc: "Ułóż całkowicie pomieszaną kostkę w mniej niż 10 minut.", points: 50 },
+      { id: "seria", name: "Seria", desc: "Ułóż 6 kostek w jednym biegu trybu bez końca.", points: 25 },
+      { id: "maraton", name: "Maraton", desc: "Ułóż 12 kostek w jednym biegu trybu bez końca.", points: 50 },
     ],
 
     mount(board, ctx) {
-      const L = ctx.level;
+      const L = ctx.level, E = !!L.endless;
       const cv = canvasGame(board, ctx, 100, 100, { max: 64 });
       const { g } = cv;
-      const cube = makeCube(L.size);
-      const stack = [];
-      for (const m of scramble(cube, L.mix)) pushMove(stack, m);
       const s = { yaw: -0.62, pitch: 0.5, anim: null, queue: [], moves: 0, hinted: false, done: false, glow: 0 };
-      const scale = 40 / L.size, D = 9;
+      const D = 9;
+      // bieżąca kostka; w trybie bez końca zmienia się co etap
+      let cube, stack, mix, scale, h, FACES;
+      function setup(size, m) {
+        cube = makeCube(size);
+        stack = [];
+        mix = m;
+        for (const mv of scramble(cube, m)) pushMove(stack, mv);
+        scale = 40 / size;
+        h = (size - 1) / 2;
+        FACES = { u: [1, h, -1], d: [1, -h, 1], r: [0, h, -1], l: [0, -h, 1], f: [2, h, -1], b: [2, -h, 1] };
+        Object.assign(s, { moves: 0, hinted: false, hintMove: null, queue: [], anim: null });
+      }
+      // stan biegu: ułożone kostki, sekundy do końca, przerwa między kostkami
+      const run = { n: 0, left: END.start, pause: 0, warned: false };
 
-      const movesEl = statBlock(ctx, "Ruchy", { small: true });
-      const faceEl = statBlock(ctx, "Ułożone ściany", { meter: true });
-      const hintBtn = L.hints ? button("Podpowiedź", "btn-ghost wide", hint) : null;
+      let movesEl, faceEl, timeEl, runEl;
+      if (E) {
+        timeEl = statBlock(ctx, "Pozostały czas", { meter: true });
+        runEl = statsBlock(ctx, "Bieg", ["Kostki", "Mieszanie", "Za bieg"]);
+      } else {
+        movesEl = statBlock(ctx, "Ruchy", { small: true });
+        faceEl = statBlock(ctx, "Ułożone ściany", { meter: true });
+      }
+      const hintBtn = L.hints || E ? button(E ? `Podpowiedź −${END.hintCost} s` : "Podpowiedź", "btn-ghost wide", hint) : null;
       const resetView = button("Ustaw widok", "btn-ghost wide", () => { s.yaw = -0.62; s.pitch = 0.5; });
-      ctx.panel.append(panelBlock("", ...(hintBtn ? [hintBtn] : []), resetView));
-      const save = ctx.undoable((m) => { if (!s.anim && !ctx.done) queue(inverse(m), true); });
+      const endBtn = E ? button("Zakończ bieg", "btn-ghost wide", () => endRun("Bieg zakończony")) : null;
+      ctx.panel.append(panelBlock("", ...(hintBtn ? [hintBtn] : []), resetView, ...(endBtn ? [endBtn] : [])));
+      // w biegu bez cofania: historia platformy nie zna granic między kostkami
+      const save = E ? () => {} : ctx.undoable((m) => { if (!s.anim && !ctx.done && !run.pause) queue(inverse(m), true); });
+      if (E) setup(cubeSpec(0).size, cubeSpec(0).mix);
+      else setup(L.size, L.mix);
 
       // --- Rzutowanie ---
       function view(v) {
@@ -159,7 +206,7 @@
 
       // --- Ruchy ---
       function queue(m, undo = false) {
-        if (ctx.done) return;
+        if (ctx.done || run.pause) return;
         s.queue.push({ ...m, undo });
       }
       function startNext() {
@@ -176,7 +223,26 @@
         pushMove(stack, m);
         s.moves += m.undo ? -1 : 1;
         render();
-        if (solved(cube)) win();
+        if (solved(cube)) (E ? cubeDone() : win());
+      }
+      // tryb bez końca: kostka ułożona, dopisz czas, po krótkiej przerwie (zegar stoi) następna
+      function cubeDone() {
+        const bonus = cubeBonus(run.n);
+        run.n++;
+        run.left += bonus;
+        run.pause = 1.6;
+        run.warned = false;
+        s.glow = 1;
+        s.queue = [];
+        if (run.n >= 6) ctx.achieve("seria");
+        if (run.n >= 12) ctx.achieve("maraton");
+        const next = cubeSpec(run.n);
+        ctx.toast(`+${bonus} s. Kostka ${run.n + 1}: ${next.size} × ${next.size}, ${next.mix} ${plural(next.mix, "ruch", "ruchy", "ruchów")}`);
+        render();
+      }
+      function endRun(title) {
+        if (ctx.done) return;
+        ctx.over(run.n, runPoints(run.n), `${title}. Ułożone kostki: ${run.n}.`);
       }
       function win() {
         s.glow = 1;
@@ -188,9 +254,10 @@
         ctx.win(`Ruchy: ${s.moves}.`);
       }
       function hint() {
-        if (ctx.done || s.anim || s.queue.length) return;
+        if (ctx.done || s.anim || s.queue.length || run.pause) return;
         const m = stack[stack.length - 1];
         if (!m) return;
+        if (E) { run.left = Math.max(1, run.left - END.hintCost); render(); }
         s.hinted = true;
         const inv = inverse(m);
         s.hintMove = { ...inv, t: 1.6 };
@@ -252,8 +319,6 @@
       }
 
       // klawisze ścian: U D L R F B (Shift: w drugą stronę)
-      const h = (L.size - 1) / 2;
-      const FACES = { u: [1, h, -1], d: [1, -h, 1], r: [0, h, -1], l: [0, -h, 1], f: [2, h, -1], b: [2, -h, 1] };
       const keys = heldKeys(ctx, (k, e) => {
         const f = FACES[k];
         if (f) queue({ axis: f[0], layer: f[1], dir: f[2] * (e.shiftKey ? -1 : 1) });
@@ -264,6 +329,7 @@
         if (keys.arrowright) s.yaw += dt * 2;
         if (keys.arrowup) s.pitch = Math.max(-1.3, s.pitch - dt * 2);
         if (keys.arrowdown) s.pitch = Math.min(1.3, s.pitch + dt * 2);
+        if (E && !ctx.done) tickRun(dt);
         if (!s.anim && s.queue.length && !ctx.done) startNext();
         if (s.anim) {
           s.anim.t += dt * (s.queue.length ? 9 : 5.5);
@@ -336,14 +402,36 @@
         }
       }
 
+      // zegar biegu; w przerwie między kostkami stoi
+      function tickRun(dt) {
+        if (run.pause) {
+          run.pause = Math.max(0, run.pause - dt);
+          if (!run.pause) { const sp = cubeSpec(run.n); setup(sp.size, sp.mix); s.glow = 0; render(); }
+          return;
+        }
+        const before = Math.ceil(run.left);
+        run.left = Math.max(0, run.left - dt);
+        if (!run.warned && run.left <= 15) { run.warned = true; ctx.toast("Zostało 15 sekund"); Sound.error(); }
+        if (Math.ceil(run.left) !== before) render();
+        if (!run.left) endRun("Koniec czasu");
+      }
+
       function render() {
-        movesEl.set(s.moves);
         // ściany w jednym kolorze
         const faces = {};
         for (const c of cube.cubies) for (const st of c.stickers) (faces[st.n.join(",")] ||= new Set()).add(st.c);
         const done = Object.values(faces).filter((x) => x.size === 1).length;
-        faceEl.set(`${done} z 6`, done / 6);
-        ctx.progress(done / 6);
+        ctx.progress(run.pause ? 1 : done / 6);
+        if (!E) {
+          movesEl.set(s.moves);
+          faceEl.set(`${done} z 6`, done / 6);
+          return;
+        }
+        const t = Math.ceil(run.left);
+        timeEl.set(fmt(t), Math.min(1, t / 180), `ściany: ${done} z 6`);
+        runEl.set("Kostki", run.n);
+        runEl.set("Mieszanie", `${mix} ${plural(mix, "ruch", "ruchy", "ruchów")}`);
+        runEl.set("Za bieg", `${runPoints(run.n)} pkt`);
       }
       render();
     },

@@ -65,6 +65,8 @@ button { font: inherit; color: inherit; }
 .seg button { position: relative; z-index: 1; }
 .seg button:hover { color: var(--text); }
 .seg button[aria-pressed="true"] { color: var(--bg); }
+/* tryb bez końca: wąska czwarta pozycja przełącznika poziomów */
+.seg .seg-inf { flex: 0 0 auto; padding: 0 12px; font-size: 1.125rem; line-height: 1; }
 .seg-thumb {
   position: absolute;
   top: 4px;
@@ -1174,6 +1176,8 @@ body[data-view="game"] footer { display: none; }
   /* przełącznik poziomów mieści się obok przycisków nawet przy długich nazwach („Średni”, „15 × 15”) */
   .game-tools .seg { min-width: 0; }
   .game-tools .seg button { min-width: 0; padding: 0 7px; font-size: 0.875rem; white-space: nowrap; }
+  .game-tools .seg:has(.seg-inf) button { padding: 0 3px; font-size: 0.75rem; }
+  .game-tools .seg:has(.seg-inf) .seg-inf { padding: 0 8px; font-size: 1rem; }
   .game-tools .has-icon { width: var(--btn-h); padding: 0; }
   .game-tools .has-icon .lbl { display: none; }
   /* cyfry w jednym rzędzie, żeby klawiatura nie spychała planszy */

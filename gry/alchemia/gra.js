@@ -138,7 +138,7 @@
     cat: "symulacje",
     big: true,
     name: "Alchemia",
-    author: "Gemini 4",
+    author: "Gemini 4 Argon",
     desc: "Warz eliksiry w pracowni, łącz składniki w kotle, odkrywaj receptury i realizuj zamówienia klientów.",
     color: "#9d4edd",
     ink: "#ffffff",

@@ -1053,7 +1053,17 @@ const Nonogram = (() => {
     "Dzwon": "yellow",
   };
 
-  const api = { PICTURES, COLORS, runs, clues, solveLine, solvable, generate, matches, autoCross, lineBad, rowOf, colOf, last: null };
+  // Tryb bez końca: rozmiar kolejnych obrazków i czas dodawany za każdy (s); na początku ok. 4,4 s na pole, potem coraz mniej.
+  // Szacunek czasu rozwiązania: 5 × 5 ok. 1 min, 10 × 10 ok. 4 min, 15 × 15 ok. 9 min.
+  const ENDLESS_SIZES = [5, 5, 6, 7, 8, 10, 10, 12, 15];
+  const stageSize = (k) => ENDLESS_SIZES[Math.min(k, ENDLESS_SIZES.length - 1)];
+  const stageTime = (k) => Math.round(stageSize(k) ** 2 * Math.max(1.6, 4.4 - 0.25 * k));
+  // Punkty za bieg według liczby rozwiązanych obrazków: 2 (ok. 2 min) jak łatwy poziom, 4 (ok. 5 min) jak średni,
+  // 6 (pierwsze 10 × 10, ok. 12 min) jak trudny, potem coraz szybciej do limitu 150.
+  const RUN_POINTS = [0, 5, 10, 16, 25, 36, 50, 62, 76, 92, 110, 130, 150];
+  const runPoints = (score) => RUN_POINTS[Math.max(0, Math.min(score, RUN_POINTS.length - 1))];
+
+  const api = { PICTURES, COLORS, runs, clues, solveLine, solvable, generate, matches, autoCross, lineBad, rowOf, colOf, stageSize, stageTime, runPoints, last: null };
   return api;
 })();
 
@@ -1067,12 +1077,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     { key: "medium", name: "10 × 10", points: 25, size: 10 },
     { key: "hard", name: "15 × 15", points: 50, size: 15 },
   ],
+  endless: { unit: ["obrazek", "obrazki", "obrazków"] },
   rules: [
     "Liczby przy wierszu i kolumnie to długości kolejnych bloków zamalowanych pól, w tej kolejności. Między blokami jest co najmniej jedno puste pole.",
     "Każdy obrazek da się odkryć linia po linii, bez zgadywania.",
     "Przeciągaj, żeby malować całą linię; pędzel trzyma się wiersza albo kolumny, a dymek pokazuje długość. Prawy przycisk stawia krzyżyk.",
     "Gdy linia zgadza się z liczbami, jej puste pola same dostają jasne krzyżyki. Można to wyłączyć w panelu.",
     "Klawiatura: strzałki przesuwają kursor, spacja zamalowuje, X stawia krzyżyk.",
+    "Tryb ∞: obrazki na czas, od 5 × 5 do 15 × 15; każdy rozwiązany dodaje czas, a bieg trwa, dopóki zegar nie dojdzie do zera.",
   ],
   achievements: [
     { id: "bez-cofania", name: "Bez gumki", desc: "Rozwiąż dowolną planszę bez cofania ruchu.", points: 10 },
@@ -1081,10 +1093,11 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     { id: "kolekcjoner", name: "Mały album", desc: "Odkryj w albumie wszystkie obrazki 5 × 5.", points: 25 },
     { id: "mistrz", name: "Mistrz obrazków", desc: "Rozwiąż trudny poziom w mniej niż 12 min, bez cofania.", points: 50 },
     { id: "album", name: "Pełny album", desc: "Odkryj w albumie wszystkie obrazki ze wszystkich rozmiarów.", points: 50 },
+    { id: "bieg-6", name: "Długi bieg", desc: "W trybie bez końca rozwiąż 6 obrazków w jednym biegu.", points: 25 },
+    { id: "bieg-10", name: "Maraton", desc: "W trybie bez końca rozwiąż 10 obrazków w jednym biegu.", points: 50 },
   ],
   mount(board, ctx) {
-    const { size: n, rows, cols, name } = Nonogram.generate(ctx.level.size);
-    const s = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 krzyżyk, 3 krzyżyk automatyczny
+    const endless = !!ctx.level.endless;
     const store = (k, v) => {
       try {
         if (v === undefined) return localStorage.getItem(`logigra.obrazki.${k}`);
@@ -1098,55 +1111,14 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     ctx.onStop(() => timers.forEach(clearTimeout));
     let autoX = store("autox") !== "off";
     let tool = 1, drag = null, cursor = 0, hot = -1, finished = false, manualX = false;
-    const rowText = rows.map((cl) => (cl.length ? cl : [0]));
-    const colText = cols.map((cl) => (cl.length ? cl : [0]));
-    const cw = Math.max(...rowText.map((cl) => cl.length)) * 0.62 + 0.5;
-    const ch = Math.max(...colText.map((cl) => cl.length)) * 0.62 + 0.4;
-    const need = rows.flat().reduce((a, b) => a + b, 0);
-
-    board.classList.add("ng", "ng-in");
-    later(() => board.classList.remove("ng-in"), still() ? 0 : 1400);
-    board.style.setProperty("--n", n);
-    board.style.setProperty("--cw", cw);
-    board.style.setProperty("--ch", ch);
-    board.style.setProperty("--cols", n + cw);
-    board.style.setProperty("--rows", n + ch);
-    board.style.setProperty("--pc", `var(--${Nonogram.COLORS[name] || "pink"})`);
-    board.tabIndex = 0;
-    board.setAttribute("aria-label", "Plansza. Strzałki przesuwają kursor, spacja zamalowuje, X stawia krzyżyk.");
-
-    board.append(el("div", "ng-corner"));
-    const colClues = colText.map((cl, c) => {
-      const d = el("div", `ng-clue col${c % 2 ? " alt" : ""}`);
-      cl.forEach((v) => d.append(el("span", "", v)));
-      board.append(d);
-      return d;
-    });
-    const rowClues = [], cells = [];
-    for (let r = 0; r < n; r++) {
-      const d = el("div", `ng-clue row${r % 2 ? " alt" : ""}`);
-      rowText[r].forEach((v) => d.append(el("span", "", v)));
-      board.append(d);
-      rowClues.push(d);
-      for (let c = 0; c < n; c++) {
-        const cell = el("div", "cell ng-cell");
-        cell.dataset.i = r * n + c;
-        cell.style.setProperty("--k", r + c);
-        cell.style.setProperty("--x", c);
-        cell.style.setProperty("--y", r);
-        if (c % 5 === 4 && c < n - 1) cell.classList.add("edge-r");
-        if (r % 5 === 4 && r < n - 1) cell.classList.add("edge-b");
-        board.append(cell);
-        cells.push(cell);
-      }
-    }
-    roundCorners(cells, n);
-    // dymek z długością przeciąganego odcinka
-    const bubble = el("div", "ng-count");
-    board.append(bubble);
+    // stan bieżącego obrazka; w trybie bez końca ustawiany od nowa dla każdego obrazka (setup)
+    let n, rows, cols, name, s, need, rowClues, colClues, cells, bubble, okBefore, okAtStart;
+    let puzzle = 0, score = 0, left = 0, budget = 1, warned = false;
 
     // --- panel ---
-    const stats = statsBlock(ctx, "Postęp", ["Linie", "Pola"]);
+    const clock = endless ? statBlock(ctx, "Czas", { meter: true }) : null;
+    const stats = endless ? statsBlock(ctx, "Bieg", ["Obrazki", "Za bieg", "Linie", "Pola"]) : statsBlock(ctx, "Postęp", ["Linie", "Pola"]);
+    if (endless) stats.block.append(button("Zakończ bieg", "btn-ghost wide", () => end("Bieg zakończony przed czasem.")));
     const toolSeg = segmented("Narzędzie", ["Zamaluj", "Krzyżyk"], (k) => { tool = k + 1; toolSeg.set(k); Sound.tap(); });
     toolSeg.set(0);
     const autoSeg = segmented("Krzyżyki w ułożonych liniach", ["Same", "Ręcznie"], (k) => {
@@ -1154,7 +1126,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       autoSeg.set(k);
       store("autox", autoX ? "on" : "off");
       if (finished) return;
-      save(s.slice());
+      snap();
       if (autoX) commit(cursor, true);
       else { s.forEach((v, i) => v === 3 && (s[i] = 0)); render(); }
     });
@@ -1167,7 +1139,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     const readAlbum = () => { try { return JSON.parse(store("album") || "{}"); } catch { return {}; } };
     function renderAlbum(fresh) {
       const album = readAlbum(), set = Nonogram.PICTURES[n];
-      if (!set) { albumNote.textContent = "W tym rozmiarze obrazki są losowe."; return; }
+      if (!set) { albumEl.replaceChildren(); albumNote.textContent = "W tym rozmiarze obrazki są losowe."; return; }
       const got = album[n] || [];
       albumEl.replaceChildren(...Object.entries(set).map(([nm, pic]) => {
         const t = el("span", `ng-thumb${got.includes(nm) ? "" : " locked"}${fresh === nm ? " fresh" : ""}`);
@@ -1185,9 +1157,15 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       }));
       albumNote.textContent = `Odkryte: ${got.length} z ${Object.keys(set).length}.`;
     }
-    renderAlbum();
 
-    const save = ctx.undoable((snap) => { snap.forEach((v, i) => (s[i] = v)); render(); okBefore = lineOk(); });
+    // migawka pamięta numer obrazka: cofnięcie nie przenosi stanu do następnego obrazka
+    const save = ctx.undoable((sn) => {
+      if (sn.p !== puzzle) return;
+      sn.s.forEach((v, i) => (s[i] = v));
+      render();
+      okBefore = lineOk();
+    });
+    const snap = () => save({ p: puzzle, s: s.slice() });
 
     const eq = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
     const rowLine = (r) => s.slice(r * n, r * n + n);
@@ -1198,8 +1176,6 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       ...rows.map((cl, r) => eq(Nonogram.runs(filled(rowLine(r))), cl)),
       ...cols.map((cl, c) => eq(Nonogram.runs(filled(colLine(c))), cl)),
     ];
-    let okBefore = lineOk();
-    const okAtStart = okBefore.filter(Boolean).length;
     const lines = (from) => {
       const ok = lineOk();
       const fresh = ok.map((v, k) => v && !okBefore[k] && (k < n ? rows[k].length : cols[k - n].length));
@@ -1250,7 +1226,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
     }
     function start(i, want) {
       const v = s[i];
-      save(s.slice());
+      snap();
       // krzyżyk automatyczny pod krzyżykiem zostaje krzyżykiem gracza
       const paint = want === 1 ? (v === 1 ? 0 : 1) : v === 2 ? 0 : 2;
       drag = { start: i, end: i, paint, erase: paint === 0 ? v : null, axis: null };
@@ -1316,8 +1292,10 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       showCount();
       check();
     };
+    // rozmiar czytany przy każdym klawiszu, bo w trybie bez końca plansza rośnie
+    const side = { valueOf: () => n };
     cellKeys(ctx, {
-      cols: n, rows: n, scope: board,
+      cols: side, rows: side, scope: board,
       get: () => cursor, set: (i) => { cursor = i; render(); },
       keys: { " ": keyMark(1), enter: keyMark(1), x: keyMark(2) },
     });
@@ -1344,7 +1322,48 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       hot = -1;
       render();
       board.classList.add("reveal");
+      if (endless) {
+        // zegar stoi w czasie odsłonięcia; potem następny obrazek i dodany czas
+        score++;
+        if (score >= 6) ctx.achieve("bieg-6");
+        if (score >= 10) ctx.achieve("bieg-10");
+        Sound.line();
+        tick();
+        later(() => {
+          if (ctx.done) return;
+          const add = Nonogram.stageTime(score), sz = Nonogram.stageSize(score);
+          left += add;
+          budget = Math.max(left, add);
+          warned = false;
+          setup(sz);
+          ctx.toast(`Obrazek ${score + 1}: ${sz} × ${sz}, +${fmt(add)}`);
+        }, still() ? 300 : 1500);
+        return;
+      }
       later(() => ctx.win(name ? `Wyszedł obrazek: ${name.toLowerCase()}.` : undefined), still() ? 0 : 1300);
+    }
+
+    // koniec biegu: wynik to liczba rozwiązanych obrazków
+    function end(msg) {
+      if (ctx.done) return;
+      finished = true;
+      ctx.over(score, Nonogram.runPoints(score), `${msg} Rozwiązane obrazki: ${score}.`);
+    }
+    function tick() {
+      clock.set(fmt(Math.max(0, left)), Math.max(0, Math.min(1, left / budget)), `Obrazek ${score + 1} · ${n} × ${n}`);
+      stats.set("Obrazki", score);
+      stats.set("Za bieg", `${Nonogram.runPoints(score)} pkt`);
+    }
+    if (endless) {
+      left = budget = Nonogram.stageTime(0);
+      const iv = setInterval(() => {
+        if (ctx.done || finished) return;
+        left--;
+        if (left === 30 && !warned) { warned = true; ctx.toast("Zostało 30 s"); }
+        tick();
+        if (left <= 0) end("Skończył się czas.");
+      }, 1000);
+      ctx.onStop(() => clearInterval(iv));
     }
 
     function render() {
@@ -1378,7 +1397,75 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "obra
       stats.set("Linie", `${done} z ${2 * n}`);
       stats.set("Pola", `${count} z ${need}`);
     }
-    if (autoX) commit(0, true);
-    else render();
+
+    // nowy obrazek danego rozmiaru: plansza, wskazówki i pola od nowa
+    function setup(size) {
+      ({ size: n, rows, cols, name } = Nonogram.generate(size));
+      s = new Array(n * n).fill(0); // 0 puste, 1 zamalowane, 2 krzyżyk, 3 krzyżyk automatyczny
+      puzzle++;
+      ctx.clearUndo();
+      finished = false;
+      manualX = false;
+      drag = null;
+      cursor = 0;
+      hot = -1;
+      const rowText = rows.map((cl) => (cl.length ? cl : [0]));
+      const colText = cols.map((cl) => (cl.length ? cl : [0]));
+      const cw = Math.max(...rowText.map((cl) => cl.length)) * 0.62 + 0.5;
+      const ch = Math.max(...colText.map((cl) => cl.length)) * 0.62 + 0.4;
+      need = rows.flat().reduce((a, b) => a + b, 0);
+
+      board.replaceChildren();
+      board.classList.remove("reveal");
+      board.classList.add("ng", "ng-in");
+      later(() => board.classList.remove("ng-in"), still() ? 0 : 1400);
+      board.style.setProperty("--n", n);
+      board.style.setProperty("--cw", cw);
+      board.style.setProperty("--ch", ch);
+      board.style.setProperty("--cols", n + cw);
+      board.style.setProperty("--rows", n + ch);
+      board.style.setProperty("--pc", `var(--${Nonogram.COLORS[name] || "pink"})`);
+      board.tabIndex = 0;
+      board.setAttribute("aria-label", "Plansza. Strzałki przesuwają kursor, spacja zamalowuje, X stawia krzyżyk.");
+
+      board.append(el("div", "ng-corner"));
+      colClues = colText.map((cl, c) => {
+        const d = el("div", `ng-clue col${c % 2 ? " alt" : ""}`);
+        cl.forEach((v) => d.append(el("span", "", v)));
+        board.append(d);
+        return d;
+      });
+      rowClues = [];
+      cells = [];
+      for (let r = 0; r < n; r++) {
+        const d = el("div", `ng-clue row${r % 2 ? " alt" : ""}`);
+        rowText[r].forEach((v) => d.append(el("span", "", v)));
+        board.append(d);
+        rowClues.push(d);
+        for (let c = 0; c < n; c++) {
+          const cell = el("div", "cell ng-cell");
+          cell.dataset.i = r * n + c;
+          cell.style.setProperty("--k", r + c);
+          cell.style.setProperty("--x", c);
+          cell.style.setProperty("--y", r);
+          if (c % 5 === 4 && c < n - 1) cell.classList.add("edge-r");
+          if (r % 5 === 4 && r < n - 1) cell.classList.add("edge-b");
+          board.append(cell);
+          cells.push(cell);
+        }
+      }
+      roundCorners(cells, n);
+      // dymek z długością przeciąganego odcinka
+      bubble = el("div", "ng-count");
+      board.append(bubble);
+      renderAlbum();
+      okBefore = lineOk();
+      okAtStart = okBefore.filter(Boolean).length;
+      ctx.progress(0);
+      if (endless) tick();
+      if (autoX) commit(0, true);
+      else render();
+    }
+    setup(endless ? Nonogram.stageSize(0) : ctx.level.size);
   },
 });

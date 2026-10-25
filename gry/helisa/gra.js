@@ -17,42 +17,79 @@
     return best;
   }
 
-  // Pierścienie od góry. Czerwone pola nigdy nie leżą pod szczeliną poprzedniego (nieruchomego) pierścienia,
+  // Jeden pierścień pod poprzednim. Czerwone pola nigdy nie leżą pod szczeliną poprzedniego (nieruchomego) pierścienia,
   // więc piłka spadająca prosto w dół ląduje bezpiecznie. Najwyżej dwa czerwone pola obok siebie.
-  function generate({ rings, gap, red, extra, chute, spin }) {
-    const out = [];
-    for (let j = 0; j < rings; j++) {
-      const prev = out[j - 1];
-      const segs = new Array(N).fill(SOLID);
-      const gw = gap[0] + rnd(gap[1] - gap[0] + 1);
-      let start = rnd(N);
-      // „zjeżdżalnia”: szczelina zachodzi na poprzednią, można spaść przez kilka pierścieni naraz
-      if (prev && Math.random() < chute) {
-        const holes = prev.segs.map((t, k) => (t === GAP ? k : -1)).filter((k) => k >= 0);
-        start = mod(pick(holes) - rnd(gw), N);
-      }
-      for (let k = 0; k < gw; k++) segs[(start + k) % N] = GAP;
-      if (Math.random() < extra) { const k = rnd(N); if (segs[(k + 1) % N] && segs[(k + N - 1) % N]) segs[k] = GAP; }
-      const sp = j >= 4 && Math.random() < spin ? (rnd(2) ? 1 : -1) * (0.35 + Math.random() * 0.45) : 0;
-      const forb = segs.map((_, k) => !!prev && !prev.spin && !sp && prev.segs[k] === GAP);
-      let reds = j < 2 ? 0 : red[0] + rnd(red[1] - red[0] + 1) - (sp ? 1 : 0);
-      for (let tries = 0; reds > 0 && tries < 60; tries++) {
-        const k = rnd(N);
-        if (segs[k] !== SOLID || forb[k]) continue;
-        segs[k] = RED;
-        if (maxRun(segs) > 2 || segs.filter((t) => t === SOLID).length < 3) segs[k] = SOLID;
-        else reds--;
-      }
-      out.push({ segs, off: 0, spin: sp });
+  function makeRing(prev, j, { gap, red, extra, chute, spin, spd = 1 }) {
+    const segs = new Array(N).fill(SOLID);
+    const gw = gap[0] + rnd(gap[1] - gap[0] + 1);
+    let start = rnd(N);
+    // „zjeżdżalnia”: szczelina zachodzi na poprzednią, można spaść przez kilka pierścieni naraz
+    if (prev && Math.random() < chute) {
+      const holes = prev.segs.map((t, k) => (t === GAP ? k : -1)).filter((k) => k >= 0);
+      start = mod(pick(holes) - rnd(gw), N);
     }
+    for (let k = 0; k < gw; k++) segs[(start + k) % N] = GAP;
+    if (Math.random() < extra) { const k = rnd(N); if (segs[(k + 1) % N] && segs[(k + N - 1) % N]) segs[k] = GAP; }
+    const sp = j >= 4 && Math.random() < spin ? (rnd(2) ? 1 : -1) * (0.35 + Math.random() * 0.45) * spd : 0;
+    const forb = segs.map((_, k) => !!prev && !prev.spin && !sp && prev.segs[k] === GAP);
+    let reds = j < 2 ? 0 : red[0] + rnd(red[1] - red[0] + 1) - (sp ? 1 : 0);
+    for (let tries = 0; reds > 0 && tries < 60; tries++) {
+      const k = rnd(N);
+      if (segs[k] !== SOLID || forb[k]) continue;
+      segs[k] = RED;
+      if (maxRun(segs) > 2 || segs.filter((t) => t === SOLID).length < 3) segs[k] = SOLID;
+      else reds--;
+    }
+    return { segs, off: 0, spin: sp };
+  }
+
+  // Pierścienie od góry i złote dno.
+  function generate(L) {
+    const out = [];
+    for (let j = 0; j < L.rings; j++) out.push(makeRing(out[j - 1], j, L));
     out.push({ segs: new Array(N).fill(BASE), off: 0, spin: 0 });
     return out;
+  }
+
+  // --- Tryb bez końca ---
+  // Trudność według głębokości: łatwy na starcie, średni około 40. pierścienia, trudny około 100., potem jeszcze trochę ostrzej.
+  const STAGE = 20;
+  const TIERS = [
+    [0, { gap: [3, 4], red: [0, 1], extra: 0.2, chute: 0.3, spin: 0, spd: 1 }],
+    [40, { gap: [2, 3], red: [1, 3], extra: 0.15, chute: 0.25, spin: 0.15, spd: 1 }],
+    [100, { gap: [2, 2], red: [2, 4], extra: 0.1, chute: 0.2, spin: 0.35, spd: 1 }],
+    [200, { gap: [2, 2], red: [3, 5], extra: 0.05, chute: 0.15, spin: 0.5, spd: 1.35 }],
+  ];
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function endlessParams(j) {
+    let i = 0;
+    while (i < TIERS.length - 2 && j >= TIERS[i + 1][0]) i++;
+    const [d0, a] = TIERS[i], [d1, b] = TIERS[i + 1];
+    const t = Math.max(0, Math.min(1, (j - d0) / (d1 - d0)));
+    const f = (k, i) => (i === undefined ? lerp(a[k], b[k], t) : lerp(a[k][i], b[k][i], t));
+    return { gapF: [f("gap", 0), f("gap", 1)], redF: [f("red", 0), f("red", 1)], extra: f("extra"), chute: f("chute"), spin: f("spin"), spd: f("spd") };
+  }
+  // Ułamek zaokrąglony losowo w górę albo w dół (średnio daje dokładnie ułamek).
+  const iround = (x) => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0);
+  // Pierścień trybu bez końca; pierwszy pierścień każdego etapu to oddech: szeroka szczelina, bez czerwieni i obrotu.
+  function endlessRing(prev, j) {
+    if (j > 0 && j % STAGE === 0) return makeRing(prev, 0, { gap: [4, 4], red: [0, 0], extra: 0, chute: 0, spin: 0 });
+    const p = endlessParams(j);
+    const g0 = iround(p.gapF[0]), r0 = iround(p.redF[0]);
+    return makeRing(prev, j, { ...p, gap: [g0, Math.max(g0, iround(p.gapF[1]))], red: [r0, Math.max(r0, iround(p.redF[1]))] });
+  }
+  // Punkty profilu za bieg: 18 pierścieni (długość łatwego poziomu) = 10, 45 = 25, 90 = 50, dalej coraz szybciej do limitu 150.
+  function endlessPoints(r) {
+    if (r < 18) return Math.min(5, Math.round((r * 5) / 17));
+    if (r <= 90) return Math.round(10 + ((r - 18) * 5) / 9);
+    const x = r - 90;
+    return Math.min(150, Math.round(50 + x * 0.6 + x * x * 0.003));
   }
 
   // Pole pierścienia pod piłką (piłka stoi na kącie 0, z przodu wieży).
   const segAt = (ring, rot) => Math.floor(mod(-(rot + ring.off), TAU) / SEG) % N;
 
-  if (typeof module !== "undefined") module.exports = { generate, segAt, maxRun, N, SEG, GAP, SOLID, RED, BASE };
+  if (typeof module !== "undefined") module.exports = { generate, makeRing, endlessParams, endlessRing, endlessPoints, STAGE, segAt, maxRun, N, SEG, GAP, SOLID, RED, BASE };
 
   // --- Kolory: płótno dostaje z motywu napisy #rrggbb, mieszamy je w liczbach ---
   const rgb = (h) => {
@@ -81,12 +118,14 @@
       { key: "medium", name: "Średni", points: 25, rings: 28, gap: [2, 3], red: [1, 3], extra: 0.15, chute: 0.25, spin: 0.15, lives: 3 },
       { key: "hard", name: "Trudny", points: 50, rings: 40, gap: [2, 2], red: [2, 4], extra: 0.1, chute: 0.2, spin: 0.35, lives: 2 },
     ],
+    endless: { unit: ["pierścień", "pierścienie", "pierścieni"], lives: 3 },
     rules: [
       "Przeciągaj planszę w bok albo trzymaj strzałki (A i D), żeby obracać wieżę. Piłka skacze sama.",
       "Ustaw szczelinę pod piłką, a spadnie piętro niżej. Pierścień, przez który przeleci, rozpada się.",
       "Czerwone pola w paski zabierają życie. Bez żyć partia się kończy.",
       "Po trzech pierścieniach bez odbicia piłka płonie i rozbija następny pierścień, nawet czerwony.",
       "Wygrywasz, gdy piłka dotrze na złote dno. Na trudnym poziomie część pierścieni sama się obraca.",
+      "W trybie ∞ wieża nie ma dna i trudnieje z głębokością; co 20 pierścieni nowy etap oddaje jedno życie.",
     ],
     achievements: [
       { id: "ognista", name: "Ognista kula", desc: "Spadnij przez 3 pierścienie bez odbicia.", points: 10 },
@@ -94,6 +133,8 @@
       { id: "burzyciel", name: "Burzyciel", desc: "Rozbij ognistą kulą 4 pierścienie w jednej partii.", points: 25 },
       { id: "bez-szwanku", name: "Bez szwanku", desc: "Ukończ średni lub trudny poziom bez utraty życia.", points: 25 },
       { id: "lekko", name: "Lekkim krokiem", desc: "Ukończ trudny poziom, odbijając się mniej niż 30 razy.", points: 50 },
+      { id: "nurek", name: "Nurek", desc: "W trybie bez końca pokonaj 60 pierścieni.", points: 25 },
+      { id: "otchlan", name: "Otchłań", desc: "W trybie bez końca pokonaj 150 pierścieni.", points: 50 },
     ],
 
     mount(board, ctx) {
@@ -101,8 +142,12 @@
       const W = 90, H = 120;
       const cv = canvasGame(board, ctx, W, H, { max: 72, cls: "hx-board" });
       const { g, theme } = cv;
-      const rings = generate(L);
-      const n = L.rings; // rings[n] to złote dno
+      const E = !!L.endless;
+      // w trybie bez końca wieża rośnie w dół w miarę spadania i nie ma dna
+      const rings = E ? [] : generate(L);
+      const n = E ? Infinity : L.rings; // rings[n] to złote dno
+      const grow = (upTo) => { while (E && rings.length <= upTo) { const r = endlessRing(rings.at(-1), rings.length); r.splats = []; rings.push(r); } };
+      grow(16);
 
       // wymiary świata
       const S = 3, T = 0.6, R = 4.3, RP = 1.2, BR = 0.45, BX = 2.75, GRAV = 36, JUMP = 12.4;
@@ -120,8 +165,8 @@
       };
       for (const r of rings) r.splats = [];
 
-      const ringEl = statBlock(ctx, "Pierścienie", { meter: true });
-      const statEl = statsBlock(ctx, "Wynik", ["Punkty", "Odbicia"]);
+      const ringEl = statBlock(ctx, E ? "Głębokość" : "Pierścienie", { meter: true });
+      const statEl = statsBlock(ctx, "Wynik", E ? ["Etap", "Odbicia", "Za bieg"] : ["Punkty", "Odbicia"]);
       const lifeEl = pipsBlock(ctx, "Życia", L.lives, { icon: "heart" });
 
       // sterowanie: przeciąganie (mysz i palec) oraz trzymane klawisze
@@ -197,6 +242,7 @@
           render();
           if (s.lives <= 0) {
             s.y = top(j) + BR;
+            if (E) return endRun();
             return ctx.lose("Czerwone pole", `Pokonano ${s.passed} z ${plural(n, "pierścień", "pierścienie", "pierścieni")}.`);
           }
         }
@@ -228,7 +274,23 @@
         if (!smashed) Sound.place(Math.min(9, s.fall + 1));
         if (s.fall >= 3 && !s.fire && !smashed) { s.fire = true; ctx.achieve("ognista"); ctx.toast("Ognista kula"); }
         if (s.fall >= 6) ctx.achieve("kometa");
+        if (E) {
+          grow(s.passed + 16);
+          if (s.passed >= 60) ctx.achieve("nurek");
+          if (s.passed >= 150) ctx.achieve("otchlan");
+          // nowy etap: oddech i odzyskane życie
+          if (s.passed % STAGE === 0) {
+            const heal = s.lives < L.lives;
+            if (heal) s.lives++;
+            ctx.toast(`Etap ${s.passed / STAGE + 1}${heal ? ", odzyskane życie" : ""}`);
+          }
+        }
         render();
+      }
+
+      function endRun() {
+        const pts = endlessPoints(s.passed);
+        ctx.over(s.passed, pts, `Pokonano ${plural(s.passed, "pierścień", "pierścienie", "pierścieni")}, etap ${Math.floor(s.passed / STAGE) + 1}. Odbicia: ${s.bounces}.`);
       }
 
       function finish() {
@@ -421,8 +483,20 @@
       }
 
       function render() {
+        const note = s.fire ? "Ognista kula" : s.fall > 1 ? `Seria: ${s.fall}` : "";
+        if (E) {
+          // pasek: postęp do następnego etapu
+          const f = (s.passed % STAGE) / STAGE;
+          ringEl.set(String(s.passed), f, note || `Do etapu: ${STAGE - (s.passed % STAGE)}`);
+          statEl.set("Etap", Math.floor(s.passed / STAGE) + 1);
+          statEl.set("Odbicia", s.bounces);
+          statEl.set("Za bieg", `${endlessPoints(s.passed)} pkt`);
+          lifeEl.set(s.lives);
+          ctx.progress(f);
+          return;
+        }
         const f = s.passed / n;
-        ringEl.set(`${s.passed} z ${n}`, f, s.fire ? "Ognista kula" : s.fall > 1 ? `Seria: ${s.fall}` : "");
+        ringEl.set(`${s.passed} z ${n}`, f, note);
         statEl.set("Punkty", s.score);
         statEl.set("Odbicia", s.bounces);
         lifeEl.set(s.lives);

@@ -10,6 +10,7 @@
 2. Spadnięcie z krawędzi kończy próbę i wraca bryłę na start. Wygrywasz, gdy bryła stanie pionowo nad otworem na każdym etapie.
 3. Kruche kafelki nie wytrzymają bryły stojącej pionowo, przełączniki wysuwają mosty.
 4. Poziomy różnią się liczbą i trudnością etapów; trudny ma limit prób.
+5. Tryb ∞: kolejne plansze coraz dłuższe, z kruchymi kafelkami i mostami; zapas upadków (start 8, najwyżej 10) rośnie o 2 za planszę, od 9. planszy o 1. Bieg kończy pusty zapas albo przycisk „Zakończ bieg”, wynik to liczba ukończonych plansz.
 
 ## Czym różni się od podobnych gier
 Magazynier pcha skrzynie; tu przetacza się jedną bryłę o dwóch stanach (pionowo, poziomo) i trzeba trafić w otwór.

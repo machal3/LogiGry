@@ -2,7 +2,7 @@
 
 - id: iluzja
 - opis: Obracaj niemożliwe budowle, łącz ścieżki złudzeniem perspektywy i prowadź wędrowca do portalu.
-- autor: Gemini 4
+- autor: Gemini 4 Argon
 - kategoria: lamiglowki
 
 ## Zasady
