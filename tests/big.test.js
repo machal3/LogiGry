@@ -103,6 +103,25 @@ test("metro: odcinki pod kątem 45° i przystanki przed pociągiem", () => {
   assert.deepEqual(M.ahead([1, 2, 3, 4], 2, -1), [2, 1]);
 });
 
+test("metro: układ sieci omija stacje, łagodzi skręty i rozdziela linie", () => {
+  const M = g("metro");
+  // obcy przystanek leży na trasie "najpierw prosto", więc odcinek zaczyna się skosem
+  const st = [{ id: 1, x: 0, y: 0 }, { id: 2, x: 30, y: 10 }, { id: 3, x: 20, y: 0 }];
+  assert.equal(M.layout(st, [{ stops: [1, 2] }]).get("1-2"), 1);
+  // wjazd skosem i wyjazd w dół to skręt o 45°, lepszy niż o 90°
+  const st2 = [{ id: 1, x: 0, y: 0 }, { id: 2, x: 30, y: 10 }, { id: 3, x: 30, y: 40 }];
+  assert.equal(M.layout(st2, [{ stops: [1, 2, 3] }]).get("1-2"), 0);
+  // dwie linie wychodzące z tej samej stacji nie jadą po sobie
+  const st3 = [{ id: 1, x: 0, y: 0 }, { id: 2, x: 40, y: 10 }, { id: 3, x: 40, y: 25 }];
+  const m = M.layout(st3, [{ stops: [1, 2] }, { stops: [1, 3] }]);
+  const out = (b) => M.route(st3[0], b, m.get("1-" + b.id))[1];
+  const a = out(st3[1]), b = out(st3[2]);
+  assert.ok(Math.abs(Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x)) > 0.1);
+  // linie obok siebie: przesunięte równolegle, łuk wewnętrzny ciaśniejszy
+  const inner = M.bend({ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 10 }, 2), outer = M.bend({ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 10 }, -2);
+  assert.deepEqual([inner[0].y, outer[0].y], [2, -2]);
+});
+
 test("farma: podlana roślina rośnie, sucha nie", () => {
   const F = g("farma");
   const s = { plots: [{ crop: "radish", age: 0, water: true }, { crop: "radish", age: 0, water: false }], items: [null, null], stock: {}, prices: {}, chickens: 0, feed: 0 };

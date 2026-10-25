@@ -22,27 +22,137 @@ const Metro = (() => {
   }
   // czy odcinek przecina rzekę (pionowy pas między rx0 a rx1)
   const crosses = (a, b, rx0, rx1) => (a.x < rx0 && b.x > rx1) || (b.x < rx0 && a.x > rx1) || (a.x >= rx0 && a.x <= rx1) !== (b.x >= rx0 && b.x <= rx1);
-  // odcinek jak na schemacie metra: najpierw prosto, potem pod kątem 45°
-  function route(a, b) {
-    const dx = b.x - a.x, dy = b.y - a.y, ax = Math.abs(dx), ay = Math.abs(dy);
-    const m = ax > ay ? { x: a.x + Math.sign(dx) * (ax - ay), y: a.y } : { x: a.x, y: a.y + Math.sign(dy) * (ay - ax) };
+  // odcinek jak na schemacie metra: mode 0 najpierw prosto, potem pod kątem 45°; mode 1 najpierw skos, potem prosto
+  function route(a, b, mode = 0) {
+    const dx = b.x - a.x, dy = b.y - a.y, ax = Math.abs(dx), ay = Math.abs(dy), d = Math.abs(ax - ay);
+    const sx = ax > ay ? Math.sign(dx) * d : 0, sy = ax > ay ? 0 : Math.sign(dy) * d;
+    const m = mode ? { x: b.x - sx, y: b.y - sy } : { x: a.x + sx, y: a.y + sy };
     return [a, m, b];
   }
-  // ta sama trasa jako łamana z łagodnym łukiem w miejscu załamania
-  function curve(a, b, radius = 5) {
-    const [, m] = route(a, b);
-    const l1 = Math.hypot(m.x - a.x, m.y - a.y), l2 = Math.hypot(b.x - m.x, b.y - m.y);
-    if (l1 < 0.01 || l2 < 0.01) return [a, b];
-    const r = Math.min(radius, l1 / 2, l2 / 2);
-    const p = { x: m.x - ((m.x - a.x) / l1) * r, y: m.y - ((m.y - a.y) / l1) * r };
-    const q = { x: m.x + ((b.x - m.x) / l2) * r, y: m.y + ((b.y - m.y) / l2) * r };
-    const out = [a, p];
-    for (let k = 1; k < 6; k++) {
-      const u = k / 6, v = 1 - u;
-      out.push({ x: v * v * p.x + 2 * u * v * m.x + u * u * q.x, y: v * v * p.y + 2 * u * v * m.y + u * u * q.y });
+  const unit = (x, y) => { const L = Math.hypot(x, y) || 1; return { x: x / L, y: y / L }; };
+  // łamana p–m–q przesunięta o `off` w bok (linie biegnące obok siebie), z łukiem w miejscu załamania;
+  // łuki linii obok siebie są współśrodkowe, więc wiązka linii skręca równo
+  function bend(p, m, q, off = 0, radius = 6) {
+    const l1 = Math.hypot(m.x - p.x, m.y - p.y), l2 = Math.hypot(q.x - m.x, q.y - m.y);
+    if (l1 < 0.01 || l2 < 0.01) {
+      const d = unit(q.x - p.x, q.y - p.y);
+      return [{ x: p.x - d.y * off, y: p.y + d.x * off }, { x: q.x - d.y * off, y: q.y + d.x * off }];
     }
-    out.push(q, b);
+    const d1 = unit(m.x - p.x, m.y - p.y), d2 = unit(q.x - m.x, q.y - m.y);
+    const n1 = { x: -d1.y, y: d1.x }, n2 = { x: -d2.y, y: d2.x }, k = off / (1 + n1.x * n2.x + n1.y * n2.y);
+    const a = { x: p.x + n1.x * off, y: p.y + n1.y * off }, b = { x: q.x + n2.x * off, y: q.y + n2.y * off };
+    const c = { x: m.x + (n1.x + n2.x) * k, y: m.y + (n1.y + n2.y) * k };
+    const side = Math.sign(n1.x * d2.x + n1.y * d2.y);
+    const L1 = Math.hypot(c.x - a.x, c.y - a.y), L2 = Math.hypot(b.x - c.x, b.y - c.y);
+    const r = Math.max(0.5, Math.min(radius - off * side, L1 * 0.5, L2 * 0.5));
+    const u = { x: c.x - d1.x * r, y: c.y - d1.y * r }, v = { x: c.x + d2.x * r, y: c.y + d2.y * r };
+    const out = [a, u];
+    for (let i = 1; i < 8; i++) {
+      const t = i / 8, w = 1 - t;
+      out.push({ x: w * w * u.x + 2 * t * w * c.x + t * t * v.x, y: w * w * u.y + 2 * t * w * c.y + t * t * v.y });
+    }
+    out.push(v, b);
     return out;
+  }
+  // ta sama trasa jako łamana z łukiem (od a do b)
+  const curve = (a, b, mode = 0) => { const [p, m, q] = route(a, b, mode); return bend(p, m, q); };
+
+  // --- układ sieci: kształt każdego odcinka wybrany tak, żeby całość była czytelna ---
+  const key = (a, b) => Math.min(a, b) + "-" + Math.max(a, b);
+  const pairsOf = (l) => {
+    const out = [];
+    for (let k = 1; k < l.stops.length; k++) out.push([l.stops[k - 1], l.stops[k]]);
+    if (l.loop && l.stops.length > 2) out.push([l.stops[l.stops.length - 1], l.stops[0]]);
+    return out;
+  };
+  // odcinek zawsze liczony od stacji o mniejszym id, więc wszystkie linie na tej samej parze stacji mają ten sam kształt
+  const canon = (a, b) => (a.id < b.id ? [a, b] : [b, a]);
+  function distSeg(o, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1;
+    const u = Math.max(0, Math.min(1, ((o.x - a.x) * dx + (o.y - a.y) * dy) / L));
+    return Math.hypot(a.x + dx * u - o.x, a.y + dy * u - o.y);
+  }
+  const cross = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  // właściwe przecięcie dwóch odcinków (bez dotykania końcami)
+  function hits(a, b, c, d) {
+    const d1 = cross(c, d, a), d2 = cross(c, d, b), d3 = cross(a, b, c), d4 = cross(a, b, d);
+    return d1 * d2 < -1e-6 && d3 * d4 < -1e-6;
+  }
+  // dwa odcinki leżące na sobie (równoległe, blisko i zachodzące na długości ponad 1)
+  function overlap(a, b, c, d) {
+    const u = unit(b.x - a.x, b.y - a.y), v = unit(d.x - c.x, d.y - c.y);
+    if (Math.abs(u.x * v.y - u.y * v.x) > 0.02 || Math.hypot(b.x - a.x, b.y - a.y) < 0.5 || Math.hypot(d.x - c.x, d.y - c.y) < 0.5) return false;
+    if (Math.abs((c.x - a.x) * u.y - (c.y - a.y) * u.x) > 1.2) return false;
+    const t = (o) => (o.x - a.x) * u.x + (o.y - a.y) * u.y, L = Math.hypot(b.x - a.x, b.y - a.y);
+    const lo = Math.max(0, Math.min(t(c), t(d))), hi = Math.min(L, Math.max(t(c), t(d)));
+    return hi - lo > 1;
+  }
+  // kara za skręt o kąt między kierunkiem wjazdu a wyjazdu: prosto 0, 45° mało, 90° średnio, ostre zawracanie bardzo dużo
+  const TURN = [0, 1, 3.5, 12, 30];
+  function layout(stations, lines, prev = new Map(), extra = []) {
+    const byId = new Map(stations.map((o) => [o.id, o]));
+    const segs = new Map(), turns = [];
+    for (const l of [...lines, ...extra]) {
+      const pr = pairsOf(l).filter(([a, b]) => byId.has(a) && byId.has(b));
+      pr.forEach(([a, b]) => {
+        const k = key(a, b);
+        if (!segs.has(k)) {
+          const [p, q] = canon(byId.get(a), byId.get(b));
+          segs.set(k, { k, p, q, mode: prev.get(k) ?? 0, turns: [], near: [] });
+        }
+      });
+      const link = (x, y, v) => { const t = { a: segs.get(key(...x)), b: segs.get(key(...y)), v }; turns.push(t); t.a.turns.push(t); t.b.turns.push(t); };
+      for (let k = 1; k < pr.length; k++) link(pr[k - 1], pr[k], pr[k][0]);
+      if (l.loop && pr.length > 2) link(pr[pr.length - 1], pr[0], pr[0][0]);
+    }
+    const list = [...segs.values()];
+    const pts = (sg) => route(sg.p, sg.q, sg.mode);
+    // kierunek odcinka przy stacji v, na zewnątrz od niej
+    const outDir = (sg, v) => {
+      const [p, m, q] = pts(sg), [s0, far] = v === sg.p.id ? [p, q] : [q, p];
+      const o = Math.hypot(m.x - s0.x, m.y - s0.y) > 0.01 ? m : far;
+      return unit(o.x - s0.x, o.y - s0.y);
+    };
+    const turnCost = (t) => {
+      const u = outDir(t.a, t.v), w = outDir(t.b, t.v);
+      // wjazd to odwrócony kierunek u; kąt odchylenia od jazdy na wprost
+      const ang = Math.acos(Math.max(-1, Math.min(1, -(u.x * w.x + u.y * w.y))));
+      return TURN[Math.round(ang / (Math.PI / 4))];
+    };
+    const stationCost = (sg) => {
+      const [p, m, q] = pts(sg);
+      let c = 0;
+      for (const o of stations) {
+        if (o === sg.p || o === sg.q) continue;
+        const d = Math.min(distSeg(o, p, m), distSeg(o, m, q));
+        if (d < 6) c += 40 * (6 - d);
+      }
+      return c;
+    };
+    const pairCost = (A, B) => {
+      const [a0, a1, a2] = pts(A), [b0, b1, b2] = pts(B), PA = [[a0, a1], [a1, a2]], PB = [[b0, b1], [b1, b2]];
+      let c = 0;
+      for (const [x, y] of PA) for (const [z, w] of PB) {
+        if (hits(x, y, z, w)) c += 2;
+        if (overlap(x, y, z, w)) c += 8;
+      }
+      return c;
+    };
+    const costOf = (sg) => stationCost(sg) + sg.turns.reduce((a, t) => a + turnCost(t), 0) + list.reduce((a, o) => a + (o === sg ? 0 : pairCost(sg, o)), 0);
+    // poprawki po kolei: odcinek zmienia kształt, gdy cała sieć na tym zyskuje
+    for (let pass = 0; pass < 6; pass++) {
+      let better = false;
+      for (const sg of list) {
+        const straight = Math.abs(Math.abs(sg.q.x - sg.p.x) - Math.abs(sg.q.y - sg.p.y)) < 0.01 || sg.q.x === sg.p.x || sg.q.y === sg.p.y;
+        if (straight) continue;
+        const c0 = costOf(sg);
+        sg.mode ^= 1;
+        if (costOf(sg) < c0 - 0.01) better = true;
+        else sg.mode ^= 1;
+      }
+      if (!better) break;
+    }
+    return new Map(list.map((sg) => [sg.k, sg.mode]));
   }
   // przystanki przed pociągiem: od stacji `i` w kierunku `d`; na zwykłej linii z zawróceniem na końcu, w pętli dookoła
   function ahead(stops, i, d, loop = false) {
@@ -50,7 +160,7 @@ const Metro = (() => {
     const n = stops.length;
     return Array.from({ length: n - 1 }, (_, k) => stops[(((i + d * (k + 1)) % n) + n) % n]);
   }
-  return { SHAPES, distances, crosses, route, curve, ahead, last: null };
+  return { SHAPES, distances, crosses, route, bend, curve, layout, ahead, last: null };
 })();
 
 if (typeof module !== "undefined") module.exports = Metro;
@@ -81,6 +191,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
   ],
   mount(board, ctx) {
     const { SHAPES, ahead, curve } = Metro;
+    const modes = new Map(), mids = new Map(), offs = new Map();
     const lv = ctx.level;
     const W = 160, H = 110, RX0 = 72, RX1 = 84, CAP = 6, R = 3.3, HIT = 7, WEEK = 42, MAXC = 3;
     const VMAX = 24, ACC = 30, CAR = 7.4, GAP = 0.9;
@@ -144,6 +255,18 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     function setSpeed(k) { s.speed = k; speedSeg.set(k); Sound.tap(); }
     const byId = (id) => s.stations.find((x) => x.id === id);
     const segKey = (a, b) => Math.min(a, b) + "-" + Math.max(a, b);
+    // kształt odcinka od a do b według układu sieci (albo podanego trybu)
+    function shapeOf(a, b, mode = modes.get(segKey(a.id, b.id)) ?? 0) {
+      const [p, q] = a.id < b.id ? [a, b] : [b, a], pts = Metro.bend(...Metro.route(p, q, mode));
+      return p === a ? pts : pts.reverse();
+    }
+    // układ sieci po planowanej zmianie jednej linii (do podglądu rysowania)
+    let pv = { k: "", m: modes };
+    function previewModes(li, stops, loop) {
+      const k = `${li}:${stops.join()}:${loop}`;
+      if (pv.k !== k) pv = { k, m: Metro.layout(s.stations, s.lines.map((l, i) => (i === li ? { stops, loop } : l)), modes) };
+      return pv.m;
+    }
     const maxWait = (st) => lv.maxw * (st.hub ? 2 : 1);
 
     // --- budowa linii ---
@@ -213,7 +336,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       stops.splice(k + 1, 0, st.id);
       if (usedTunnels() - lineTunnels(l.stops, l.loop) + lineTunnels(stops, l.loop) > s.tunnels) return noTunnel(), false;
       const a = byId(ia), b = byId(ib);
-      const len = (p, q) => curve(p, q).reduce((sum, o, i, arr) => (i ? sum + Math.hypot(o.x - arr[i - 1].x, o.y - arr[i - 1].y) : 0), 0);
+      const len = (p, q) => shapeOf(p, q).reduce((sum, o, i, arr) => (i ? sum + Math.hypot(o.x - arr[i - 1].x, o.y - arr[i - 1].y) : 0), 0);
       // pociąg na przebudowanym odcinku jedzie dalej z tego samego miejsca, tylko nową trasą
       for (const t of s.trains) if (t.line === li && ((t.from === ia && t.to === ib) || (t.from === ib && t.to === ia))) {
         const p = byId(t.from), q = byId(t.to), d = t.f * len(p, q), L1 = len(p, st), L2 = len(st, q);
@@ -226,7 +349,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       afterChange();
       return true;
     }
-    function ghost(a, b, key) { s.fx.push({ kind: "ghost", pts: curve(a, b), color: key, t: 0, dur: 0.45 }); }
+    function ghost(a, b, key) { s.fx.push({ kind: "ghost", pts: shapeOf(a, b), color: key, t: 0, dur: 0.45 }); }
     // zdjęcie ostatniej stacji z końca linii
     function shorten(li, end) {
       const l = s.lines[li];
@@ -501,8 +624,17 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     }
 
     // --- geometria: łamane z łukami, rozsunięte, gdy kilka linii jedzie tą samą trasą ---
-    let geo = [];
-    function buildGeo() {
+    // Kształty odcinków wybiera układ całej sieci (Metro.layout) przy każdej zmianie linii albo stacji.
+    // Zmiana kształtu i rozsunięcia nie skacze: punkt załamania i przesunięcie dochodzą do celu płynnie.
+    let geo = [], topo = "";
+    function buildGeo(dt = 1) {
+      const now = s.lines.map((l) => l.stops.join(".") + (l.loop ? "o" : "")).join("|") + "#" + s.stations.length;
+      if (now !== topo) {
+        topo = now;
+        const next = Metro.layout(s.stations, s.lines, modes);
+        modes.clear();
+        next.forEach((v, k) => modes.set(k, v));
+      }
       const shared = new Map();
       const pairs = (l) => {
         const out = [];
@@ -515,6 +647,17 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
         if (!shared.has(key)) shared.set(key, []);
         shared.get(key).push(li);
       }));
+      const ease = Math.min(1, dt * 9), base = new Map();
+      for (const key of shared.keys()) {
+        const [p, q] = key.split("-").map((id) => byId(+id));
+        const target = Metro.route(p, q, modes.get(key) ?? 0)[1];
+        let m = mids.get(key);
+        if (!m) mids.set(key, (m = { ...target }));
+        m.x += (target.x - m.x) * ease;
+        m.y += (target.y - m.y) * ease;
+        if (Math.hypot(target.x - m.x, target.y - m.y) < 0.02) Object.assign(m, target);
+        base.set(key, [p, m, q]);
+      }
       geo = s.lines.map((l, li) => {
         const G = { pts: [], cum: [], seg: [], total: 0, loop: l.loop && l.stops.length > 2 };
         const push = (p) => {
@@ -524,17 +667,18 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
           G.pts.push(p);
         };
         for (const [ia, ib] of pairs(l)) {
-          const a = byId(ia), b = byId(ib), on = shared.get(segKey(ia, ib));
-          // normalna liczona zawsze od stacji o mniejszym id, żeby linie rozsuwały się w tę samą stronę
-          const [p, q] = a.id < b.id ? [a, b] : [b, a];
-          const len0 = Math.hypot(q.x - p.x, q.y - p.y) || 1;
-          const off = (on.indexOf(li) - (on.length - 1) / 2) * 2.1;
-          const nx = (-(q.y - p.y) / len0) * off, ny = ((q.x - p.x) / len0) * off;
-          const pts = curve({ x: a.x + nx, y: a.y + ny }, { x: b.x + nx, y: b.y + ny });
+          const key = segKey(ia, ib), on = shared.get(key), [p, m, q] = base.get(key);
+          // przesunięcie liczone zawsze od stacji o mniejszym id, żeby linie rozsuwały się w tę samą stronę
+          const target = (on.indexOf(li) - (on.length - 1) / 2) * 2.8, ok = li + "|" + key;
+          let off = offs.get(ok) ?? target;
+          off += (target - off) * ease;
+          offs.set(ok, off);
+          const pts = Metro.bend(p, m, q, off);
+          if (p.id !== ia) pts.reverse();
           push(pts[0]);
           const s0 = G.cum[G.cum.length - 1];
           pts.slice(1).forEach(push);
-          G.seg.push({ s: s0, e: G.cum[G.cum.length - 1], key: segKey(ia, ib), tunnel: Metro.crosses(a, b, RX0, RX1) });
+          G.seg.push({ s: s0, e: G.cum[G.cum.length - 1], key, tunnel: Metro.crosses(p, q, RX0, RX1) });
         }
         G.total = G.cum[G.cum.length - 1] || 0;
         return G;
@@ -680,7 +824,7 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
     let uiT = 0;
     cv.loop((dt, now) => {
       s.clock += dt;
-      buildGeo();
+      buildGeo(dt);
       const run = !ctx.done && !s.choosing && !s.placing && s.speed > 0;
       if (run) for (let k = 0; k < s.speed && !ctx.done && !s.choosing && !s.placing; k++) step(dt);
       for (const f of s.fx) f.t += dt;
@@ -849,7 +993,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       g.globalAlpha = ok ? 0.85 : 0.55;
       g.lineWidth = 2.4;
       if (!ok || blocked) { g.setLineDash([2.4, 2]); g.lineDashOffset = -s.clock * 8; }
-      poly([...curve(a, mid), ...curve(mid, b).slice(1)]); g.stroke();
+      const pm = ok ? previewModes(bend.li, stops, l.loop) : null;
+      const part = (x, y) => (pm ? shapeOf(x, y, pm.get(segKey(x.id, y.id)) ?? 0) : curve(x, y));
+      poly([...part(a, mid), ...part(mid, b).slice(1)]); g.stroke();
       g.setLineDash([]);
       g.globalAlpha = 1;
       const pulse = 0.5 + 0.5 * Math.sin(s.clock * 8);
@@ -864,8 +1010,9 @@ if (typeof GAMES !== "undefined") Object.assign(GAMES.find((g) => g.id === "metr
       const loopOk = over && canLoop(grab, over), ok = over && (loopOk || !l.stops.includes(over.id));
       const b = ok ? over : { x: ptr[0], y: ptr[1] };
       if (Math.hypot(b.x - a.x, b.y - a.y) < R) return;
-      const pts = curve(a, b);
       const stops = ok && !loopOk ? (grab.end ? [...l.stops, over.id] : [over.id, ...l.stops]) : l.stops;
+      // podgląd ma już kształt, jaki dostanie odcinek w nowym układzie sieci
+      const pts = ok ? shapeOf(a, b, previewModes(grab.li, stops, loopOk || l.loop).get(segKey(a.id, b.id)) ?? 0) : curve(a, b);
       const blocked = ok && usedTunnels() - lineTunnels(l.stops, false) + lineTunnels(stops, loopOk) > s.tunnels;
       g.strokeStyle = col(blocked ? "bad" : l.key);
       g.globalAlpha = ok ? 0.85 : 0.45;
