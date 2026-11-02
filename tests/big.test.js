@@ -156,11 +156,23 @@ test("wyścig: tor zamknięty, najbliższy punkt", () => {
   }
 });
 
-test("przygoda: każdy etap ma start i metę", () => {
+test("przygoda: losowe etapy dają się przejść (klucz przed drzwiami, meta, klejnoty)", () => {
   const P = g("przygoda");
-  for (const make of P.STAGES) {
-    const L = make();
-    assert.ok(L.things.some((t) => t.kind === "start") && L.things.some((t) => t.kind === "goal"));
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const near = (seen, t, dys) => { const x = Math.floor(t.x / P.T), y = Math.floor(t.y / P.T); return [-2, -1, 0, 1, 2].some((dx) => dys.some((dy) => seen.has(`${x + dx},${y + dy}`))); };
+  for (let bi = 0; bi < P.BIOMES.length; bi++) for (const d of [0, 0.3, 0.6, 1]) for (let k = 0; k < 25; k++) {
+    const L = P.generate(bi, d, rnd);
+    const goal = L.things.find((t) => t.kind === "goal"), key = L.things.find((t) => t.kind === "key");
+    const doors = L.tiles.some((row) => row.includes("D"));
+    assert.equal(!!key, doors);
+    if (key) assert.ok(near(P.reach(L, false), key, [0, 1, 2, 3]), `klucz: kraina ${bi}, d ${d}`);
+    const open = P.reach(L, true);
+    assert.ok(near(open, goal, [0]), `meta: kraina ${bi}, d ${d}`);
+    const gems = L.things.filter((t) => t.kind === "gem");
+    assert.equal(gems.length, 3);
+    for (const gem of gems) assert.ok(near(open, gem, [1, 2, 3]), `klejnot: kraina ${bi}, d ${d}`);
+    assert.equal(Object.values(L.boxes).filter((v) => v === "bonus").length, 1);
   }
 });
 

@@ -1,0 +1,138 @@
+/* Style planszy dla gry Odważniki. */
+[data-gra="odwazniki"] .odw-grid .gb-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.corner {
+  background: none;
+  box-shadow: none;
+  cursor: default;
+  color: var(--muted);
+  font-size: calc(var(--s) * 0.34);
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.weight {
+  background: color-mix(in srgb, var(--c) 12%, var(--bg));
+  box-shadow: none;
+  border: 1px dashed color-mix(in srgb, var(--c) 35%, var(--line));
+  cursor: default;
+  color: var(--c);
+  font-size: calc(var(--s) * 0.38);
+  font-weight: 800;
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue {
+  background: color-mix(in srgb, var(--surface) 75%, var(--bg));
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: default;
+  gap: calc(var(--s) * 0.02);
+}
+
+[data-gra="odwazniki"] .odw-target {
+  font-size: calc(var(--s) * 0.36);
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+[data-gra="odwazniki"] .odw-cur {
+  font-size: calc(var(--s) * 0.21);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted);
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.ok {
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ok) 55%, var(--line));
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.ok .odw-target,
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.ok .odw-cur {
+  color: var(--ok);
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.over {
+  background: color-mix(in srgb, var(--bad) 16%, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--bad);
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.over .odw-target,
+[data-gra="odwazniki"] .odw-grid .gb-cell.clue.over .odw-cur {
+  color: var(--bad);
+  text-decoration: underline;
+}
+
+/* Krążek odważnika na polu */
+[data-gra="odwazniki"] .odw-puck {
+  width: calc(var(--s) * 0.62);
+  height: calc(var(--s) * 0.62);
+  border-radius: 50%;
+  position: relative;
+  transform: scale(0);
+  transition: transform var(--dur) var(--ease-pop);
+  pointer-events: none;
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-on .odw-puck {
+  transform: scale(1);
+  background: radial-gradient(
+    circle at 35% 32%,
+    color-mix(in srgb, var(--on) 28%, var(--c)),
+    var(--c) 68%
+  );
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--on) 38%, var(--c)),
+    0 2px 4px var(--shadow);
+  animation: odwazniki-drop 220ms var(--ease-pop);
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-on .odw-puck::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--s) * 0.16);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--on) 55%, transparent);
+}
+
+/* Oznaczenie pustego pola (krzyżyk) */
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-mark::before,
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-mark::after {
+  content: "";
+  position: absolute;
+  width: calc(var(--s) * 0.36);
+  height: 2px;
+  background: var(--muted);
+  border-radius: 1px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-mark::before {
+  transform: rotate(45deg);
+}
+
+[data-gra="odwazniki"] .odw-grid .gb-cell.is-mark::after {
+  transform: rotate(-45deg);
+}
+
+@keyframes odwazniki-drop {
+  0% { transform: scale(0.5); }
+  65% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="odwazniki"] .odw-puck,
+  [data-gra="odwazniki"] .odw-grid .gb-cell.is-on .odw-puck {
+    transition: none;
+    animation: none;
+  }
+}

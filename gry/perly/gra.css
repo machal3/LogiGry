@@ -1,74 +1,121 @@
-[data-gra="perly"] { --perly-ink: #18181b; }
+[data-gra="perly"] {
+  --perly-white: #f7f7f5;
+  --perly-black: #1a1a1e;
+}
 @media (prefers-color-scheme: dark) {
-  [data-gra="perly"] { --perly-ink: #0b0b0f; }
-  [data-gra="perly"] .pe-grid .gb-cell.black .pe-pearl {
-    box-shadow: 0 0 0 calc(var(--s) * 0.07) var(--text);
+  [data-gra="perly"] {
+    --perly-white: #f4f4f2;
+    --perly-black: #141418;
   }
+}
+
+[data-gra="perly"] .pe-grid {
+  touch-action: none;
 }
 [data-gra="perly"] .pe-grid .gb-cell {
   position: relative;
-  background: color-mix(in srgb, var(--surface) 82%, var(--bg));
   overflow: visible;
+  background: var(--surface);
+  border-radius: calc(var(--s) * 0.14);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
-[data-gra="perly"] .pe-grid .gb-cell .pe-e,
-[data-gra="perly"] .pe-grid .gb-cell .pe-s,
-[data-gra="perly"] .pe-grid .gb-cell .pe-mid {
+[data-gra="perly"] .pe-grid .gb-cell:active { transform: none; }
+@media (hover: hover) {
+  [data-gra="perly"] .pe-grid .gb-cell:hover:not(.pe-ok):not(.pe-wait):not(.pe-bad):not(.is-sel) {
+    background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  }
+}
+[data-gra="perly"] .pe-grid .gb-cell.pe-ok {
+  box-shadow: inset 0 0 0 2px var(--ok);
+}
+[data-gra="perly"] .pe-grid .gb-cell.pe-wait {
+  box-shadow: none;
+  outline: 2px dashed var(--warn);
+  outline-offset: -3px;
+}
+[data-gra="perly"] .pe-grid .gb-cell.pe-bad {
+  box-shadow: inset 0 0 0 2px var(--bad);
+}
+
+[data-gra="perly"] .pe-path {
   position: absolute;
-  background: var(--c);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   pointer-events: none;
-  opacity: 0;
   z-index: 1;
 }
-[data-gra="perly"] .pe-grid .gb-cell.e .pe-e,
-[data-gra="perly"] .pe-grid .gb-cell.s .pe-s,
-[data-gra="perly"] .pe-grid .gb-cell.has .pe-mid { opacity: 1; }
-[data-gra="perly"] .pe-grid .gb-cell .pe-e {
-  left: 50%;
-  right: calc(var(--g) * -0.5 - 1px);
-  top: calc(50% - var(--s) * 0.075);
-  height: calc(var(--s) * 0.15);
-  border-radius: 99px;
+[data-gra="perly"] .pe-path path,
+[data-gra="perly"] .pe-path line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 0.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-[data-gra="perly"] .pe-grid .gb-cell .pe-s {
-  top: 50%;
-  bottom: calc(var(--g) * -0.5 - 1px);
-  left: calc(50% - var(--s) * 0.075);
-  width: calc(var(--s) * 0.15);
-  border-radius: 99px;
+[data-gra="perly"] .pe-path line.pe-in {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: perly-draw 240ms var(--ease) forwards;
 }
-[data-gra="perly"] .pe-grid .gb-cell .pe-mid {
-  width: calc(var(--s) * 0.15);
-  height: calc(var(--s) * 0.15);
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
+[data-gra="perly"] .pe-path line.pe-out {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: perly-erase 160ms var(--ease) forwards;
 }
-[data-gra="perly"] .pe-grid .gb-cell .pe-pearl {
+@keyframes perly-draw { to { stroke-dashoffset: 0; } }
+@keyframes perly-erase { to { stroke-dashoffset: 1; } }
+
+[data-gra="perly"] .pe-gem {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-gra="perly"] .pe-gem.pe-pop { animation: perly-pop 240ms var(--ease-pop); }
+@keyframes perly-pop {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+[data-gra="perly"] .pe-gem.pe-no { animation: perly-no 240ms var(--ease); }
+@keyframes perly-no {
+  30% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+}
+
+[data-gra="perly"] .pe-x {
+  display: none;
   position: absolute;
-  inset: calc(var(--s) * 0.2);
-  border-radius: 50%;
+  inset: 0;
+  z-index: 3;
   pointer-events: none;
-  z-index: 2;
 }
-[data-gra="perly"] .pe-grid .gb-cell.white .pe-pearl {
-  background: transparent;
-  box-shadow: inset 0 0 0 calc(var(--s) * 0.09) var(--text);
+[data-gra="perly"] .pe-grid .gb-cell.cross .pe-x {
+  display: block;
+  animation: perly-x 180ms var(--ease-pop);
 }
-[data-gra="perly"] .pe-grid .gb-cell.black .pe-pearl {
-  background: var(--perly-ink);
-  box-shadow: inset 0 0 0 calc(var(--s) * 0.06) var(--text);
+@keyframes perly-x {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
 }
-[data-gra="perly"] .pe-grid .gb-cell.white.is-ok .pe-pearl {
-  box-shadow: inset 0 0 0 calc(var(--s) * 0.09) var(--ok);
+[data-gra="perly"] .pe-x::before,
+[data-gra="perly"] .pe-x::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  height: 40%;
+  width: calc(var(--s) * 0.06);
+  margin-left: calc(var(--s) * -0.03);
+  background: var(--muted);
+  border-radius: 99px;
 }
-[data-gra="perly"] .pe-grid .gb-cell.black.is-ok .pe-pearl {
-  box-shadow: 0 0 0 calc(var(--s) * 0.07) var(--ok);
-}
-[data-gra="perly"] .pe-grid .gb-cell.is-sel {
-  animation: perly-lift 200ms var(--ease-pop);
-}
-@keyframes perly-lift { 50% { transform: scale(1.05); } }
+[data-gra="perly"] .pe-x::before { transform: rotate(45deg); }
+[data-gra="perly"] .pe-x::after { transform: rotate(-45deg); }
+
 @media (prefers-reduced-motion: reduce) {
-  [data-gra="perly"] .pe-grid .gb-cell.is-sel { animation: none; }
+  [data-gra="perly"] .pe-path line.pe-in,
+  [data-gra="perly"] .pe-path line.pe-out,
+  [data-gra="perly"] .pe-gem.pe-pop,
+  [data-gra="perly"] .pe-gem.pe-no,
+  [data-gra="perly"] .pe-grid .gb-cell.cross .pe-x { animation: none; }
 }

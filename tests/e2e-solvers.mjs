@@ -421,12 +421,7 @@ export default {
     }
   `,
   przygoda: `
-    for (let k = 0; k < 6 && !document.querySelector(".board-area.won"); k++) {
-      const s = Platformer.last, goal = s.level.things.find((t) => t.kind === "goal");
-      Object.assign(s.p, { x: goal.x - 3.5, y: goal.y - 4.5, vx: 0, vy: 0 });
-      s.dead = 0;
-      await until(() => Platformer.last.level !== s.level || document.querySelector(".board-area.won"), 4000);
-    }
+    for (let k = 0; k < 6 && !document.querySelector(".board-area.won"); k++) Platformer.last.skip();
   `,
   wyscig: `
     const s = Race.last;

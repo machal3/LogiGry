@@ -206,7 +206,7 @@ const GAMES = [
     cat: "przygodowe",
     big: true,
     name: "Przygoda",
-    desc: "Platformówka w kilku etapach: monety, klucze, wrogowie, ruchome platformy, sprężyny i podwójny skok.",
+    desc: "Platformówka z losowymi etapami w sześciu krainach: lód, lawa, wrogowie, skrzynki z mocami i ukryte klejnoty.",
     color: "#ff924c",
     ink: "#2b1100",
     glyph: ["..#..", ".###.", "..#..", ".#.#.", "#...#"],

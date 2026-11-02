@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 Object.assign(globalThis, require("../../lib.js"));
-const { generate, solve, rulesOk, growLoop, pearlsFrom, maskFromLoop } = require("./gra.js");
+const { generate, solve, rulesOk, growLoop, pearlsFrom, maskFromLoop, pearlStatus, traceD } = require("./gra.js");
 
 test("pętla na kratce ma parzystą długość i spójne boki", () => {
   for (let n = 4; n <= 8; n++) {
@@ -25,6 +25,47 @@ test("pusta siatka nie jest rozwiązaniem, pełna pętla jest", () => {
   const empty = new Int8Array(p.n * p.n);
   assert.equal(rulesOk(p.n, p.pearls, empty), false);
   assert.ok(rulesOk(p.n, p.pearls, p.mask));
+});
+
+test("status perły rozróżnia spełnioną, oczekującą i złą", () => {
+  const n = 3;
+  const pearls = new Int8Array(9);
+  const mask = new Int8Array(9);
+  pearls[4] = 1;
+  mask[4] = 10;
+  mask[3] = 10;
+  mask[5] = 2;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "wait");
+  mask[5] = 12;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "ok");
+  mask[5] = 10;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "bad");
+  pearls[4] = 2;
+  mask[4] = 6;
+  mask[5] = 10;
+  mask[7] = 5;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "ok");
+  mask[5] = 6;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "bad");
+  mask[5] = 2;
+  assert.equal(pearlStatus(n, pearls, mask, 4), "wait");
+  assert.equal(pearlStatus(n, pearls, mask, 0), "");
+});
+
+test("ścieżka jest jedną łamaną, a zamknięta pętla jednym obwodem", () => {
+  const n = 4;
+  const mask = maskFromLoop(n, [0, 1, 5, 4]);
+  const loop = traceD(n, mask);
+  assert.equal(loop.split("M").length - 1, 1);
+  assert.ok(loop.endsWith("Z"));
+  const line = new Int8Array(n * n);
+  line[0] = 2;
+  line[1] = 10;
+  line[2] = 8;
+  const open = traceD(n, line);
+  assert.equal(open.split("M").length - 1, 1);
+  assert.equal(open.includes("Z"), false);
+  assert.equal(open.split("L").length - 1, 2);
 });
 
 test("wygenerowana plansza ma jedno rozwiązanie", () => {
