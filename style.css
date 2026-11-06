@@ -167,7 +167,74 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .glyph i.on { background: var(--cell-on, var(--on)); }
 
 /* --- Lista gier: pasek wyszukiwania, menu kategorii, półki i siatka --- */
-.games { padding-block: 48px 96px; }
+/* Strona główna: kafle kategorii pod hero */
+.home-cats { padding-block: 8px 96px; }
+.home-cats-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.home-cats-head h2 { margin: 0; font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 600; letter-spacing: -0.04em; }
+.home-all { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.home-all svg { width: 18px; height: 18px; transition: transform 200ms var(--ease); }
+.home-all:hover svg { transform: translateX(3px); }
+.home-cat-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 14px;
+}
+.hc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  height: 100%;
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.hc:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--line), var(--elev-2); }
+.hc-icons { display: flex; flex: none; }
+.hc-ic {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--c);
+  box-shadow: 0 0 0 3px var(--surface);
+  transition: transform 250ms var(--ease);
+}
+.hc-ic + .hc-ic { margin-left: -14px; }
+.hc-ic .glyph { width: 56%; }
+.hc:hover .hc-ic:nth-child(1) { transform: translateX(-4px) rotate(-6deg); }
+.hc:hover .hc-ic:nth-child(3) { transform: translateX(4px) rotate(6deg); }
+.hc-text { display: grid; min-width: 0; max-width: 100%; }
+@media (max-width: 560px) {
+  .home-cat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hc { padding: 16px; gap: 14px; }
+  .hc-ic { width: 38px; height: 38px; border-radius: 11px; }
+  .hc-arrow { top: 18px; right: 14px; }
+}
+.hc-text strong { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.015em; }
+.hc-text span { color: var(--muted); font-size: 0.875rem; }
+.hc-arrow { position: absolute; top: 22px; right: 20px; width: 20px; height: 20px; color: var(--muted); transition: transform 200ms var(--ease); }
+.hc:hover .hc-arrow { transform: translateX(3px); color: var(--text); }
+.hc-all { background: var(--text); color: var(--bg); box-shadow: none; }
+.hc-all .hc-ic { box-shadow: 0 0 0 3px var(--text); }
+.hc-all .hc-text span, .hc-all .hc-arrow, .hc-all:hover .hc-arrow { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+
+/* Strona z grami */
+.games { padding-block: 32px 96px; }
 .games-head {
   display: flex;
   align-items: end;
@@ -176,7 +243,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.games-head h2 {
+.games-head h1 {
   margin: 0;
   font-size: clamp(2rem, 3.5vw, 3rem);
   font-weight: 600;
@@ -572,8 +639,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   .games-empty { padding: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gc-link, .gc-art .glyph, .lucky, .lucky svg, .fav, .cat-item { transition: none; }
-  .gc-link:hover { transform: none; }
+  .gc-link, .gc-art .glyph, .lucky, .lucky svg, .fav, .cat-item, .hc, .hc-ic, .hc-arrow, .home-all svg { transition: none; }
+  .gc-link:hover, .hc:hover, .hc:hover .hc-ic { transform: none; }
 }
 
 .game-author { margin: 0; padding-inline: 4px; font-size: 0.8125rem; color: var(--muted); }

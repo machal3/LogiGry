@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Logigra</title>
-  <meta name="description" content="Ponad 70 gier logicznych, łamigłówek, zręcznościowych, planszowych, strategicznych i symulacji w przeglądarce: sudoku, kakuro, magazynier, klocki, szachy, obrona twierdzy, farma i wiele innych.">
+  <meta name="description" content="Ponad 100 gier logicznych, łamigłówek, zręcznościowych, planszowych, strategicznych i symulacji w przeglądarce: sudoku, kakuro, magazynier, klocki, szachy, obrona twierdzy, farma i wiele innych.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cstyle%3Erect%7Bfill:%2315161b%7D@media(prefers-color-scheme:dark)%7Brect%7Bfill:%23eef0f5%7D%7D%3C/style%3E%3Crect width='10' height='10' rx='3'/%3E%3Crect x='12' width='10' height='10' rx='3' style='fill:%233550e6'/%3E%3Crect y='12' width='10' height='10' rx='3' style='fill:%23ffb020'/%3E%3Crect x='12' y='12' width='10' height='10' rx='3'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +83,7 @@
       logigra
     </a>
     <div class="nav-right">
-      <a href="#gry" class="nav-link">Gry</a>
+      <a href="#/gry" class="nav-link nav-games">Gry</a>
       <a href="#/osiagniecia" class="nav-link nav-ach">Osiągnięcia</a>
       <a href="#/profil" class="nav-points" aria-label="Twój profil"><span id="nav-points">0 pkt</span></a>
     </div>
@@ -93,18 +93,28 @@
     <header class="hero">
       <div class="hero-copy">
         <h1>Gry logiczne i zręcznościowe w czystej formie.</h1>
-        <p>Ponad siedemdziesiąt gier: od sudoku, kakuro i mostów, przez magazyniera i klocki, po szachy z komputerem, obronę twierdzy, farmę i budowę metra. Rozwiązuj, zbieraj punkty i awansuj na kolejne rangi. Bez reklam i bez zakładania konta.</p>
-        <a href="#gry" class="cta">Wybierz grę</a>
+        <p>Ponad sto gier: od sudoku, kakuro i mostów, przez magazyniera i klocki, po szachy z komputerem, obronę twierdzy, farmę i budowę metra. Rozwiązuj, zbieraj punkty i awansuj na kolejne rangi. Bez reklam i bez zakładania konta.</p>
+        <a href="#/gry" class="cta">Przeglądaj gry</a>
       </div>
       <div class="stage" id="stage" aria-hidden="true">
         <div class="iso" id="iso"></div>
       </div>
     </header>
 
-    <section class="games" id="gry" aria-labelledby="games-title">
+    <section class="home-cats" aria-labelledby="home-cats-title">
+      <div class="home-cats-head">
+        <h2 id="home-cats-title">W co dziś zagrasz?</h2>
+        <a href="#/gry" class="home-all">Wszystkie gry <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      <ul class="home-cat-grid" id="home-cats"></ul>
+    </section>
+  </main>
+
+  <main id="games" hidden>
+    <section class="games" aria-labelledby="games-title">
       <div class="games-head">
         <div>
-          <h2 id="games-title">Gry</h2>
+          <h1 id="games-title">Gry</h1>
           <p id="games-count" role="status"></p>
         </div>
         <button type="button" class="lucky" id="games-random">
@@ -144,7 +154,7 @@
 
   <main id="game" hidden>
     <header class="game-top">
-      <a href="#gry" class="back" aria-label="Wszystkie gry"></a>
+      <a href="#/gry" class="back" aria-label="Wszystkie gry"></a>
       <span class="game-icon" id="game-icon"></span>
       <h1 id="game-title"></h1>
       <div class="game-tools" id="game-tools"></div>

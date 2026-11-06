@@ -1116,12 +1116,46 @@ function buildFilters() {
   };
   // "/" przenosi do wyszukiwarki
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "/" || document.body.dataset.view !== "home" || e.target.closest?.("input, textarea, select")) return;
+    const view = document.body.dataset.view;
+    if (e.key !== "/" || (view !== "games" && view !== "home") || e.target.closest?.("input, textarea, select")) return;
     e.preventDefault();
+    // ze strony głównej: najpierw przejście do listy gier
+    if (view === "home") {
+      window.addEventListener("hashchange", () => search.focus(), { once: true });
+      location.hash = "#/gry";
+      return;
+    }
     search.focus({ preventScroll: true });
     const tools = document.getElementById("games-tools");
     if (tools.getBoundingClientRect().top > 0) tools.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
   });
+}
+
+// Strona główna: kafle kategorii prowadzą prosto do listy gier z wybraną kategorią.
+function buildHome() {
+  const grid = document.getElementById("home-cats");
+  const tile = (href, name, games, cls) => {
+    const li = el("li");
+    const a = el("a", `hc ${cls}`);
+    a.href = href;
+    const icons = el("span", "hc-icons");
+    games.slice(0, 3).forEach((g) => {
+      const i = el("span", "hc-ic");
+      paint(i, g);
+      i.append(glyph(g.glyph));
+      icons.append(i);
+    });
+    const text = el("span", "hc-text");
+    text.append(el("strong", "", name), el("span", "", `${games.length} ${plural(games.length, "gra", "gry", "gier")}`));
+    a.append(icons, text, svgIcon('<path d="M5 12h14M13 6l6 6-6 6"/>', "hc-arrow"));
+    li.append(a);
+    grid.append(li);
+  };
+  for (const [key, name] of CATEGORIES) {
+    const games = GAMES.filter((g) => g.cat === key);
+    if (games.length) tile(`#/gry/${key}`, name, games, "");
+  }
+  tile("#/gry/all", "Wszystkie gry", GAMES, "hc-all");
 }
 
 let navAnim = 0;
@@ -1302,27 +1336,45 @@ function renderAchievements() {
 // --- Nawigacja ---
 
 let teardown = null;
+// miejsce na liście gier, do którego wraca się po wyjściu z gry
+let gamesScroll = 0;
 
 function route() {
   teardown?.();
   teardown = null;
   const hash = location.hash;
+  const before = document.body.dataset.view;
+  if (before === "games") gamesScroll = window.scrollY;
   const id = (hash.match(/^#\/gra\/([\w-]+)$/) || [])[1];
   const game = GAMES.find((g) => g.id === id) || (hash === "#/zestaw" ? KIT_DEMO : null);
-  const view = game ? "game" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
-  for (const v of ["home", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
+  // #/gry, #/gry/<kategoria>; stary adres #gry też prowadzi do listy
+  const list = hash.match(/^#\/gry(?:\/([\w-]+))?$/) || (hash === "#gry" && [hash]);
+  const view = game ? "game" : list ? "games" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
+  for (const v of ["home", "games", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
   document.body.dataset.view = view;
   updatePoints();
-  document.title = game ? `${game.name} | Logigra` : { profile: "Profil | Logigra", achievements: "Osiągnięcia | Logigra" }[view] || "Logigra";
+  document.title = game ? `${game.name} | Logigra` : { games: "Gry | Logigra", profile: "Profil | Logigra", achievements: "Osiągnięcia | Logigra" }[view] || "Logigra";
   document.querySelector(".nav-ach").toggleAttribute("aria-current", view === "achievements");
+  document.querySelector(".nav-games").toggleAttribute("aria-current", view === "games");
 
-  if (view === "home") {
+  if (view === "games") {
+    const key = list[1];
+    if (key || hash === "#gry") {
+      // kategoria z adresu: ustawiona raz, adres wraca do #/gry
+      if (key && (catName[key] || SETS.some((s) => s[0] === key))) {
+        Object.assign(listView, { cat: key, q: "", sort: "", author: "" });
+        document.getElementById("game-search").value = "";
+        document.getElementById("game-sort").value = "";
+        document.getElementById("game-author").value = "";
+      }
+      history.replaceState(null, "", "#/gry");
+    }
     buildList();
-    const target = hash.length > 1 && document.getElementById(hash.slice(1));
-    target ? target.scrollIntoView() : window.scrollTo(0, 0);
+    window.scrollTo(0, before === "game" ? gamesScroll : 0);
     return;
   }
   window.scrollTo(0, 0);
+  if (view === "home") return;
   if (view === "profile") return renderProfile();
   if (view === "achievements") return renderAchievements();
 
@@ -1340,6 +1392,7 @@ function route() {
 
 buildStage();
 buildFilters();
+buildHome();
 updatePoints();
 window.addEventListener("hashchange", route);
 route();
