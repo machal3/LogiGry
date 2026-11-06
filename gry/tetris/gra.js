@@ -152,10 +152,9 @@
     ],
     endless: { unit: "wiersz", speed: 400 },
     rules: [
-      "Strzałki: lewo/prawo - przesuwanie, góra/dół - obracanie klocka.",
-      "Spacja: natychmiastowe upuszczenie klocka na dół (hard drop).",
-      "Shift: przytrzymanie przyspiesza opadanie (soft drop).",
-      "Na telefonie użyj przycisków dotykowych.",
+      "Strzałki: lewo/prawo - przesuwanie, góra - obrót klocka, dół - szybkie opadanie.",
+      "Spacja: natychmiastowe upuszczenie klocka (hard drop).",
+      "Z/X: obrót w drugą stronę. Na telefonie użyj przycisków dotykowych.",
       "Wypełnij wiersz, aby go usunąć. W trybie bez końca gra przyspiesza.",
     ],
     achievements: [
@@ -173,7 +172,7 @@
       const { linesToClear, speed: baseSpeed } = ctx.level;
       const BOARD_W = 10;  // Szerokość planszy logicznej
       const BOARD_H = 20;  // Wysokość planszy logicznej
-      const W = 16;       // Szerokość płótna (plansza + miejsce na tekst)
+      const W = 10;       // Szerokość płótna
       const H = 20;       // Wysokość płótna
       const endless = ctx.level.endless;
       
@@ -215,6 +214,60 @@
 
       const cv = canvasGame(board, ctx, W, H, { max: 100, cls: "arcade" });
       const { g, theme, loop, text } = cv;
+
+      // --- Panel po prawej stronie ---
+      // Podgląd następnego klocka
+      const nextBlock = panelBlock("Następny");
+      const nextGrid = el("div", "tetris-next-grid");
+      // Tworzymy mini siatkę 5x5
+      for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+          const cell = el("div", "tetris-next-cell");
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+          nextGrid.append(cell);
+        }
+      }
+      nextBlock.append(nextGrid);
+      ctx.panel.append(nextBlock);
+
+      // Statystyki
+      const stats = statsBlock(ctx, "Statystyki", ["Punkty", "Wiersze", "Poziom", "Czas"]);
+      ctx.panel.append(stats);
+
+      // Funkcja do aktualizacji podglądu następnego klocka
+      function updateNextPreview() {
+        const shape = s.nextShape;
+        const color = COLOR_MAP[shape.color] || shape.color;
+        const colorToken = theme[color] || color;
+        
+        // Wyczyść wszystkie komórki
+        for (let y = 0; y < 5; y++) {
+          for (let x = 0; x < 5; x++) {
+            const cell = nextGrid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+            if (cell) {
+              cell.style.backgroundColor = "";
+            }
+          }
+        }
+        
+        // Wyśrodkuj kształt w siatce 5x5
+        const cells = shape.cells;
+        const minX = Math.min(...cells.map(([x]) => x));
+        const minY = Math.min(...cells.map(([,y]) => y));
+        const offsetX = 2 - minX;
+        const offsetY = 2 - minY;
+        
+        // Narysuj klocek
+        for (const [x, y] of cells) {
+          const cell = nextGrid.querySelector(
+            `[data-x="${x + offsetX}"][data-y="${y + offsetY}"]`
+          );
+          if (cell) {
+            cell.style.backgroundColor = colorToken;
+          }
+        }
+      }
 
       // Inicjalizacja pozycji startowej
       function spawnNewShape() {
@@ -348,46 +401,9 @@
         }
       }
 
-      // Rysowanie podglądu następnego klocka
-      function drawNext() {
-        const offsetX = BOARD_W + 1.2;
-        const offsetY = 1.5;
-        
-        // Tło podglądu
-        g.fillStyle = theme.surface;
-        g.fillRect(offsetX - 0.5, offsetY - 0.5, 5.5, 5.5);
-        
-        // Nagłówek
-        text("Następny:", offsetX + 0.2, offsetY - 0.2, { size: 0.55, color: "muted" });
-        
-        // Klocek
-        drawShape(s.nextShape, offsetX + 1, offsetY + 1, s.nextShape.color);
-      }
-
-      // Rysowanie informacji
-      function drawInfo() {
-        const offsetX = BOARD_W + 1.2;
-        let offsetY = 7;
-        
-        // Wiersze i punkty
-        if (endless) {
-          text(`Wiersze: ${s.linesCleared}`, offsetX, offsetY, { size: 0.65, color: "text" });
-          text(`Poziom: ${s.level}`, offsetX, offsetY + 1, { size: 0.65, color: "text" });
-        } else {
-          text(`Linie: ${s.linesCleared}/${linesToClear}`, offsetX, offsetY, { size: 0.65, color: "text" });
-        }
-        text(`Punkty: ${s.score}`, offsetX, offsetY + 2, { size: 0.65, color: "text" });
-        
-        // Czas
-        const elapsed = Math.floor((Date.now() - s.startTime) / 1000);
-        text(`Czas: ${fmt(elapsed)}`, offsetX, offsetY + 3, { size: 0.65, color: "muted" });
-      }
-
       // Główna funkcja rysowania
       function draw() {
         drawBoard();
-        drawNext();
-        drawInfo();
       }
 
       // Sprawdza czy klocek może spaść
@@ -533,15 +549,15 @@
       // --- Przyciski dotykowe i obsługa klawiatury ---
       const touch = { 
         ArrowLeft: false, ArrowRight: false, 
-        ArrowUp: false, ArrowDown: false, Space: false, Shift: false 
+        ArrowUp: false, ArrowDown: false, Space: false, KeyZ: false, KeyX: false 
       };
       
       touchPad(ctx, touch, [
         ["ArrowLeft", "Lewo", "i-left"],
         ["ArrowRight", "Prawo", "i-right"],
-        ["ArrowUp", "Obrót +", "i-cw"],
-        ["ArrowDown", "Obrót -", "i-ccw"],
-        ["Space", "Drop", "i-down"],
+        ["ArrowUp", "Obrót", "i-cw"],
+        ["ArrowDown", "Szybciej", "i-down"],
+        ["Space", "Drop", "i-drop"],
       ]);
       
       function handleKeyDown(e) {
@@ -561,11 +577,9 @@
         } else if (code === "ArrowUp") {
           e.preventDefault();
           rotate(1);
-          touch.ArrowUp = true;
         } else if (code === "ArrowDown") {
           e.preventDefault();
-          rotate(-1);
-          touch.ArrowDown = true;
+          s.softDropActive = true;
         } else if (code === "Space") {
           e.preventDefault();
           hardDrop();
@@ -585,14 +599,17 @@
         } else if (code === "KeyW") {
           e.preventDefault();
           rotate(1);
-          touch.ArrowUp = true;
         } else if (code === "KeyS") {
           e.preventDefault();
-          rotate(-1);
-          touch.ArrowDown = true;
-        } else if (code === "ShiftLeft" || code === "ShiftRight") {
-          e.preventDefault();
           s.softDropActive = true;
+        } else if (code === "KeyZ") {
+          e.preventDefault();
+          rotate(-1);
+          touch.KeyZ = true;
+        } else if (code === "KeyX") {
+          e.preventDefault();
+          rotate(1);
+          touch.KeyX = true;
         }
       }
 
@@ -608,10 +625,13 @@
           touch.ArrowUp = false;
         } else if (code === "ArrowDown" || code === "KeyS") {
           touch.ArrowDown = false;
+          s.softDropActive = false;
         } else if (code === "Space") {
           touch.Space = false;
-        } else if (code === "ShiftLeft" || code === "ShiftRight") {
-          s.softDropActive = false;
+        } else if (code === "KeyZ") {
+          touch.KeyZ = false;
+        } else if (code === "KeyX") {
+          touch.KeyX = false;
         }
       }
 
@@ -696,10 +716,13 @@
             touch.ArrowUp = false;
             rotate(1);
           }
-          if (touch.ArrowDown) {
-            // Touch down - toggle soft drop
-            s.softDropActive = !s.softDropActive;
-            touch.ArrowDown = false;
+          if (touch.KeyZ) {
+            touch.KeyZ = false;
+            rotate(-1);
+          }
+          if (touch.KeyX) {
+            touch.KeyX = false;
+            rotate(1);
           }
           if (touch.Space) {
             touch.Space = false;
@@ -710,6 +733,21 @@
         // Wyłącz animację flash po 300ms
         if (s.flashLines.length > 0 && now - s.flashTimer > 300) {
           s.flashLines = [];
+        }
+        
+        // Aktualizuj panel
+        updateNextPreview();
+        const elapsed = Math.floor((Date.now() - s.startTime) / 1000);
+        if (endless) {
+          stats.set("Punkty", s.score);
+          stats.set("Wiersze", s.linesCleared);
+          stats.set("Poziom", s.level);
+          stats.set("Czas", fmt(elapsed));
+        } else {
+          stats.set("Punkty", s.score);
+          stats.set("Wiersze", `${s.linesCleared}/${linesToClear}`);
+          stats.set("Poziom", ctx.level.name);
+          stats.set("Czas", fmt(elapsed));
         }
         
         draw();

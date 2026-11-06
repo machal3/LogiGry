@@ -10,6 +10,31 @@
   image-rendering: crisp-edges;
 }
 
+/* Podgląd następnego klocka */
+[data-gra="tetris"] .tetris-next-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: calc(var(--s) * 0.12);
+  width: calc(var(--s) * 2);
+  height: calc(var(--s) * 2);
+  margin: 0 auto;
+  background: var(--surface);
+  border: 2px solid var(--c);
+  border-radius: var(--radius);
+  padding: calc(var(--s) * 0.1);
+  box-sizing: border-box;
+  box-shadow: var(--elev-1);
+}
+
+[data-gra="tetris"] .tetris-next-cell {
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--s) * 0.15);
+  box-sizing: border-box;
+  transition: background-color var(--dur) var(--ease);
+}
+
 /* Animacje dla płótna */
 @keyframes tetris-flash {
   0%, 100% { opacity: 0.8; filter: brightness(1.5); }

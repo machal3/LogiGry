@@ -6,12 +6,12 @@
 - kategoria: zrecznosciowe
 
 ## Zasady
-1. **Ruch klocków**: Spadające klocki (tetromino) układasz na planszy 10×20, przesuwając je strzałkami lewo/prawo, obracając strzałkami góra/dół
+1. **Ruch klocków**: Spadające klocki (tetromino) układasz na planszy 10×20, przesuwając je strzałkami lewo/prawo, obracając strzałką w górę (albo Z/X)
 2. **Celem**: Wypełniaj wiersze, aby je usunąć i zdobywać punkty
 3. **Wygrana**: W trybie klasycznym - wypełnij wymaganą liczbę wierszy (10/20/30 w zależności od poziomu)
 4. **Przegrana**: Gra kończy się, gdy nowy klocek nie zmieści się na planszy
 5. **Tryb bez końca**: Gra trwa bez końca, prędkość rośnie co 10 wierszy, zbieraj punkty za usunięte wiersze
-6. **Soft drop**: Przytrzymanie strzałki w dół przyspiesza opadanie klocka
+6. **Soft drop**: Przytrzymanie strzałki w dół (lub S) przyspiesza opadanie klocka
 7. **Hard drop**: Spacja natychmiast opuszcza klocek na dół
 
 ## Mechaniki specjalne
