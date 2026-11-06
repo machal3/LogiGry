@@ -10,8 +10,8 @@
   // `needDrift` i `needGate` pilnują, żeby nowe przeszkody naprawdę brały udział w rozwiązaniu.
   const LEVELS = [
     { key: "easy", name: "Łatwy", points: 10, n: 6, gems: 2, drifts: 0, gates: 0, density: 15, want: 5, slack: 8, needDrift: 0, needGate: 0, tries: 200 },
-    { key: "medium", name: "Średni", points: 25, n: 8, gems: 3, drifts: 3, gates: 0, density: 17, want: 6, slack: 6, needDrift: 1, needGate: 0, tries: 220 },
-    { key: "hard", name: "Trudny", points: 50, n: 10, gems: 4, drifts: 4, gates: 1, density: 18, want: 11, slack: 4, needDrift: 1, needGate: 1, tries: 240 },
+    { key: "medium", name: "Średni", points: 25, n: 8, gems: 3, drifts: 3, gates: 1, density: 17, want: 6, slack: 6, needDrift: 1, needGate: 1, tries: 220 },
+    { key: "hard", name: "Trudny", points: 50, n: 10, gems: 4, drifts: 4, gates: 2, density: 18, want: 11, slack: 4, needDrift: 1, needGate: 1, tries: 240 },
   ];
 
   // --- Logika bez DOM: da się ją sprawdzić w node (test.js) ---
@@ -280,7 +280,7 @@
     cat: "lamiglowki",
     name: "Lodowisko",
     author: "DeepSeek V4.1 Flash",
-    desc: "Prowadź sanki po lodzie: zbierz kryształy, wykorzystaj zaspy i lodowe bramy i zdąż na wyjście.",
+    desc: "Prowadź sanki po lodzie: zbierz kryształy, wykorzystaj zaspy i lodowe bramy, a potem zdąż na wyjście.",
     color: "#0e6b8c",
     ink: "#ffffff",
     glyph: ["..#..", "#.#.#", ".###.", "#.#.#", "..#.."],
@@ -288,7 +288,7 @@
     rules: [
       "Sanki ruszają w wybranym kierunku i ślizgają się, aż zatrzyma je ściana, zaspa albo krawędź lodu.",
       "Zbierz wszystkie kryształy, a potem zatrzymaj się na świecącym wyjściu. Wyjście otwiera się po ostatnim krysztale.",
-      "Zaspy łapią płozy, a lodowa brama przenosi sanki na drugą stronę planszy — pęd trwa dalej.",
+      "Zaspy łapią płozy, a lodowe bramy łączą się w pary o tym samym znaku — przejście przez jedną przenosi sanki do drugiej, a pęd trwa dalej.",
       "Sterowanie: strzałki lub WASD, przesunięcie palcem, przyciski kierunkowe w panelu albo kliknięcie pola w tym samym wierszu lub kolumnie.",
       "Każdy poziom ma limit ruchów równy najlepszemu rozwiązaniu plus zapas. Podpowiedź pokazuje pierwszy ruch.",
     ],
@@ -314,8 +314,8 @@
       const colOf = (i) => i % m;
       const state = {
         r: rowOf(p.start), c: colOf(p.start), mask: 0, shown: 0,
-        moves: 0, over: false, busy: false, hinted: false, queue: null,
-        trail: [], gates: 0,
+        moves: 0, over: false, busy: false, queue: null,
+        trail: [],
       };
 
       // --- Plansza: pola-przyciski, krysztaly, zaspy i bramy ---
@@ -350,7 +350,7 @@
       // Bramy łączymy w pary: oba końce mają ten sam kolor i ten sam znaczek.
       const pairs = [];
       p.portal.forEach((to, i) => { if (to > i) pairs.push([i, to]); });
-      const tones = ["#22d3ee", "#a78bfa", "#34d399"];
+      const tones = ["var(--ld-gem-glow)", "var(--violet)", "var(--green)"];
       pairs.forEach(([a, b], k) => {
         const tone = tones[k % tones.length];
         for (const i of [a, b]) {
@@ -406,7 +406,7 @@
       const gemsEl = pipsBlock(ctx, "Kryształy", p.gems.length, { icon: "star" });
       const legend = el("p", "panel-note ld-legend");
       legend.textContent = lv.gates
-        ? "Zaspa łapie płozy, brama przenosi sanki na drugą stronę."
+        ? "Zaspa łapie płozy, a bramy o tym samym znaku tworzą parę."
         : lv.drifts ? "Zaspa łapie płozy i zatrzymuje sanki." : "Lód trzyma pęd aż do ściany.";
       gemsEl.block.append(legend);
 
@@ -493,6 +493,10 @@
         bits(i, "ld-puff ld-puff-cool", 7, 0.4);
         bits(i, "ld-spark", 4, 0.34, "var(--ld-gem-2)");
       }
+      // Pyłek za płozami w trakcie jazdy, mniejszy od tumanu po zatrzymaniu.
+      function spray(i) {
+        bits(i, "ld-mist", 2, 0.16);
+      }
 
       // Fala uderzeniowa wokół pola: rozpływa się i znika.
       function shock(i, tone, big = false) {
@@ -542,7 +546,6 @@
         aimLast = -1;
         state.busy = true;
         state.moves++;
-        state.gates += a.gates;
         const before = state.mask;
         const gained = a.got & ~before;
         state.mask |= a.got;
@@ -584,7 +587,8 @@
         sled.classList.add("ld-move");
         parts.forEach((part, k) => {
           const to = part.seg[part.seg.length - 1];
-          // rysa po lodzie pojawia się wraz z przejazdem sanek
+          // rysa po lodzie pojawia się wraz z przejazdem sanek, a co drugie pole
+          // zostawia za płozami drobny pył
           part.seg.forEach((cell, j) => {
             if (j === 0) return;
             const at = part.start + part.dur * (j / Math.max(1, part.seg.length - 1));
@@ -592,6 +596,7 @@
               if (!state.trail.some((x) => x.i === cell)) state.trail.push({ i: cell, d: dir });
               addGroove(cell, dir, 0);
             }, at);
+            if (j % 2 === 0 && j < part.seg.length - 1) later(() => spray(cell), at);
           });
           later(() => setPos(rowOf(to), colOf(to), part.dur), part.start);
           if (k < parts.length - 1) {
@@ -648,10 +653,14 @@
       const save = ctx.undoable((snap) => {
         clearTimers();
         clearHints();
+        clearAim();
+        aimLast = -1;
         state.busy = false;
+        state.over = false;
         state.queue = null;
         Object.assign(state, snap);
-        sled.classList.remove("ld-warp", "ld-stop", "ld-move");
+        for (const cell of cells) cell.classList.remove("ld-gate-live");
+        sled.classList.remove("ld-warp", "ld-stop", "ld-move", "ld-enter");
         board.classList.remove("ld-win");
         paintTrail(null);
         paintGems();
@@ -662,7 +671,7 @@
       function snapshot() {
         return {
           r: state.r, c: state.c, mask: state.mask, shown: state.shown,
-          moves: state.moves, hinted: state.hinted, gates: state.gates,
+          moves: state.moves,
           trail: state.trail.slice(),
         };
       }
@@ -674,16 +683,17 @@
       }
 
       function refresh() {
-        const got = count(state.mask);
+        const got = count(state.shown);
         const left = Math.max(0, limit - state.moves);
         movesEl.set(`${state.moves} / ${limit}`, state.moves / limit, left > 0 ? `Zostało ${left} ${plural(left, "ruch", "ruchy", "ruchów")}` : "Wykorzystany limit");
         movesNote.classList.toggle("ld-low", left <= 2);
         gemsEl.set(got, got === p.gems.length ? "Wszystkie kryształy zebrane" : `Zebrane ${got} z ${p.gems.length}`);
-        ctx.progress((got + (state.mask === full && state.r === rowOf(p.exit) && state.c === colOf(p.exit) ? 1 : 0)) / (p.gems.length + 1));
+        ctx.progress((got + (state.shown === full && state.r === rowOf(p.exit) && state.c === colOf(p.exit) ? 1 : 0)) / (p.gems.length + 1));
       }
 
       // --- Podpowiedź: pierwszy ruch najlepszego rozwiązania ---
       let hintCells = [];
+      let hintedEver = false; // podpowiedź zostaje wliczona nawet po cofnięciu ruchu
       function clearHints() {
         hintCells.forEach((c) => c.classList.remove("ld-hintpath"));
         hintCells = [];
@@ -691,8 +701,12 @@
       function hint() {
         if (ctx.done || state.over || state.busy) return;
         const res = solve(p, state.r, state.c, state.mask);
-        if (!res) return;
-        state.hinted = true;
+        if (!res) {
+          Sound.error();
+          ctx.toast("Stąd nie ma już drogi — cofnij ruch");
+          return;
+        }
+        hintedEver = true;
         clearHints();
         const a = glide(p, state.r, state.c, res.first);
         const path = a.segs.flat().filter((i, k, arr) => k > 0 && arr.indexOf(i) === k);
@@ -708,10 +722,10 @@
       }
 
       function finish() {
-        if (!state.hinted && ctx.undos === 0) ctx.achieve("bez-cofania");
-        if (!state.hinted && lv.key !== "easy") ctx.achieve("samodzielnie");
+        if (ctx.undos === 0) ctx.achieve("bez-cofania");
+        if (!hintedEver && lv.key !== "easy") ctx.achieve("samodzielnie");
         if (lv.key === "hard" && state.moves === p.optimal && ctx.undos === 0) ctx.achieve("bez-zbednego");
-        if (lv.key === "hard" && ctx.time < 100 && !state.hinted) ctx.achieve("lodowy-mistrz");
+        if (lv.key === "hard" && ctx.time < 100 && !hintedEver) ctx.achieve("lodowy-mistrz");
         state.over = true;
         sled.classList.remove("ld-move");
         sled.classList.add("ld-enter");

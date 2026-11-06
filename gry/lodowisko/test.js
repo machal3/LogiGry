@@ -71,6 +71,11 @@ test("każdy poziom generuje rozwiązalną planszę z wymaganymi przeszkodami", 
       assert.ok(res, "plansza bez rozwiązania");
       assert.strictEqual(res.dist, p.optimal, "zapisane rozwiązanie się nie zgadza");
       assert.ok(res.dist >= 2 && res.dist < 60);
+      // przeszkody z konfiguracji poziomu naprawdę stoją na planszy
+      assert.strictEqual(p.drift.reduce((a, b) => a + b, 0), cfg.drifts, "liczba zasp");
+      assert.strictEqual([...p.portal].filter((x) => x >= 0).length, cfg.gates * 2, "liczba końców bram");
+      assert.ok(res.drifts >= cfg.needDrift, "zaspa musi brać udział w rozwiązaniu");
+      assert.ok(res.gates >= cfg.needGate, "brama musi brać udział w rozwiązaniu");
       // pierwszy ruch naprawdę jest legalny
       const a = glide(p, (p.start / cfg.n) | 0, p.start % cfg.n, res.first);
       assert.ok(a, "pierwszy ruch nic nie zmienia");

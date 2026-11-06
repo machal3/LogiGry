@@ -1,0 +1,26 @@
+/* Tetris - style gry
+   Wszystkie selektory zaczynają się od [data-gra="tetris"]
+   Kolory tylko z tokenów (theme.css), rozmiary względem var(--s)
+   Nie zmieniamy wyglądu przycisków dotykowych, paneli ani ekranu wyniku
+*/
+
+/* Płótno gry - sceny arcade */
+[data-gra="tetris"] .canvas-game canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Animacje dla płótna */
+@keyframes tetris-flash {
+  0%, 100% { opacity: 0.8; filter: brightness(1.5); }
+  50% { opacity: 0.4; filter: brightness(2.5); }
+}
+
+/* Redukcja ruchu */
+@media (prefers-reduced-motion: reduce) {
+  [data-gra="tetris"] .canvas-game canvas {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
