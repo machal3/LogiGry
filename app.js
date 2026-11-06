@@ -804,6 +804,7 @@ function buildStage() {
 }
 
 // Wybór na liście gier zostaje po powrocie z gry.
+// cat: "" odkrywanie (półki z kategoriami), "all", "fav", "played", "fresh", "big" albo klucz z CATEGORIES
 const listView = { q: "", cat: "", sort: "", author: "", view: "" };
 try { listView.view = localStorage.getItem("logigra.view") || ""; } catch {}
 let favs = [];
@@ -814,76 +815,276 @@ const authorsOf = (g) => g.author.split(",").map((a) => a.trim()).filter(Boolean
 // porównanie bez polskich znaków i wielkości liter: "zaba" znajduje „Żabę”
 const fold = (s) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+const SETS = [
+  ["", "Odkrywaj", '<circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>'],
+  ["all", "Wszystkie gry", '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>'],
+  ["fav", "Ulubione", '<path d="M12 4.5l2.3 4.7 5.2.8-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.8-3.6 5.2-.8z"/>'],
+  ["played", "Twoje gry", '<path d="M8 4.5h8v4a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 3.5M16 6h3a3 3 0 0 1-3 3.5M12 12.5V16M8.5 19.5h7"/>'],
+  ["fresh", "Nie grane", '<path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.8 6.8l2 2M15.2 15.2l2 2M6.8 17.2l2-2M15.2 8.8l2-2"/>'],
+  ["big", "Rozbudowane", '<path d="m12 4 8 4-8 4-8-4z"/><path d="m4 12 8 4 8-4M4 16l8 4 8-4"/>'],
+];
+// barwa kategorii z palety motywu (kropka w menu)
+const CAT_TONE = { logiczne: "blue", lamiglowki: "violet", slowa: "teal", zrecznosciowe: "orange", akcja: "red", planszowe: "brown", strategia: "green", symulacje: "yellow", przygodowe: "pink" };
+const setName = (key) => catName[key] || SETS.find((s) => s[0] === key)?.[1] || "Gry";
+const svgIcon = (path, cls = "") => {
+  const s = el("span");
+  s.innerHTML = `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+  return s.firstChild;
+};
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
+
+const inSet = (g, key, p) =>
+  !key || key === "all" ? true
+    : key === "fav" ? favs.includes(g.id)
+    : key === "played" ? !!p.games[g.id]
+    : key === "fresh" ? !p.games[g.id]
+    : key === "big" ? !!g.big
+    : g.cat === key;
+
+// Teksty do wyszukiwania liczone raz.
+const searchText = new Map();
+const hay = (g) => {
+  if (!searchText.has(g.id)) {
+    searchText.set(g.id, {
+      name: fold(g.name),
+      main: fold(`${g.name} ${g.desc} ${catName[g.cat]}`),
+      all: fold(`${g.name} ${g.desc} ${catName[g.cat]} ${g.author} ${(g.rules || []).join(" ")}`),
+    });
+  }
+  return searchText.get(g.id);
+};
+// Dopasowanie: mniej = lepiej, Infinity = nie pasuje. Każde słowo zapytania musi gdzieś wystąpić.
+function matchScore(g, terms) {
+  const h = hay(g);
+  if (!terms.every((t) => h.all.includes(t))) return Infinity;
+  const whole = terms.join(" ");
+  if (h.name.startsWith(whole)) return 0;
+  if (h.name.split(/[\s-]+/).some((w) => w.startsWith(terms[0]))) return 1;
+  if (h.name.includes(terms[0])) return 2;
+  return terms.every((t) => h.main.includes(t)) ? 3 : 4;
+}
+
+// Nazwa gry z podświetlonym fragmentem wyszukiwania.
+function markedName(name, terms) {
+  const span = el("span", "gc-name");
+  const f = fold(name);
+  const t = terms.find((x) => f.includes(x));
+  // podświetlenie tylko, gdy złożenie liter nie zmieniło długości napisu
+  if (!t || f.length !== name.length) {
+    span.textContent = name;
+    return span;
+  }
+  const i = f.indexOf(t);
+  span.append(name.slice(0, i), el("mark", "", name.slice(i, i + t.length)), name.slice(i + t.length));
+  return span;
+}
+
+function toggleFav(game) {
+  const on = !favs.includes(game.id);
+  favs = on ? [...favs, game.id] : favs.filter((id) => id !== game.id);
+  try { localStorage.setItem("logigra.ulubione", JSON.stringify(favs)); } catch {}
+  // bez przebudowy całej listy: strona nie skacze, półki zostają przewinięte
+  document.querySelectorAll(`.fav[data-id="${game.id}"]`).forEach((b) => b.setAttribute("aria-pressed", String(on)));
+  updateSetCounts(Profile.load());
+  if (listView.cat === "fav") buildList();
+}
+
+function gameCard(game, p, terms) {
+  const pg = p.games[game.id];
+  const li = el("li", "gc");
+  paint(li, game);
+  const a = el("a", "gc-link");
+  a.href = `#/gra/${game.id}`;
+  a.title = `${game.desc} Stworzył: ${game.author}`;
+  const art = el("span", "gc-art");
+  art.append(glyph(game.glyph));
+  if (game.big) art.append(el("span", "gc-tag", "Rozbudowana"));
+  const body = el("span", "gc-body");
+  const meta = el("span", "gc-meta");
+  meta.append(el("span", "gc-cat", catName[game.cat]));
+  if (pg) {
+    const all = game.levels?.length || 3;
+    const won = (game.levels || []).filter((l) => pg.best?.[l.key] != null).length;
+    const dots = el("span", "gc-dots");
+    dots.setAttribute("role", "img");
+    dots.setAttribute("aria-label", `Wygrane poziomy: ${won} z ${all}`);
+    dots.title = `Wygrane poziomy: ${won} z ${all}`;
+    for (let i = 0; i < all; i++) dots.append(el("i", i < won ? "on" : ""));
+    meta.append(dots, el("span", "gc-pts", `${pg.points} pkt`));
+  }
+  body.append(markedName(game.name, terms), el("span", "gc-desc", game.desc), meta);
+  a.append(art, body);
+  const star = button("", "fav", () => toggleFav(game));
+  star.dataset.id = game.id;
+  star.setAttribute("aria-pressed", String(favs.includes(game.id)));
+  star.setAttribute("aria-label", `${game.name}: ulubiona`);
+  star.innerHTML = STAR;
+  li.append(a, star);
+  return li;
+}
+
+// Wybór kategorii albo zestawu; przewija do początku listy, jeśli jest nad ekranem.
+function pickSet(key) {
+  listView.cat = key;
+  buildList();
+  const tools = document.getElementById("games-tools");
+  const browse = document.querySelector(".browse");
+  if (browse.getBoundingClientRect().top < tools.offsetHeight) {
+    window.scrollTo({ top: window.scrollY + browse.getBoundingClientRect().top - tools.offsetHeight - 8, behavior: reducedMotion() ? "auto" : "smooth" });
+  }
+}
+
+function shelf(key, title, games, p) {
+  const sec = el("section", "shelf");
+  sec.setAttribute("aria-label", title);
+  const head = el("div", "shelf-head");
+  const more = button("", "shelf-more", () => pickSet(key));
+  more.append(`Wszystkie`, el("span", "", games.length));
+  more.setAttribute("aria-label", `${title}: pokaż wszystkie (${games.length})`);
+  const row = el("ul", "shelf-row");
+  row.dataset.key = key;
+  games.forEach((g) => row.append(gameCard(g, p, [])));
+  const step = (dir) => row.scrollBy({ left: dir * row.clientWidth * 0.85, behavior: reducedMotion() ? "auto" : "smooth" });
+  const prev = button("", "shelf-arrow", () => step(-1));
+  const next = button("", "shelf-arrow", () => step(1));
+  prev.setAttribute("aria-label", `${title}: przewiń w lewo`);
+  next.setAttribute("aria-label", `${title}: przewiń w prawo`);
+  prev.append(svgIcon('<path d="m14.5 6-6 6 6 6"/>'));
+  next.append(svgIcon('<path d="m9.5 6 6 6-6 6"/>'));
+  const arrows = () => {
+    prev.disabled = row.scrollLeft < 4;
+    next.disabled = row.scrollLeft + row.clientWidth > row.scrollWidth - 4;
+  };
+  row.addEventListener("scroll", arrows, { passive: true });
+  requestAnimationFrame(arrows);
+  const h = el("h3", "", title);
+  head.append(h, more, prev, next);
+  sec.append(head, row);
+  return sec;
+}
+
+let lastShown = GAMES;
+
+function updateSetCounts(p) {
+  document.querySelectorAll("#game-cats .cat-item").forEach((b) => {
+    const key = b.dataset.cat;
+    const n = key ? GAMES.filter((g) => inSet(g, key, p)).length : "";
+    b.querySelector(".cat-n").textContent = n;
+    b.setAttribute("aria-label", key ? `${b.querySelector(".cat-label").textContent}, ${n} ${plural(n, "gra", "gry", "gier")}` : "Odkrywaj, gry w kategoriach");
+    b.setAttribute("aria-current", String(key === listView.cat));
+  });
+}
+
 function buildList() {
   const p = Profile.load();
-  const list = document.getElementById("game-list");
-  const q = fold(listView.q.trim());
-  const inCat = (g) => !listView.cat || (listView.cat === "fav" ? favs.includes(g.id) : listView.cat === "big" ? g.big : g.cat === listView.cat);
-  const byAuthor = (g) => !listView.author || authorsOf(g).includes(listView.author);
-  let shown = GAMES.filter((g) => inCat(g) && byAuthor(g) && (!q || fold(`${g.name} ${g.desc} ${catName[g.cat]} ${g.author}`).includes(q)));
+  const main = document.getElementById("game-list");
+  const terms = fold(listView.q).trim().split(/\s+/).filter(Boolean);
+  const flat = !!(listView.cat || terms.length || listView.sort || listView.author);
   const pts = (g) => p.games[g.id]?.points || 0;
-  // ulubione na początku polecanych
-  if (!listView.sort) shown = shown.slice().sort((a, b) => favs.includes(b.id) - favs.includes(a.id));
-  if (listView.sort === "az") shown = shown.slice().sort((a, b) => a.name.localeCompare(b.name, "pl"));
-  if (listView.sort === "pts") shown = shown.slice().sort((a, b) => pts(b) - pts(a));
-  if (listView.sort === "new") shown = shown.slice().sort((a, b) => !!p.games[a.id] - !!p.games[b.id]);
-  list.replaceChildren();
-  // duży pierwszy kafel tylko w pełnym, domyślnym widoku
-  // lista to osobna klasa, bo układ bento opiera się na pozycji kafla (nth-child)
-  list.className = listView.view === "rows" ? "game-rows" : "bento";
-  list.classList.toggle("flat", shown.length !== GAMES.length || !!listView.sort);
-  shown.forEach((game) => {
-    const a = el("a", "card");
-    a.href = `#/gra/${game.id}`;
-    a.title = game.desc;
-    paint(a, game);
-    const body = el("span", "card-body");
-    body.append(el("span", "card-name", game.name), el("span", "card-desc", game.desc), el("span", "card-author", `Stworzył: ${game.author}`));
-    a.append(glyph(game.glyph), body, el("span", "pill", !game.mount ? "Wkrótce" : pts(game) ? `${pts(game)} pkt` : "Graj"));
-    const on = favs.includes(game.id);
-    const star = button("", "fav", () => {
-      favs = on ? favs.filter((id) => id !== game.id) : [...favs, game.id];
-      try { localStorage.setItem("logigra.ulubione", JSON.stringify(favs)); } catch {}
-      buildList();
-      document.querySelector(`.fav[data-id="${game.id}"]`)?.focus();
-    });
-    star.dataset.id = game.id;
-    star.setAttribute("aria-pressed", String(on));
-    star.setAttribute("aria-label", `${game.name}: ulubiona`);
-    star.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
-    paint(star, game);
-    const li = el("li");
-    li.append(a, star);
-    list.append(li);
-  });
-  document.getElementById("games-empty").hidden = shown.length > 0;
   const n = GAMES.length;
-  document.getElementById("games-count").textContent = shown.length === n
-    ? `${n} ${plural(n, "gra", "gry", "gier")}, każda w trzech poziomach trudności`
-    : `${shown.length} z ${n}`;
-  document.querySelector('#game-cats [data-cat="fav"] span').textContent = GAMES.filter((g) => favs.includes(g.id)).length;
-  document.querySelectorAll("#game-cats button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cat === listView.cat)));
-  document.querySelectorAll("#game-view button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === listView.view)));
+  // zapamiętane przewinięcie półek (np. po odświeżeniu listy)
+  const scrolled = Object.fromEntries([...main.querySelectorAll(".shelf-row")].map((r) => [r.dataset.key, r.scrollLeft]));
+  main.replaceChildren();
+
+  if (!flat) {
+    lastShown = GAMES;
+    const fav = GAMES.filter((g) => favs.includes(g.id));
+    const mine = GAMES.filter((g) => p.games[g.id]).sort((a, b) => pts(b) - pts(a));
+    if (fav.length) main.append(shelf("fav", "Ulubione", fav, p));
+    if (mine.length) main.append(shelf("played", "Twoje gry", mine, p));
+    for (const [key, name] of CATEGORIES) {
+      const list = GAMES.filter((g) => g.cat === key);
+      if (list.length) main.append(shelf(key, name, list, p));
+    }
+    main.querySelectorAll(".shelf-row").forEach((r) => { if (scrolled[r.dataset.key]) r.scrollLeft = scrolled[r.dataset.key]; });
+    document.getElementById("games-count").textContent = `${n} ${plural(n, "gra", "gry", "gier")} w ${CATEGORIES.length} kategoriach, każda w trzech poziomach trudności`;
+  } else {
+    const byAuthor = (g) => !listView.author || authorsOf(g).includes(listView.author);
+    let rows = GAMES.filter((g) => inSet(g, listView.cat, p) && byAuthor(g)).map((g, i) => [g, terms.length ? matchScore(g, terms) : 0, i]).filter((r) => r[1] < Infinity);
+    const by = {
+      az: (a, b) => a[0].name.localeCompare(b[0].name, "pl"),
+      pts: (a, b) => pts(b[0]) - pts(a[0]) || a[2] - b[2],
+      "": (a, b) => a[1] - b[1] || favs.includes(b[0].id) - favs.includes(a[0].id) || a[2] - b[2],
+    };
+    rows.sort(by[listView.sort] || by[""]);
+    const shown = (lastShown = rows.map((r) => r[0]));
+
+    const head = el("div", "browse-head");
+    const title = el("h3", "", listView.cat ? setName(listView.cat) : terms.length ? "Wyniki wyszukiwania" : "Wszystkie gry");
+    const found = `${shown.length} ${plural(shown.length, "gra", "gry", "gier")}`;
+    const sub = el("p", "", terms.length ? `${found} dla „${listView.q.trim()}”` : listView.author ? `${found} od ${listView.author}` : found);
+    head.append(title, sub);
+    if (listView.cat || terms.length || listView.author || listView.sort) head.append(button("Wyczyść filtry", "linkish", resetList));
+    main.append(head);
+
+    if (shown.length) {
+      const ul = el("ul", listView.view === "rows" ? "gc-rows" : "gc-grid");
+      shown.forEach((g) => ul.append(gameCard(g, p, terms)));
+      main.append(ul);
+    } else {
+      const empty = el("div", "games-empty");
+      const msg = listView.cat === "fav" && !terms.length
+        ? "Nie masz jeszcze ulubionych gier. Oznacz grę gwiazdką, a pojawi się tutaj."
+        : listView.cat === "played" && !terms.length
+          ? "Nie masz jeszcze rozegranych gier. Wygrana partia doda grę do tej listy."
+          : "Żadna gra nie pasuje. Spróbuj innego słowa albo innej kategorii.";
+      empty.append(el("p", "", msg), button("Pokaż wszystkie gry", "btn-ghost", resetList));
+      main.append(empty);
+    }
+    document.getElementById("games-count").textContent = shown.length === n ? `${n} ${plural(n, "gra", "gry", "gier")}` : `Pokazano ${shown.length} z ${n}`;
+  }
+
+  updateSetCounts(p);
+  const views = document.getElementById("game-view");
+  views.hidden = !flat;
+  views.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === listView.view)));
+}
+
+function resetList() {
+  Object.assign(listView, { q: "", cat: "", sort: "", author: "" });
+  document.getElementById("game-search").value = "";
+  document.getElementById("game-sort").value = "";
+  document.getElementById("game-author").value = "";
+  buildList();
 }
 
 function buildFilters() {
-  const cats = document.getElementById("game-cats");
-  for (const [key, label] of [["", "Wszystkie"], ["fav", "Ulubione"], ["big", "Rozbudowane"], ...CATEGORIES]) {
-    const b = button("", "cat-chip", () => { listView.cat = key; buildList(); });
+  const p = Profile.load();
+  const nav = document.getElementById("game-cats");
+  const item = (key, label, icon) => {
+    const b = button("", "cat-item", () => pickSet(key));
     b.dataset.cat = key;
-    b.append(label, el("span", "", key ? GAMES.filter((g) => (key === "big" ? g.big : g.cat === key)).length : GAMES.length));
-    cats.append(b);
-  }
+    b.append(icon, el("span", "cat-label", label), el("span", "cat-n"));
+    nav.append(b);
+  };
+  nav.append(el("p", "cats-title", "Przeglądaj"));
+  SETS.forEach(([key, label, path]) => item(key, label, svgIcon(path, "cat-ico")));
+  nav.append(el("p", "cats-title", "Kategorie"));
+  CATEGORIES.forEach(([key, label]) => {
+    const dot = el("span", "cat-dot");
+    dot.style.setProperty("--k", `var(--${CAT_TONE[key] || "gray"})`);
+    item(key, label, dot);
+  });
+  updateSetCounts(p);
+
   const views = document.getElementById("game-view");
+  const VIEW_ICONS = {
+    "": '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+    rows: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="5" cy="6.5" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17.5" r="1.2"/>',
+  };
   for (const [key, label] of [["", "Kafle"], ["rows", "Lista"]]) {
-    const b = button(label, "cat-chip", () => {
+    const b = button("", "view-btn", () => {
       listView.view = key;
       try { localStorage.setItem("logigra.view", key); } catch {}
       buildList();
     });
     b.dataset.view = key;
+    b.setAttribute("aria-label", label);
+    b.title = label;
+    b.append(svgIcon(VIEW_ICONS[key]));
     views.append(b);
   }
+
   const search = document.getElementById("game-search");
   const sort = document.getElementById("game-sort");
   const author = document.getElementById("game-author");
@@ -895,21 +1096,66 @@ function buildFilters() {
     author.append(o);
   });
   search.addEventListener("input", () => { listView.q = search.value; buildList(); });
+  search.addEventListener("keydown", (e) => {
+    // Enter otwiera pierwszą znalezioną grę, Escape czyści pole
+    if (e.key === "Enter" && listView.q.trim()) {
+      const first = document.querySelector("#game-list .gc-link");
+      if (first) location.hash = first.getAttribute("href");
+    }
+    if (e.key === "Escape" && search.value) {
+      e.preventDefault();
+      search.value = listView.q = "";
+      buildList();
+    }
+  });
   sort.addEventListener("change", () => { listView.sort = sort.value; buildList(); });
   author.addEventListener("change", () => { listView.author = author.value; buildList(); });
-  document.getElementById("games-reset").onclick = () => {
-    Object.assign(listView, { q: "", cat: "", author: "" });
-    search.value = "";
-    author.value = "";
-    buildList();
+  document.getElementById("games-random").onclick = () => {
+    const pool = lastShown.length ? lastShown : GAMES;
+    location.hash = `#/gra/${pick(pool).id}`;
   };
   // "/" przenosi do wyszukiwarki
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "/" || document.body.dataset.view !== "home" || e.target.closest?.("input, textarea, select")) return;
+    const view = document.body.dataset.view;
+    if (e.key !== "/" || (view !== "games" && view !== "home") || e.target.closest?.("input, textarea, select")) return;
     e.preventDefault();
-    search.focus();
-    search.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
+    // ze strony głównej: najpierw przejście do listy gier
+    if (view === "home") {
+      window.addEventListener("hashchange", () => search.focus(), { once: true });
+      location.hash = "#/gry";
+      return;
+    }
+    search.focus({ preventScroll: true });
+    const tools = document.getElementById("games-tools");
+    if (tools.getBoundingClientRect().top > 0) tools.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
   });
+}
+
+// Strona główna: kafle kategorii prowadzą prosto do listy gier z wybraną kategorią.
+function buildHome() {
+  const grid = document.getElementById("home-cats");
+  const tile = (href, name, games, cls) => {
+    const li = el("li");
+    const a = el("a", `hc ${cls}`);
+    a.href = href;
+    const icons = el("span", "hc-icons");
+    games.slice(0, 3).forEach((g) => {
+      const i = el("span", "hc-ic");
+      paint(i, g);
+      i.append(glyph(g.glyph));
+      icons.append(i);
+    });
+    const text = el("span", "hc-text");
+    text.append(el("strong", "", name), el("span", "", `${games.length} ${plural(games.length, "gra", "gry", "gier")}`));
+    a.append(icons, text, svgIcon('<path d="M5 12h14M13 6l6 6-6 6"/>', "hc-arrow"));
+    li.append(a);
+    grid.append(li);
+  };
+  for (const [key, name] of CATEGORIES) {
+    const games = GAMES.filter((g) => g.cat === key);
+    if (games.length) tile(`#/gry/${key}`, name, games, "");
+  }
+  tile("#/gry/all", "Wszystkie gry", GAMES, "hc-all");
 }
 
 let navAnim = 0;
@@ -1090,27 +1336,45 @@ function renderAchievements() {
 // --- Nawigacja ---
 
 let teardown = null;
+// miejsce na liście gier, do którego wraca się po wyjściu z gry
+let gamesScroll = 0;
 
 function route() {
   teardown?.();
   teardown = null;
   const hash = location.hash;
+  const before = document.body.dataset.view;
+  if (before === "games") gamesScroll = window.scrollY;
   const id = (hash.match(/^#\/gra\/([\w-]+)$/) || [])[1];
   const game = GAMES.find((g) => g.id === id) || (hash === "#/zestaw" ? KIT_DEMO : null);
-  const view = game ? "game" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
-  for (const v of ["home", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
+  // #/gry, #/gry/<kategoria>; stary adres #gry też prowadzi do listy
+  const list = hash.match(/^#\/gry(?:\/([\w-]+))?$/) || (hash === "#gry" && [hash]);
+  const view = game ? "game" : list ? "games" : hash === "#/profil" ? "profile" : hash === "#/osiagniecia" ? "achievements" : "home";
+  for (const v of ["home", "games", "game", "profile", "achievements"]) document.getElementById(v).hidden = v !== view;
   document.body.dataset.view = view;
   updatePoints();
-  document.title = game ? `${game.name} | Logigra` : { profile: "Profil | Logigra", achievements: "Osiągnięcia | Logigra" }[view] || "Logigra";
+  document.title = game ? `${game.name} | Logigra` : { games: "Gry | Logigra", profile: "Profil | Logigra", achievements: "Osiągnięcia | Logigra" }[view] || "Logigra";
   document.querySelector(".nav-ach").toggleAttribute("aria-current", view === "achievements");
+  document.querySelector(".nav-games").toggleAttribute("aria-current", view === "games");
 
-  if (view === "home") {
+  if (view === "games") {
+    const key = list[1];
+    if (key || hash === "#gry") {
+      // kategoria z adresu: ustawiona raz, adres wraca do #/gry
+      if (key && (catName[key] || SETS.some((s) => s[0] === key))) {
+        Object.assign(listView, { cat: key, q: "", sort: "", author: "" });
+        document.getElementById("game-search").value = "";
+        document.getElementById("game-sort").value = "";
+        document.getElementById("game-author").value = "";
+      }
+      history.replaceState(null, "", "#/gry");
+    }
     buildList();
-    const target = hash.length > 1 && document.getElementById(hash.slice(1));
-    target ? target.scrollIntoView() : window.scrollTo(0, 0);
+    window.scrollTo(0, before === "game" ? gamesScroll : 0);
     return;
   }
   window.scrollTo(0, 0);
+  if (view === "home") return;
   if (view === "profile") return renderProfile();
   if (view === "achievements") return renderAchievements();
 
@@ -1128,6 +1392,7 @@ function route() {
 
 buildStage();
 buildFilters();
+buildHome();
 updatePoints();
 window.addEventListener("hashchange", route);
 route();
