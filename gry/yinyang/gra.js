@@ -115,15 +115,11 @@
               let force = 0;
               if (c1 === 3) force = 2;
               else if (c2 === 3) force = 1;
-              else if (c1 === 2 && c2 === 1) {
-                // szachownica: przekątna [0,3] vs [1,2]
-                const diag = (zPos === 0 || zPos === 3) ? vals[1] : vals[0];
+              else if (c1 === 2 && c2 === 1 || c2 === 2 && c1 === 1) {
                 const sameDiag = vals[zPos === 0 ? 3 : zPos === 3 ? 0 : zPos === 1 ? 2 : 1];
-                if (sameDiag !== diag) force = sameDiag; // inaczej powstałaby szachownica
-              } else if (c2 === 2 && c1 === 1) {
-                const diag = (zPos === 0 || zPos === 3) ? vals[1] : vals[0];
-                const sameDiag = vals[zPos === 0 ? 3 : zPos === 3 ? 0 : zPos === 1 ? 2 : 1];
-                if (sameDiag !== diag) force = sameDiag;
+                const oppA = (zPos === 0 || zPos === 3) ? vals[1] : vals[0];
+                const oppB = (zPos === 0 || zPos === 3) ? vals[2] : vals[3];
+                if (oppA === oppB && sameDiag !== oppA) force = oppA;
               }
               if (force) {
                 const cell = idx[zPos];
