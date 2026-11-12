@@ -206,12 +206,31 @@
     return bad;
   }
 
-  // Generuje pełną, różnorodną i poprawną planszę Yin-Yang.
-  function generateFull(n) {
-    const grid = new Int8Array(n * n);
-    let ready = false;
+  function straightScore(grid, n) {
+    let s = 0;
+    for (let r = 0; r < n; r++) {
+      let run = 1;
+      for (let c = 1; c < n; c++) {
+        if (grid[r * n + c] === grid[r * n + c - 1]) { if (++run >= 4) s++; }
+        else run = 1;
+      }
+    }
+    for (let c = 0; c < n; c++) {
+      let run = 1;
+      for (let r = 1; r < n; r++) {
+        if (grid[r * n + c] === grid[(r - 1) * n + c]) { if (++run >= 4) s++; }
+        else run = 1;
+      }
+    }
+    return s;
+  }
 
-    for (let attempt = 0; attempt < 20 && !ready; attempt++) {
+  // Generuje pełną, różnorodną i poprawną planszę Yin-Yang bez długich pasków.
+  function generateFull(n) {
+    let best = null, bestScore = Infinity;
+
+    for (let attempt = 0; attempt < 18; attempt++) {
+      const grid = new Int8Array(n * n);
       const mode = rnd(3);
       for (let r = 0; r < n; r++) {
         for (let c = 0; c < n; c++) {
@@ -221,41 +240,67 @@
         }
       }
       let bad = totalBad2x2(grid, n);
-      const steps = n * n * 45;
+      let str = straightScore(grid, n);
+      const steps = n * n * 55;
+
       for (let step = 0; step < steps; step++) {
-        const i = rnd(n * n);
-        const old = grid[i];
-        const opp = 3 - old;
-        if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
-        const before = bad2x2CountAt(grid, n, i);
-        grid[i] = opp;
-        const after = bad2x2CountAt(grid, n, i);
-        if (after <= before && isConnected(grid, n, 1, false) && isConnected(grid, n, 2, false)) {
-          bad += after - before;
+        if (Math.random() < 0.6) {
+          const i = rnd(n * n);
+          const old = grid[i], opp = 3 - old;
+          if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
+          const before = bad2x2CountAt(grid, n, i);
+          grid[i] = opp;
+          const after = bad2x2CountAt(grid, n, i);
+          if (after <= before && isConnected(grid, n, 1, false) && isConnected(grid, n, 2, false)) {
+            bad += after - before;
+            if (bad === 0) {
+              const ns = straightScore(grid, n);
+              if (ns <= str || Math.random() < 0.15) str = ns;
+              else { grid[i] = old; }
+            }
+          } else {
+            grid[i] = old;
+          }
         } else {
-          grid[i] = old;
+          const i = rnd(n * n);
+          const oppNbrs = nbrs(i, n).filter((j) => grid[j] !== grid[i]);
+          if (!oppNbrs.length) continue;
+          const j = pick(oppNbrs);
+          const a = grid[i], b = grid[j];
+          grid[i] = b; grid[j] = a;
+          const nb = totalBad2x2(grid, n);
+          if ((nb < bad || (nb === bad && bad > 0) || (nb === 0 && bad === 0)) && isConnected(grid, n, 1, false) && isConnected(grid, n, 2, false)) {
+            if (nb === 0) {
+              const ns = straightScore(grid, n);
+              if (ns <= str || Math.random() < 0.2) { bad = 0; str = ns; }
+              else { grid[i] = a; grid[j] = b; }
+            } else {
+              bad = nb;
+            }
+          } else {
+            grid[i] = a; grid[j] = b;
+          }
         }
       }
-      if (bad === 0) ready = true;
+      if (bad === 0) {
+        const sc = straightScore(grid, n);
+        if (sc < bestScore) {
+          bestScore = sc;
+          best = grid;
+          if (attempt >= 2 && sc <= n * 2.5) break;
+        }
+      }
     }
 
-    // Awaryjny wzór grzebieniowy z mutacjami, gdyby losowe podejście nie zeszło do zera.
-    if (!ready) {
+    // Awaryjny wzór grzebieniowy, gdyby żadna próba nie zeszła do zera.
+    if (!best) {
+      best = new Int8Array(n * n);
       for (let r = 0; r < n; r++) {
         for (let c = 0; c < n; c++) {
-          if (r === 0) grid[r * n + c] = 1;
-          else if (r === n - 1) grid[r * n + c] = 2;
-          else if (r % 2 === 0) grid[r * n + c] = c === n - 1 ? 2 : 1;
-          else grid[r * n + c] = c === 0 ? 1 : 2;
-        }
-      }
-      for (let step = 0; step < n * n * 24; step++) {
-        const i = rnd(n * n);
-        const old = grid[i], opp = 3 - old;
-        if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
-        grid[i] = opp;
-        if (!valid2x2At(grid, n, i, true) || !isConnected(grid, n, 1, false) || !isConnected(grid, n, 2, false)) {
-          grid[i] = old;
+          if (r === 0) best[r * n + c] = 1;
+          else if (r === n - 1) best[r * n + c] = 2;
+          else if (r % 2 === 0) best[r * n + c] = c === n - 1 ? 2 : 1;
+          else best[r * n + c] = c === 0 ? 1 : 2;
         }
       }
     }
@@ -268,7 +313,7 @@
         const rr = flipV ? n - 1 - r : r;
         const cc = flipH ? n - 1 - c : c;
         const src = rot ? cc * n + rr : rr * n + cc;
-        out[r * n + c] = swap ? 3 - grid[src] : grid[src];
+        out[r * n + c] = swap ? 3 - best[src] : best[src];
       }
     }
     return out;
