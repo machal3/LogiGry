@@ -291,10 +291,12 @@
       });
       seg.set(0);
       ctx.panel.append(panelBlock("Tryb", seg.el));
-      ctx.panel.append(panelBlock("", el("div", "panel-row",
+      const actions = el("div", "panel-row");
+      actions.append(
         button("Sprawdź", "btn", verify),
         button("Podpowiedź", "btn-ghost", hint)
-      )));
+      );
+      ctx.panel.append(panelBlock("", actions));
 
       const save = ctx.undoable((snap) => {
         for (let i = 0; i < grid.length; i++) grid[i] = snap[i];
