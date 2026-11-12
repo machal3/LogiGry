@@ -256,11 +256,9 @@
       { key: "hard", name: "10 × 10", points: 50, n: 10, clues: 34, checks: 2 },
     ],
     rules: [
-      "Wypełnij wszystkie puste pola białymi albo czarnymi kamieniami (część pól jest zablokowana).",
-      "Wszystkie białe kamienie muszą tworzyć jeden spójny obszar (połączony bokami) i wszystkie czarne drugi.",
-      "Nigdzie na planszy nie może powstać kwadrat 2×2 w jednym kolorze.",
-      "Kliknięcie przełącza pole (puste → biały → czarny → puste), prawy przycisk stawia czarny kamień.",
-      "Klawiatura: strzałki przesuwają kursor, spacja przełącza, B stawia biały, C czarny, Backspace czyści.",
+      "Wypełnij puste pola białymi lub czarnymi kamieniami (prawy przycisk stawia czarny).",
+      "Wszystkie białe kamienie muszą tworzyć jeden spójny obszar i wszystkie czarne drugi.",
+      "Nigdzie nie może powstać kwadrat 2×2 w jednym kolorze. Klawiatura: strzałki, spacja, B, C, Backspace.",
     ],
     achievements: [
       { id: "bez-sprawdzania", name: "Bez podglądania", desc: "Ukończ planszę bez użycia Sprawdź ani Podpowiedzi.", points: 10 },
@@ -288,13 +286,15 @@
         if (locked[i]) b.classList.add("is-lock");
       });
 
-      const leftEl = statBlock(ctx, "Pozostało pól", { meter: true });
-      const statusEl = statsBlock(ctx, "Stan", ["Spójność", "Sprawdzenia"]);
-      const seg = segmented("Narzędzie", [["auto", "Przełącz"], ["1", "Biały"], ["2", "Czarny"]], (v) => {
-        s.tool = v;
+      const statusEl = statsBlock(ctx, "Stan", ["Pozostało", "Spójność", "Sprawdzenia"]);
+      const tools = ["auto", "1", "2"];
+      const seg = segmented("Tryb kliknięcia", ["Przełącz", "Biały", "Czarny"], (k) => {
+        s.tool = tools[k];
+        seg.set(k);
         Sound.tap();
       });
-      ctx.panel.append(panelBlock("Tryb kliknięcia", seg.el));
+      seg.set(0);
+      ctx.panel.append(panelBlock("Tryb", seg.el));
       ctx.panel.append(panelBlock("", el("div", "panel-row",
         button("Sprawdź", "btn", verify),
         button("Podpowiedź", "btn-ghost", hint)
@@ -429,8 +429,8 @@
 
         const left = totalFree - filledFree;
         const ratio = totalFree ? filledFree / totalFree : 1;
-        leftEl.set(left, ratio);
-        const connLabel = res.connW && res.connB ? "OK" : (!res.connW && !res.connB ? "Obie rozłączne" : !res.connW ? "Białe rozłączne" : "Czarne rozłączne");
+        statusEl.set("Pozostało", `${left} ${plural(left, "pole", "pola", "pól")}`);
+        const connLabel = res.connW && res.connB ? "OK" : (!res.connW && !res.connB ? "Rozłączne" : !res.connW ? "Białe rozł." : "Czarne rozł.");
         statusEl.set("Spójność", connLabel);
         statusEl.set("Sprawdzenia", `${s.checkCount} z ${checks}`);
         ctx.progress(ratio * 0.95);
