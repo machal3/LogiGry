@@ -172,31 +172,92 @@
     return nodes >= maxNodes && sols < limit ? 2 : sols;
   }
 
-  // Generuje pełną, poprawną planszę Yin-Yang metodą mutacji meandra.
-  function generateFull(n) {
-    const grid = new Int8Array(n * n);
-    // Startowy wzór grzebieniowy: zawsze spójny, bez 2x2 jednorodnych i bez 2x2 szachownicy
-    for (let r = 0; r < n; r++) {
-      for (let c = 0; c < n; c++) {
-        if (r === 0) grid[r * n + c] = 1;
-        else if (r === n - 1) grid[r * n + c] = 2;
-        else if (r % 2 === 0) grid[r * n + c] = c === n - 1 ? 2 : 1;
-        else grid[r * n + c] = c === 0 ? 1 : 2;
+  // Liczy nielegalne kwadraty 2x2 (jednorodne i szachownice) wokół pola i.
+  function bad2x2CountAt(grid, n, i) {
+    const r0 = (i / n) | 0, c0 = i % n;
+    let bad = 0;
+    for (let dr = -1; dr <= 0; dr++) {
+      for (let dc = -1; dc <= 0; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (r < 0 || c < 0 || r >= n - 1 || c >= n - 1) continue;
+        const a = grid[r * n + c];
+        const b = grid[r * n + c + 1];
+        const d = grid[(r + 1) * n + c];
+        const e = grid[(r + 1) * n + c + 1];
+        if (a === b && b === d && d === e) bad++;
+        else if (a === e && b === d && a !== b) bad++;
       }
     }
+    return bad;
+  }
 
-    const steps = n * n * 24;
-    for (let step = 0; step < steps; step++) {
-      const i = rnd(n * n);
-      const old = grid[i];
-      const opp = 3 - old;
-      // Mutujemy tylko pola graniczne, żeby nie robić oderwanych wysp
-      if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
-      grid[i] = opp;
-      if (valid2x2At(grid, n, i, true) && isConnected(grid, n, 1, false) && isConnected(grid, n, 2, false)) {
-        continue;
+  function totalBad2x2(grid, n) {
+    let bad = 0;
+    for (let r = 0; r < n - 1; r++) {
+      for (let c = 0; c < n - 1; c++) {
+        const a = grid[r * n + c];
+        const b = grid[r * n + c + 1];
+        const d = grid[(r + 1) * n + c];
+        const e = grid[(r + 1) * n + c + 1];
+        if (a === b && b === d && d === e) bad++;
+        else if (a === e && b === d && a !== b) bad++;
       }
-      grid[i] = old;
+    }
+    return bad;
+  }
+
+  // Generuje pełną, różnorodną i poprawną planszę Yin-Yang.
+  function generateFull(n) {
+    const grid = new Int8Array(n * n);
+    let ready = false;
+
+    for (let attempt = 0; attempt < 20 && !ready; attempt++) {
+      const mode = rnd(3);
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (mode === 0) grid[r * n + c] = c < (n >> 1) ? 1 : 2;
+          else if (mode === 1) grid[r * n + c] = r + c < n ? 1 : 2;
+          else grid[r * n + c] = (r === 0 || c === 0 || c === n - 1) ? 1 : 2;
+        }
+      }
+      let bad = totalBad2x2(grid, n);
+      const steps = n * n * 45;
+      for (let step = 0; step < steps; step++) {
+        const i = rnd(n * n);
+        const old = grid[i];
+        const opp = 3 - old;
+        if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
+        const before = bad2x2CountAt(grid, n, i);
+        grid[i] = opp;
+        const after = bad2x2CountAt(grid, n, i);
+        if (after <= before && isConnected(grid, n, 1, false) && isConnected(grid, n, 2, false)) {
+          bad += after - before;
+        } else {
+          grid[i] = old;
+        }
+      }
+      if (bad === 0) ready = true;
+    }
+
+    // Awaryjny wzór grzebieniowy z mutacjami, gdyby losowe podejście nie zeszło do zera.
+    if (!ready) {
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (r === 0) grid[r * n + c] = 1;
+          else if (r === n - 1) grid[r * n + c] = 2;
+          else if (r % 2 === 0) grid[r * n + c] = c === n - 1 ? 2 : 1;
+          else grid[r * n + c] = c === 0 ? 1 : 2;
+        }
+      }
+      for (let step = 0; step < n * n * 24; step++) {
+        const i = rnd(n * n);
+        const old = grid[i], opp = 3 - old;
+        if (!nbrs(i, n).some((j) => grid[j] === opp)) continue;
+        grid[i] = opp;
+        if (!valid2x2At(grid, n, i, true) || !isConnected(grid, n, 1, false) || !isConnected(grid, n, 2, false)) {
+          grid[i] = old;
+        }
+      }
     }
 
     // Losowa symetria (obrót / odbicie / zamiana kolorów)

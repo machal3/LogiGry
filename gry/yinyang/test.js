@@ -6,6 +6,7 @@ const { generate, generateFull, checkBoard, countSolutions, isConnected } = requ
 
 test("generateFull tworzy poprawną planszę bez 2x2 i ze spójnymi kolorami", () => {
   for (const n of [6, 8, 10]) {
+    const seen = new Set();
     for (let k = 0; k < 20; k++) {
       const grid = generateFull(n);
       assert.strictEqual(grid.length, n * n);
@@ -14,7 +15,9 @@ test("generateFull tworzy poprawną planszę bez 2x2 i ze spójnymi kolorami", (
       assert.strictEqual(res.bad.size, 0);
       assert.strictEqual(res.connW, true);
       assert.strictEqual(res.connB, true);
+      seen.add(grid.join(""));
     }
+    assert.ok(seen.size >= 15, `Oczekiwano różnorodności plansz ${n}x${n}, uzyskano ${seen.size}/20`);
   }
 });
 
