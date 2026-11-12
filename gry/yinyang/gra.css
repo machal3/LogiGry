@@ -18,6 +18,10 @@
   }
 }
 
+[data-gra="yinyang"] .yy-grid {
+  touch-action: none;
+}
+
 [data-gra="yinyang"] .yy-grid .gb-cell {
   display: grid;
   place-items: center;

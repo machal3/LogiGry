@@ -303,6 +303,13 @@
         render();
       });
 
+      function nextVal(i, forceBlack = false) {
+        if (forceBlack) return grid[i] === 2 ? 0 : 2;
+        if (s.tool === "1") return grid[i] === 1 ? 0 : 1;
+        if (s.tool === "2") return grid[i] === 2 ? 0 : 2;
+        return (grid[i] + 1) % 3;
+      }
+
       function put(i, val) {
         if (ctx.done || locked[i] || grid[i] === val) return;
         save(grid.slice());
@@ -317,13 +324,7 @@
 
       function tapCell(i, forceBlack = false) {
         if (ctx.done || locked[i]) return;
-        if (forceBlack) {
-          put(i, grid[i] === 2 ? 0 : 2);
-          return;
-        }
-        if (s.tool === "1") put(i, grid[i] === 1 ? 0 : 1);
-        else if (s.tool === "2") put(i, grid[i] === 2 ? 0 : 2);
-        else put(i, (grid[i] + 1) % 3);
+        put(i, nextVal(i, forceBlack));
       }
 
       function verify() {
@@ -375,20 +376,81 @@
       }
 
       function win() {
+        drag = null;
         if (!s.usedCheckOrHint) ctx.achieve("bez-sprawdzania");
         if (key !== "easy" && ctx.undos === 0) ctx.achieve("bez-cofania");
         if (key === "hard" && ctx.time < 300 && !s.usedHint) ctx.achieve("blyskawica");
         ctx.win(`Plansza ${n} × ${n} ułożona w ${fmt(ctx.time)}.`);
       }
 
+      let drag = null;
+
+      function fillLine(r0, c0, r1, c1, val) {
+        let changed = 0, hasBad = false;
+        const dr = Math.sign(r1 - r0), dc = Math.sign(c1 - c0);
+        let r = r0, c = c0;
+        for (;;) {
+          const idx = r * n + c;
+          if (!locked[idx] && grid[idx] !== val) {
+            grid[idx] = val;
+            replay(cells[idx], val ? "ui-pop" : "tick");
+            changed++;
+          }
+          if (r === r1 && c === c1) break;
+          r += dr;
+          c += dc;
+        }
+        if (!changed) return;
+        const res = render();
+        if (res.solved) return win();
+        for (const idx of res.bad) if ((r0 === r1 && ((idx / n) | 0) === r0) || (c0 === c1 && idx % n === c0)) hasBad = true;
+        if (hasBad) Sound.error();
+        else val ? Sound.place(val * 3) : Sound.erase();
+      }
+
       board.addEventListener("contextmenu", (e) => e.preventDefault());
       board.addEventListener("pointerdown", (e) => {
+        if (ctx.done) return;
         const b = e.target.closest(".gb-cell");
         if (!b) return;
         const i = +b.dataset.i;
         s.cursor = i;
-        tapCell(i, e.button === 2);
+        if (locked[i]) return;
+        const val = nextVal(i, e.button === 2);
+        save(grid.slice());
+        const r0 = (i / n) | 0, c0 = i % n;
+        drag = { r0, c0, lastR: r0, lastC: c0, axis: null, val };
+        fillLine(r0, c0, r0, c0, val);
       });
+
+      ctx.on(window, "pointermove", (e) => {
+        if (!drag || ctx.done) return;
+        const b = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".gb-cell");
+        if (!b || !board.contains(b)) return;
+        const idx = +b.dataset.i;
+        const r = (idx / n) | 0, c = idx % n;
+        if (r === drag.lastR && c === drag.lastC) return;
+        if (drag.axis === null) {
+          if (r === drag.r0 && c !== drag.c0) drag.axis = "row";
+          else if (c === drag.c0 && r !== drag.r0) drag.axis = "col";
+          else return;
+        }
+        if (drag.axis === "row" && r === drag.r0) {
+          const prevC = drag.lastC;
+          drag.lastC = c;
+          s.cursor = idx;
+          fillLine(drag.r0, prevC, drag.r0, c, drag.val);
+        } else if (drag.axis === "col" && c === drag.c0) {
+          const prevR = drag.lastR;
+          drag.lastR = r;
+          s.cursor = idx;
+          fillLine(prevR, drag.c0, r, drag.c0, drag.val);
+        }
+      });
+
+      const stopDrag = () => { drag = null; };
+      ctx.on(window, "pointerup", stopDrag);
+      ctx.on(window, "pointercancel", stopDrag);
 
       cellKeys(ctx, {
         cols: n,
